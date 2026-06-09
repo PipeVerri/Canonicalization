@@ -1,0 +1,9 @@
+pyproject.toml
+convnova.egg-info/PKG-INFO
+convnova.egg-info/SOURCES.txt
+convnova.egg-info/dependency_links.txt
+convnova.egg-info/requires.txt
+convnova.egg-info/top_level.txt
+scripts/__init__.py
+scripts/canonicalize_genomes.py
+tests/test_segment_index.py

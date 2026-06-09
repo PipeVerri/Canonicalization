@@ -1,9 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "convnova"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "ConvNova research project"
 requires-python = ">=3.10"
 dependencies = [
-    "jupyterlab>=4.5.8",
+    "biopython",
+    "pytest",
+    "hydra-core",
+    "numpy",
+    # Add other key dependencies if needed, but these are the ones used in the test/scripts
 ]
+
+[tool.setuptools]
+packages = ["src", "scripts"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
