@@ -5,13 +5,15 @@ from pathlib import Path
 import json
 from BCBio import GFF
 import bisect
-from intervaltree import Interval, IntervalTree
+from intervaltree import IntervalTree
+import pronto
 
 ##########
 # Config #
 ##########
 
 OVERLAP_CHECK_WHOLE_SEGMENT = True
+TRANSCRIPTED_REGIONS = ("mRNA")
 
 #########################
 # Genomic files parsing #
@@ -95,6 +97,40 @@ def merge_segment_list(segments_list):
     
     return merged_segments
 
+
+###############
+# OBO Parsing #
+###############
+
+sequence_ontology = pronto.Ontology(Path(__file__) / "../so.clean.obo")
+
+# Maps name (like "transcript") to Term object
+sequence_name_to_obo_term = {
+    term.name: term
+    for term in sequence_ontology.terms()
+    if term.name is not None and not term.obsolete
+}
+
+def is_feature_type_transcribed(name):
+    global sequence_name_to_obo_term
+    ancestors = ("transcript","mRNA", "primary_transcript")
+
+    term = sequence_name_to_obo_term.get(name)
+    if term is None:
+        term = sequence_name_to_obo_term.get(name.replace("_", ""))
+        if term is None:
+            print(f"Warning: {name} not found in Sequence Ontology")
+            return False
+
+    superclases = term.superclasses(with_self=True)
+
+    for a in ancestors:
+        a_term = sequence_name_to_obo_term.get(name)
+        if a_term in superclases:
+            return True
+
+    return False
+
 ##############
 # Main logic #
 ##############
@@ -104,8 +140,8 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
     negative_segments = []
     total_skew = 0
 
-    for feature in record.features:
-        location = feature.location
+    for transcribed_feature in explore_recursively_transcribed_features(record.feature):
+        location = transcribed_feature.location
         if location.strand != 1 and location.strand != -1:
             continue
 
@@ -126,6 +162,17 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
 
     return positive_segments, negative_segments, total_skew
 
+def explore_recursively_transcribed_features(feature):
+    if feature.type == "exon":
+        raise ValueError("Shouldn't have encountered exon, should have encountered parent")
+    
+    if is_feature_type_transcribed(feature.type):
+        return [feature]
+    else:
+        to_return = []
+        for sub_feature in feature.sub_features:
+            to_return += explore_recursively_transcribed_features(sub_feature)
+        return to_return
 
 def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=OVERLAP_CHECK_WHOLE_SEGMENT):
     overlaps = intervaltree_to_tuples(correctly_oriented_segments.overlap(start, end))
