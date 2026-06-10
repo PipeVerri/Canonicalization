@@ -13,7 +13,11 @@ import pronto
 ##########
 
 OVERLAP_CHECK_WHOLE_SEGMENT = True
-TRANSCRIPTED_REGIONS = ("mRNA")
+ORIENT_WHOLE_PSEUDOGENE = False
+ORIENT_PSEUDOGENE_EXONS = False
+ORIENT_CDJV_SEGMENTS = True # T cells antigen receptors
+
+RAISE_ERROR_IF_ENCOUNTER = ("CDS",)
 
 #########################
 # Genomic files parsing #
@@ -113,7 +117,11 @@ sequence_name_to_obo_term = {
 
 def is_feature_type_transcribed(name):
     global sequence_name_to_obo_term
-    ancestors = ("transcript","mRNA", "primary_transcript")
+    ancestors = ["transcript","mRNA", "primary_transcript"] 
+    if ORIENT_WHOLE_PSEUDOGENE:
+        ancestors.append("pseudogene")
+    if ORIENT_CDJV_SEGMENTS:
+        ancestors.extend(("C_gene_segment", "D_gene_segment", "J_gene_segment", "V_gene_segment"))
 
     term = sequence_name_to_obo_term.get(name)
     if term is None:
@@ -163,17 +171,28 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
 
     return positive_segments, negative_segments, total_skew
 
-def explore_recursively_transcribed_features(feature):
+def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False, orient_pseudogene_exons=ORIENT_PSEUDOGENE_EXONS, raise_error_if_encounter=RAISE_ERROR_IF_ENCOUNTER):
     if feature.type == "exon":
-        raise ValueError("Shouldn't have encountered exon, should have encountered parent")
-    
+        if is_inside_pseudogene:
+            if orient_pseudogene_exons:
+                return feature
+            else:
+                return []
+        else:
+            raise ValueError("Encountered exon outside pseudogenome")
+
+    if feature.type in RAISE_ERROR_IF_ENCOUNTER:
+        raise ValueError(f"Encountered {feature.type}")
+
+    if feature.type == "pseudogene":
+        is_inside_pseudogene = True
+
     if is_feature_type_transcribed(feature.type):
         return [feature]
     else:
         to_return = []
-        for sub_feature in getattr(feature, "sub_features", []):
-            print("Scanned sub-feature")
-            to_return += explore_recursively_transcribed_features(sub_feature)
+        for sub_feature in feature.sub_features:
+            to_return += explore_recursively_transcribed_features(sub_feature, is_inside_pseudogene=is_inside_pseudogene)
         return to_return
 
 def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=OVERLAP_CHECK_WHOLE_SEGMENT):

@@ -36,6 +36,8 @@ def test_parse_record_into_segments_and_skew():
     feature4 = SeqFeature(FeatureLocation(30, 40, strand=1), type="gene")
     
     record.features = [feature1, feature2, feature3, feature4]
+    for f in record.features:
+        f.sub_features = []
     
     positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(record, training_genome, "genome1")
     
@@ -52,6 +54,7 @@ def test_parse_record_into_segments_and_skew_with_subfeatures():
     sub_feature = SeqFeature(FeatureLocation(0, 10, strand=1), type="mRNA")
     parent_feature = SeqFeature(FeatureLocation(0, 10, strand=1), type="gene")
     parent_feature.sub_features = [sub_feature]
+    print(parent_feature.sub_features)
     
     record.features = [parent_feature]
     
