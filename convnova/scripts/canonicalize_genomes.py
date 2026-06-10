@@ -115,12 +115,12 @@ sequence_name_to_obo_term = {
     if term.name is not None and not term.obsolete
 }
 
-def is_feature_type_transcribed(name):
+def is_feature_type_transcribed(name, orient_whole_pseudogene=False, orient_cdjv_segments=True):
     global sequence_name_to_obo_term
     ancestors = ["transcript","mRNA", "primary_transcript"] 
-    if ORIENT_WHOLE_PSEUDOGENE:
+    if orient_whole_pseudogene:
         ancestors.append("pseudogene")
-    if ORIENT_CDJV_SEGMENTS:
+    if orient_cdjv_segments:
         ancestors.extend(("C_gene_segment", "D_gene_segment", "J_gene_segment", "V_gene_segment"))
 
     term = sequence_name_to_obo_term.get(name)
@@ -143,13 +143,23 @@ def is_feature_type_transcribed(name):
 # Main logic #
 ##############
 
-def parse_record_into_segments_and_skew(record, training_genome, training_genome_id):
+def parse_record_into_segments_and_skew(record, training_genome, training_genome_id, 
+                                        orient_pseudogene_exons=False, 
+                                        raise_error_if_encounter=(), 
+                                        orient_whole_pseudogene=False, 
+                                        orient_cdjv_segments=True):
     positive_segments = []
     negative_segments = []
     total_skew = 0
 
     for feature in record.features:
-        for transcribed_feature in explore_recursively_transcribed_features(feature):
+        for transcribed_feature in explore_recursively_transcribed_features(
+            feature, 
+            orient_pseudogene_exons=orient_pseudogene_exons, 
+            raise_error_if_encounter=raise_error_if_encounter,
+            orient_whole_pseudogene=orient_whole_pseudogene,
+            orient_cdjv_segments=orient_cdjv_segments
+        ):
             location = transcribed_feature.location
             if location.strand != 1 and location.strand != -1:
                 continue
@@ -171,28 +181,39 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
 
     return positive_segments, negative_segments, total_skew
 
-def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False, orient_pseudogene_exons=ORIENT_PSEUDOGENE_EXONS, raise_error_if_encounter=RAISE_ERROR_IF_ENCOUNTER):
+def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False, 
+                                             orient_pseudogene_exons=False, 
+                                             raise_error_if_encounter=(),
+                                             orient_whole_pseudogene=False,
+                                             orient_cdjv_segments=True):
     if feature.type == "exon":
         if is_inside_pseudogene:
             if orient_pseudogene_exons:
-                return feature
+                return [feature]
             else:
                 return []
         else:
             raise ValueError("Encountered exon outside pseudogenome")
 
-    if feature.type in RAISE_ERROR_IF_ENCOUNTER:
+    if feature.type in raise_error_if_encounter:
         raise ValueError(f"Encountered {feature.type}")
 
     if feature.type == "pseudogene":
         is_inside_pseudogene = True
 
-    if is_feature_type_transcribed(feature.type):
+    if is_feature_type_transcribed(feature.type, orient_whole_pseudogene=orient_whole_pseudogene, orient_cdjv_segments=orient_cdjv_segments):
         return [feature]
     else:
         to_return = []
         for sub_feature in feature.sub_features:
-            to_return += explore_recursively_transcribed_features(sub_feature, is_inside_pseudogene=is_inside_pseudogene)
+            to_return += explore_recursively_transcribed_features(
+                sub_feature, 
+                is_inside_pseudogene=is_inside_pseudogene,
+                orient_pseudogene_exons=orient_pseudogene_exons,
+                raise_error_if_encounter=raise_error_if_encounter,
+                orient_whole_pseudogene=orient_whole_pseudogene,
+                orient_cdjv_segments=orient_cdjv_segments
+            )
         return to_return
 
 def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=OVERLAP_CHECK_WHOLE_SEGMENT):
@@ -252,7 +273,15 @@ if __name__ == "__main__":
     
     for record in gff_records_generator(ncbi_data_dir / "genomic.gff", ncbi_to_training_id):
         training_genome_id = ncbi_to_training_id[record.id]
-        positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(record, training_genome, training_genome_id)
+        positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
+            record, 
+            training_genome, 
+            training_genome_id,
+            orient_pseudogene_exons=ORIENT_PSEUDOGENE_EXONS,
+            raise_error_if_encounter=RAISE_ERROR_IF_ENCOUNTER,
+            orient_whole_pseudogene=ORIENT_WHOLE_PSEUDOGENE,
+            orient_cdjv_segments=ORIENT_CDJV_SEGMENTS
+        )
 
         # On the template strand G + T < A + C (reference 1b). Canonicalize the genome so all the features are in the template direction
         if total_skew > 0: # G + T > A + C on the + strand, so the template strands are on the - side

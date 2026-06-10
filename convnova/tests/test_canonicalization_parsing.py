@@ -5,60 +5,103 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 def test_is_feature_type_transcribed():
     # Basic tests for transcription detection using pronto/Sequence Ontology
-    assert is_feature_type_transcribed("mRNA") == True
-    assert is_feature_type_transcribed("transcript") == True
-    assert is_feature_type_transcribed("primary_transcript") == True
-    assert is_feature_type_transcribed("gene") == False # Even though a part of a gene is usually transcribed, the whole gene isn't
-    assert is_feature_type_transcribed("exon") == False # Exons are parts, usually not the main transcribed feature we track here
-    assert is_feature_type_transcribed("lnc_RNA") == True # lnc_RNA doesn't show up, but lncRNA does
+    # We pass explicit config to ensure tests are independent of global file config
+    assert is_feature_type_transcribed("mRNA", orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("transcript", orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("primary_transcript", orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("gene", orient_cdjv_segments=False) == False
+    assert is_feature_type_transcribed("exon", orient_cdjv_segments=False) == False
+    assert is_feature_type_transcribed("lnc_RNA", orient_cdjv_segments=False) == True
+    
+    # CDJV segments logic
+    assert is_feature_type_transcribed("V_gene_segment", orient_cdjv_segments=True) == True
+    assert is_feature_type_transcribed("V_gene_segment", orient_cdjv_segments=False) == False
+    
+    # Pseudogene logic
+    assert is_feature_type_transcribed("pseudogene", orient_whole_pseudogene=True) == True
+    assert is_feature_type_transcribed("pseudogene", orient_whole_pseudogene=False) == False
+
+def test_parse_record_into_segments_and_skew_sequential_no_overlap():
+    training_genome = {"genome1": Seq("A" * 100)}
+    record = SeqRecord(Seq(""), id="record1")
+    
+    # Create overlapping and contiguous features
+    f1 = SeqFeature(FeatureLocation(0, 10, strand=1), type="mRNA")
+    f2 = SeqFeature(FeatureLocation(5, 15, strand=1), type="mRNA")
+    f3 = SeqFeature(FeatureLocation(15, 20, strand=1), type="mRNA")
+    f4 = SeqFeature(FeatureLocation(30, 40, strand=1), type="mRNA")
+    
+    f5 = SeqFeature(FeatureLocation(50, 60, strand=-1), type="mRNA")
+    f6 = SeqFeature(FeatureLocation(55, 65, strand=-1), type="mRNA")
+    
+    features = [f1, f2, f3, f4, f5, f6]
+    for f in features:
+        f.sub_features = []
+    
+    record.features = features
+    
+    # Pass explicit defaults to be independent of file config
+    positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
+        record, training_genome, "genome1",
+        orient_pseudogene_exons=False,
+        raise_error_if_encounter=(),
+        orient_whole_pseudogene=False,
+        orient_cdjv_segments=True
+    )
+    
+    # Expected positive: (0, 20), (30, 40)
+    assert positive_segments == [(0, 20), (30, 40)]
+    # Expected negative: (50, 65)
+    assert negative_segments == [(50, 65)]
+    
+    # Verify sequential and no overlap (internal consistency of each list)
+    def check_segments_properties(segments, label):
+        for i in range(len(segments)):
+            start, end = segments[i]
+            assert start < end, f"{label} segment {i} ({start}, {end}) has invalid range"
+            if i > 0:
+                prev_start, prev_end = segments[i-1]
+                assert prev_end < start, f"{label} segments overlap or are not merged: {segments[i-1]} and {segments[i]}"
+            
+    check_segments_properties(positive_segments, "Positive")
+    check_segments_properties(negative_segments, "Negative")
 
 def test_parse_record_into_segments_and_skew():
-    # Use Gs and Cs to create skew
-    # + strand: 10 Gs -> skew = 10
-    # - strand: 10 Gs (which are Cs on + strand) -> skew = -(-10) = 10? No.
-    # Script logic:
-    # if strand == 1: total_skew += G + T - C - A
-    # if strand == -1: total_skew += C + A - G - T
-    
-    # Feature 1 (+): 10 Gs -> skew += 10
-    # Feature 2 (-): 10 Gs on - strand (Cs on + strand). 
-    #   feature_seq = training_genome[location.start:location.end] = "CCCCCCCCCC"
-    #   total_skew += C(10) + A(0) - G(0) - T(0) = 10
-    # Feature 3 (+): 10 Gs -> skew += 10
-    
     training_genome = {"genome1": Seq("GGGGGGGGGG" + "CCCCCCCCCC" + "GGGGGGGGGG")}
     record = SeqRecord(Seq(""), id="record1")
     
     feature1 = SeqFeature(FeatureLocation(0, 10, strand=1), type="mRNA")
     feature2 = SeqFeature(FeatureLocation(10, 20, strand=-1), type="mRNA")
     feature3 = SeqFeature(FeatureLocation(20, 30, strand=1), type="mRNA")
-    # Non-transcribed feature should be ignored
     feature4 = SeqFeature(FeatureLocation(30, 40, strand=1), type="gene")
     
     record.features = [feature1, feature2, feature3, feature4]
     for f in record.features:
         f.sub_features = []
     
-    positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(record, training_genome, "genome1")
+    positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
+        record, training_genome, "genome1",
+        orient_cdjv_segments=False
+    )
     
     assert positive_segments == [(0, 10), (20, 30)]
     assert negative_segments == [(10, 20)]
-    assert total_skew == 30 # 10 + 10 + 10
+    assert total_skew == 30 
 
 def test_parse_record_into_segments_and_skew_with_subfeatures():
-    # Test recursive exploration
     training_genome = {"genome1": Seq("GGGGGGGGGG" * 3)}
     record = SeqRecord(Seq(""), id="record1")
     
-    # Top level is gene (not transcribed), but has mRNA subfeature (transcribed)
     sub_feature = SeqFeature(FeatureLocation(0, 10, strand=1), type="mRNA")
     parent_feature = SeqFeature(FeatureLocation(0, 10, strand=1), type="gene")
     parent_feature.sub_features = [sub_feature]
-    print(parent_feature.sub_features)
     
     record.features = [parent_feature]
     
-    positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(record, training_genome, "genome1")
+    positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
+        record, training_genome, "genome1",
+        orient_cdjv_segments=False
+    )
     
     assert positive_segments == [(0, 10)]
     assert total_skew == 10

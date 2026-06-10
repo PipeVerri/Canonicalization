@@ -1,4 +1,4 @@
-from scripts.canonicalize_genomes import merge_segment_list, should_canonicalize_segment, canonicalize_genome, parse_record_into_segments_and_skew
+from scripts.canonicalize_genomes import merge_segment_list, should_canonicalize_segment, canonicalize_genome
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
