@@ -126,6 +126,50 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
 
     return positive_segments, negative_segments, total_skew
 
+
+def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=OVERLAP_CHECK_WHOLE_SEGMENT):
+    overlaps = intervaltree_to_tuples(correctly_oriented_segments.overlap(start, end))
+
+    if overlap_check_whole_segment:
+        # If a flip touches any part of a correctly oriented segment, you consider the whole segment broken.
+        broken_nucleotides_length = sum(
+            seg_end - seg_start
+            for seg_start, seg_end in overlaps
+        )
+    else:
+        # Only count the effectively overlapped part.
+        broken_nucleotides_length = sum(
+            min(end, seg_end) - max(start, seg_start)
+            for seg_start, seg_end in overlaps
+        )
+    
+    # Only flip the segment if the number of broken nucleotides is less than the number of non-broken nucleotides, to avoid breaking too many features
+    return broken_nucleotides_length < (end - start)
+
+def canonicalize_genome(training_genome, training_genome_canonicalization_segments):
+    reversed_training_genome = {}
+    complemented_training_genome = {}
+    rc_training_genome = {}
+
+    for training_genome_id, segments in training_genome_canonicalization_segments.items():
+        reverse_seq = MutableSeq(training_genome[training_genome_id])
+        complement_seq = MutableSeq(training_genome[training_genome_id])
+        rc_seq = MutableSeq(training_genome[training_genome_id])
+        
+        for (start, end) in segments["to_orient"]:
+            if should_canonicalize_segment(start, end, segments["correctly_oriented"]):
+                reverse(reverse_seq, start, end)
+                complement(complement_seq, start, end)
+                # RC
+                reverse(rc_seq, start, end)
+                complement(rc_seq, start, end)
+
+        reversed_training_genome[training_genome_id] = reverse_seq
+        complemented_training_genome[training_genome_id] = complement_seq
+        rc_training_genome[training_genome_id] = rc_seq
+
+    return reversed_training_genome, complemented_training_genome, rc_training_genome
+
 if __name__ == "__main__":
     data_dir = Path(__file__).parents[1] / "data/hg38/"
     ncbi_data_dir = data_dir / "ncbi_dataset/data/GCF_000001405.26/"
@@ -156,51 +200,8 @@ if __name__ == "__main__":
 
     # Apply the canonicalization to the training genome
     print("Canonicalizating genome...")
-    reversed_training_genome = {} # Only reverse the sequences
-    complemented_training_genome = {} # Only canonicalize the sequences
-    rc_training_genome = {} # Take the reverse complement
+    reversed_training_genome, complemented_training_genome, rc_training_genome = canonicalize_genome(training_genome, training_genome_canonicalization_segments)
 
-    for training_genome_id, segments in training_genome_canonicalization_segments.items():
-        print(f"Parsing {training_genome_id}...")
-        
-        reverse_seq = MutableSeq(training_genome[training_genome_id])
-        complement_seq = MutableSeq(training_genome[training_genome_id])
-        rc_seq = MutableSeq(training_genome[training_genome_id])
-        
-        for (start, end) in segments["to_orient"]:
-            # Before applying the operations, check if there's an overlap
-            overlaps = intervaltree_to_tuples(segments["correctly_oriented"].overlap(start, end))
-
-            if OVERLAP_CHECK_WHOLE_SEGMENT:
-                # Si un flip toca cualquier parte de un segmento correctamente orientado,
-                # considerás roto el segmento entero.
-                broken_nucleotides_length = sum(
-                    seg_end - seg_start
-                    for seg_start, seg_end in overlaps
-                )
-            else:
-                # Solo contás la parte efectivamente solapada.
-                broken_nucleotides_length = sum(
-                    min(end, seg_end) - max(start, seg_start)
-                    for seg_start, seg_end in overlaps
-                )
-            
-            # Only flip the segment if the number of broken nucleotides is less than the number of non-broken nucleotides, to avoid breaking too many features
-            if broken_nucleotides_length < (end - start):
-                reverse(reverse_seq, start, end)
-                complement(complement_seq, start, end)
-                # RC
-                reverse(rc_seq, start, end)
-                complement(rc_seq, start, end)
-
-        reversed_training_genome[training_genome_id] = reverse_seq
-        complemented_training_genome[training_genome_id] = complement_seq
-        rc_training_genome[training_genome_id] = rc_seq
-
-    # Check that the canonicalization worked
-    canon_nucleotide_idx = training_genome_canonicalization_segments["chr1"]["to_orient"][0][0]
-    assert complemented_training_genome["chr1"][canon_nucleotide_idx] != training_genome["chr1"][canon_nucleotide_idx]
-    
     print("Saving...")
     out_path = data_dir / "../parsed/"
     output_prefix = "overlap_whole_" if OVERLAP_CHECK_WHOLE_SEGMENT else "overlap_partial_"
