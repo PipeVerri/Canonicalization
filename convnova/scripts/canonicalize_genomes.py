@@ -102,7 +102,7 @@ def merge_segment_list(segments_list):
 # OBO Parsing #
 ###############
 
-sequence_ontology = pronto.Ontology(Path(__file__) / "../so.clean.obo")
+sequence_ontology = pronto.Ontology(Path(__file__).parents[1] / "so.clean.obo")
 
 # Maps name (like "transcript") to Term object
 sequence_name_to_obo_term = {
@@ -125,7 +125,7 @@ def is_feature_type_transcribed(name):
     superclases = term.superclasses(with_self=True)
 
     for a in ancestors:
-        a_term = sequence_name_to_obo_term.get(name)
+        a_term = sequence_name_to_obo_term.get(a)
         if a_term in superclases:
             return True
 
@@ -140,21 +140,22 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
     negative_segments = []
     total_skew = 0
 
-    for transcribed_feature in explore_recursively_transcribed_features(record.feature):
-        location = transcribed_feature.location
-        if location.strand != 1 and location.strand != -1:
-            continue
+    for feature in record.features:
+        for transcribed_feature in explore_recursively_transcribed_features(feature):
+            location = transcribed_feature.location
+            if location.strand != 1 and location.strand != -1:
+                continue
 
-        feature_seq = training_genome[training_genome_id][location.start:location.end]
-        
-        if location.strand == 1:
-            segments_list = positive_segments
-            total_skew += feature_seq.count("G") + feature_seq.count("T") - feature_seq.count("C") - feature_seq.count("A")
-        elif location.strand == -1:
-            segments_list = negative_segments
-            total_skew += feature_seq.count("C") + feature_seq.count("A") - feature_seq.count("G") - feature_seq.count("T")
+            feature_seq = training_genome[training_genome_id][location.start:location.end]
+            
+            if location.strand == 1:
+                segments_list = positive_segments
+                total_skew += feature_seq.count("G") + feature_seq.count("T") - feature_seq.count("C") - feature_seq.count("A")
+            elif location.strand == -1:
+                segments_list = negative_segments
+                total_skew += feature_seq.count("C") + feature_seq.count("A") - feature_seq.count("G") - feature_seq.count("T")
 
-        bisect.insort(segments_list, (location.start, location.end))
+            bisect.insort(segments_list, (location.start, location.end))
 
     # Merge adjacent segments to avoid having too many small segments that would be inefficient to flip
     positive_segments = merge_segment_list(positive_segments)
@@ -170,7 +171,8 @@ def explore_recursively_transcribed_features(feature):
         return [feature]
     else:
         to_return = []
-        for sub_feature in feature.sub_features:
+        for sub_feature in getattr(feature, "sub_features", []):
+            print("Scanned sub-feature")
             to_return += explore_recursively_transcribed_features(sub_feature)
         return to_return
 
