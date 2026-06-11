@@ -1,5 +1,7 @@
+import hydra
+from omegaconf import DictConfig, OmegaConf
 from Bio import SeqIO
-from Bio.Seq import Seq, MutableSeq
+from Bio.Seq import MutableSeq
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
 import json
@@ -7,23 +9,21 @@ from BCBio import GFF
 import bisect
 from intervaltree import IntervalTree
 import pronto
+import os
 
-##########
-# Config #
-##########
+# Standard imports as the project is installed with pip -e .
+import src.utils as utils
+import src.utils.train
 
-OVERLAP_CHECK_WHOLE_SEGMENT = True
-ORIENT_WHOLE_PSEUDOGENE = False
-ORIENT_PSEUDOGENE_EXONS = False
-ORIENT_CDJV_SEGMENTS = True # T cells antigen receptors
+log = src.utils.train.get_logger(__name__)
 
-RAISE_ERROR_IF_ENCOUNTER = ("CDS",)
+# Register OmegaConf resolvers
+OmegaConf.register_new_resolver('eval', eval)
+OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
 
 #########################
 # Genomic files parsing #
 #########################
-
-# FASTA parsing
 
 def read_fasta_into_records_dict(fasta_path):
     records = {}
@@ -31,13 +31,10 @@ def read_fasta_into_records_dict(fasta_path):
         records[record.id] = record.seq
     return records
 
-# NCBI assembly parsing
-
 def parse_ncbi_assembly(jsonl_path):
     data = []
     with open(jsonl_path, "r") as f:
         for line in f:
-            # Avoid empty lines
             if line.strip():  
                 data.append(json.loads(line))
     return data
@@ -50,10 +47,7 @@ def build_ncbi_to_training_id(assembly_path, training_genome):
             ncbi_to_training_id[assembly["refseqAccession"]] = assembly["ucscStyleName"]
     return ncbi_to_training_id
 
-# GFF
-
 def gff_records_generator(gff_path, ncbi_to_training_id):
-    # Limits the GFF records to the ones present in the training genome
     limit_info = {
         "gff_id": list(ncbi_to_training_id.keys())
     }
@@ -61,7 +55,6 @@ def gff_records_generator(gff_path, ncbi_to_training_id):
     with open(gff_path, "r") as f:
         for rec in GFF.parse(f, limit_info=limit_info):
             yield rec
-
 
 #########################
 # Biopython Seq Parsing #
@@ -94,29 +87,30 @@ def merge_segment_list(segments_list):
     
     for current_start, current_end in segments_list[1:]:
         last_start, last_end = merged_segments[-1]
-        if current_start <= last_end:  # Overlap or contiguous
-            merged_segments[-1] = (last_start, max(last_end, current_end))  # Merge
+        if current_start <= last_end:  
+            merged_segments[-1] = (last_start, max(last_end, current_end))  
         else:
-            merged_segments.append((current_start, current_end))  # No overlap, add to list
+            merged_segments.append((current_start, current_end))  
     
     return merged_segments
-
 
 ###############
 # OBO Parsing #
 ###############
 
-sequence_ontology = pronto.Ontology(Path(__file__).parents[1] / "so.clean.obo")
+def load_ontology(ontology_path):
+    log.info(f"Loading Sequence Ontology from {ontology_path}")
+    sequence_ontology = pronto.Ontology(ontology_path)
 
-# Maps name (like "transcript") to Term object
-sequence_name_to_obo_term = {
-    term.name: term
-    for term in sequence_ontology.terms()
-    if term.name is not None and not term.obsolete
-}
+    sequence_name_to_obo_term = {
+        term.name: term
+        for term in sequence_ontology.terms()
+        if term.name is not None and not term.obsolete
+    }
+    
+    return sequence_name_to_obo_term
 
-def is_feature_type_transcribed(name, orient_whole_pseudogene=False, orient_cdjv_segments=True):
-    global sequence_name_to_obo_term
+def is_feature_type_transcribed(name, sequence_name_to_obo_term, orient_whole_pseudogene=False, orient_cdjv_segments=True):
     ancestors = ["transcript","mRNA", "primary_transcript"] 
     if orient_whole_pseudogene:
         ancestors.append("pseudogene")
@@ -127,7 +121,7 @@ def is_feature_type_transcribed(name, orient_whole_pseudogene=False, orient_cdjv
     if term is None:
         term = sequence_name_to_obo_term.get(name.replace("_", ""))
         if term is None:
-            print(f"Warning: {name} not found in Sequence Ontology")
+            log.warning(f"{name} not found in Sequence Ontology")
             return False
 
     superclases = term.superclasses(with_self=True)
@@ -144,6 +138,7 @@ def is_feature_type_transcribed(name, orient_whole_pseudogene=False, orient_cdjv
 ##############
 
 def parse_record_into_segments_and_skew(record, training_genome, training_genome_id, 
+                                        sequence_name_to_obo_term,
                                         orient_pseudogene_exons=False, 
                                         raise_error_if_encounter=(), 
                                         orient_whole_pseudogene=False, 
@@ -155,6 +150,7 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
     for feature in record.features:
         for transcribed_feature in explore_recursively_transcribed_features(
             feature, 
+            sequence_name_to_obo_term,
             orient_pseudogene_exons=orient_pseudogene_exons, 
             raise_error_if_encounter=raise_error_if_encounter,
             orient_whole_pseudogene=orient_whole_pseudogene,
@@ -175,13 +171,12 @@ def parse_record_into_segments_and_skew(record, training_genome, training_genome
 
             bisect.insort(segments_list, (location.start, location.end))
 
-    # Merge adjacent segments to avoid having too many small segments that would be inefficient to flip
     positive_segments = merge_segment_list(positive_segments)
     negative_segments = merge_segment_list(negative_segments)
 
     return positive_segments, negative_segments, total_skew
 
-def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False, 
+def explore_recursively_transcribed_features(feature, sequence_name_to_obo_term, is_inside_pseudogene=False, 
                                              orient_pseudogene_exons=False, 
                                              raise_error_if_encounter=(),
                                              orient_whole_pseudogene=False,
@@ -201,13 +196,14 @@ def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False
     if feature.type == "pseudogene":
         is_inside_pseudogene = True
 
-    if is_feature_type_transcribed(feature.type, orient_whole_pseudogene=orient_whole_pseudogene, orient_cdjv_segments=orient_cdjv_segments):
+    if is_feature_type_transcribed(feature.type, sequence_name_to_obo_term, orient_whole_pseudogene=orient_whole_pseudogene, orient_cdjv_segments=orient_cdjv_segments):
         return [feature]
     else:
         to_return = []
         for sub_feature in feature.sub_features:
             to_return += explore_recursively_transcribed_features(
                 sub_feature, 
+                sequence_name_to_obo_term,
                 is_inside_pseudogene=is_inside_pseudogene,
                 orient_pseudogene_exons=orient_pseudogene_exons,
                 raise_error_if_encounter=raise_error_if_encounter,
@@ -216,93 +212,106 @@ def explore_recursively_transcribed_features(feature, is_inside_pseudogene=False
             )
         return to_return
 
-def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=OVERLAP_CHECK_WHOLE_SEGMENT):
+def should_canonicalize_segment(start, end, correctly_oriented_segments, overlap_check_whole_segment=True):
     overlaps = intervaltree_to_tuples(correctly_oriented_segments.overlap(start, end))
 
     if overlap_check_whole_segment:
-        # If a flip touches any part of a correctly oriented segment, you consider the whole segment broken.
         broken_nucleotides_length = sum(
             seg_end - seg_start
             for seg_start, seg_end in overlaps
         )
     else:
-        # Only count the effectively overlapped part.
         broken_nucleotides_length = sum(
             min(end, seg_end) - max(start, seg_start)
             for seg_start, seg_end in overlaps
         )
     
-    # Only flip the segment if the number of broken nucleotides is less than the number of non-broken nucleotides, to avoid breaking too many features
     return broken_nucleotides_length < (end - start)
 
-def canonicalize_genome(training_genome, training_genome_canonicalization_segments):
-    reversed_training_genome = {}
-    complemented_training_genome = {}
-    rc_training_genome = {}
+def canonicalize_genome(training_genome, training_genome_canonicalization_segments, transformations, overlap_check_whole_segment):
+    results = {t: {} for t in transformations}
 
     for training_genome_id, segments in training_genome_canonicalization_segments.items():
-        reverse_seq = MutableSeq(training_genome[training_genome_id])
-        complement_seq = MutableSeq(training_genome[training_genome_id])
-        rc_seq = MutableSeq(training_genome[training_genome_id])
+        mut_seqs = {t: MutableSeq(training_genome[training_genome_id]) for t in transformations}
         
         for (start, end) in segments["to_orient"]:
-            if should_canonicalize_segment(start, end, segments["correctly_oriented"]):
-                reverse(reverse_seq, start, end)
-                complement(complement_seq, start, end)
-                # RC
-                reverse(rc_seq, start, end)
-                complement(rc_seq, start, end)
+            if should_canonicalize_segment(start, end, segments["correctly_oriented"], overlap_check_whole_segment):
+                if "reverse" in mut_seqs:
+                    reverse(mut_seqs["reverse"], start, end)
+                if "complement" in mut_seqs:
+                    complement(mut_seqs["complement"], start, end)
+                if "rc" in mut_seqs:
+                    reverse(mut_seqs["rc"], start, end)
+                    complement(mut_seqs["rc"], start, end)
 
-        reversed_training_genome[training_genome_id] = reverse_seq
-        complemented_training_genome[training_genome_id] = complement_seq
-        rc_training_genome[training_genome_id] = rc_seq
+        for t in transformations:
+            results[t][training_genome_id] = mut_seqs[t]
 
-    return reversed_training_genome, complemented_training_genome, rc_training_genome
+    return results
 
-if __name__ == "__main__":
-    data_dir = Path(__file__).parents[1] / "data/hg38/"
-    ncbi_data_dir = data_dir / "ncbi_dataset/data/GCF_000001405.26/"
+@hydra.main(config_path="../configs", config_name="config.yaml")
+def main(config: DictConfig):
+    # Process config
+    config = utils.train.process_config(config)
+    
+    c_cfg = config.canonicalization
+    
+    log.info("Reading training genome...")
+    training_genome = read_fasta_into_records_dict(Path(c_cfg.fasta_file))
+    ncbi_to_training_id = build_ncbi_to_training_id(Path(c_cfg.assembly_report), training_genome)
 
-    print("Reading training genome...")
-    training_genome = read_fasta_into_records_dict(data_dir / "hg38.ml.fa")
-    ncbi_to_training_id = build_ncbi_to_training_id(ncbi_data_dir / "sequence_report.jsonl", training_genome)
+    sequence_name_to_obo_term = load_ontology(c_cfg.ontology_path)
 
-    # Canonicalize the genomes to have them all on the template strand direction
-    print("Deciding canonicalization directions...")
+    log.info("Deciding canonicalization directions...")
     training_genome_canonicalization_segments = {}    
     
-    for record in gff_records_generator(ncbi_data_dir / "genomic.gff", ncbi_to_training_id):
+    for record in gff_records_generator(Path(c_cfg.gff_file), ncbi_to_training_id):
         training_genome_id = ncbi_to_training_id[record.id]
         positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
             record, 
             training_genome, 
             training_genome_id,
-            orient_pseudogene_exons=ORIENT_PSEUDOGENE_EXONS,
-            raise_error_if_encounter=RAISE_ERROR_IF_ENCOUNTER,
-            orient_whole_pseudogene=ORIENT_WHOLE_PSEUDOGENE,
-            orient_cdjv_segments=ORIENT_CDJV_SEGMENTS
+            sequence_name_to_obo_term,
+            orient_pseudogene_exons=c_cfg.orient_pseudogene_exons,
+            raise_error_if_encounter=c_cfg.raise_error_if_encounter,
+            orient_whole_pseudogene=c_cfg.orient_whole_pseudogene,
+            orient_cdjv_segments=c_cfg.orient_cdjv_segments
         )
 
-        # On the template strand G + T < A + C (reference 1b). Canonicalize the genome so all the features are in the template direction
-        if total_skew > 0: # G + T > A + C on the + strand, so the template strands are on the - side
+        if total_skew > 0: 
             training_genome_canonicalization_segments[training_genome_id] = {
                 "to_orient": positive_segments,
                 "correctly_oriented": IntervalTree.from_tuples(negative_segments)
             }
-        else: # Template strands are on the + side
+        else: 
             training_genome_canonicalization_segments[training_genome_id] = {
                 "to_orient": negative_segments,
                 "correctly_oriented": IntervalTree.from_tuples(positive_segments)
             }
 
     # Apply the canonicalization to the training genome
-    print("Canonicalizating genome...")
-    reversed_training_genome, complemented_training_genome, rc_training_genome = canonicalize_genome(training_genome, training_genome_canonicalization_segments)
+    transformation = c_cfg.transformation
+    log.info(f"Canonicalizating genome with transformation: {transformation}...")
+    results = canonicalize_genome(
+        training_genome, 
+        training_genome_canonicalization_segments, 
+        [transformation],
+        c_cfg.overlap_check_whole_segment
+    )
 
-    print("Saving...")
-    out_path = data_dir / "../parsed/"
-    output_prefix = "overlap_whole_" if OVERLAP_CHECK_WHOLE_SEGMENT else "overlap_partial_"
+    log.info("Saving results...")
+    out_path = Path(c_cfg.output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
     
-    save_seqs_dict(reversed_training_genome, out_path / (output_prefix + "reversed_canonicalization.fasta"))
-    save_seqs_dict(complemented_training_genome, out_path / (output_prefix + "complemented_canonicalization.fasta"))
-    save_seqs_dict(rc_training_genome, out_path / (output_prefix + "rc_canonicalization.fasta"))
+    output_prefix = "overlap_whole_" if c_cfg.overlap_check_whole_segment else "overlap_partial_"
+    
+    seqs = results[transformation]
+    save_name = f"{output_prefix}{transformation}_canonicalization.fasta"
+    save_path = out_path / save_name
+    save_seqs_dict(seqs, save_path)
+    log.info(f"Saved {transformation} to {save_path}")
+
+if __name__ == "__main__":
+    if "PROJECT_ROOT" not in os.environ:
+        os.environ["PROJECT_ROOT"] = str(Path(__file__).parents[1].absolute())
+    main()

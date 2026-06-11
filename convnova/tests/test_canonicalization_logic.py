@@ -1,7 +1,5 @@
 from scripts.canonicalize_genomes import merge_segment_list, should_canonicalize_segment, canonicalize_genome
 from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.SeqFeature import SeqFeature, FeatureLocation
 from intervaltree import IntervalTree
 
 def test_merge_segment_list():
@@ -44,8 +42,13 @@ def test_canonicalize_genome():
         }
     }
 
-    reversed_record, complemented_record, rc_record = canonicalize_genome(training_genome, canonicalization)
+    results = canonicalize_genome(
+        training_genome, 
+        canonicalization,
+        transformations=["reverse", "complement", "rc"],
+        overlap_check_whole_segment=True
+    )
 
-    assert str(reversed_record["genome1"]) == "CATGCATGCA" + "TTTTTTTTTT" + "CATGCATGCA"
-    assert str(complemented_record["genome1"]) == "TGCATGCATG" + "TTTTTTTTTT" + "TGCATGCATG"
-    assert str(rc_record["genome1"])           == "GTACGTACGT" + "TTTTTTTTTT" + "GTACGTACGT"
+    assert str(results["reverse"]["genome1"]) == "CATGCATGCA" + "TTTTTTTTTT" + "CATGCATGCA"
+    assert str(results["complement"]["genome1"]) == "TGCATGCATG" + "TTTTTTTTTT" + "TGCATGCATG"
+    assert str(results["rc"]["genome1"])           == "GTACGTACGT" + "TTTTTTTTTT" + "GTACGTACGT"

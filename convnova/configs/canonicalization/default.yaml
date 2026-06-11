@@ -1,0 +1,25 @@
+# @package _global_
+canonicalization:
+  overlap_check_whole_segment: True
+  orient_whole_pseudogene: False
+  orient_pseudogene_exons: False
+  orient_cdjv_segments: True
+  raise_error_if_encounter: ["CDS"]
+  
+  # Choice: reverse, complement, rc
+  transformation: "rc"
+  
+  # Paths
+  data_path: ${oc.env:PROJECT_ROOT}/data/hg38
+  ncbi_data_path: ${.data_path}/ncbi_dataset/data/GCF_000001405.26
+  fasta_file: ${.data_path}/hg38.ml.fa
+  gff_file: ${.ncbi_data_path}/genomic.gff
+  assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
+  output_dir: ${oc.env:PROJECT_ROOT}/data/parsed
+  
+  # Ontology
+  ontology_path: ${oc.env:PROJECT_ROOT}/so.clean.obo
+
+# Fixed path overwrite (no eval)
+dataset:
+  fasta_file: ${canonicalization.output_dir}/overlap_whole_rc_canonicalization.fasta

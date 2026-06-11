@@ -1,0 +1,160 @@
+CONFIG
+├── train
+│   └── seed: 2222                                                                                                                                                                                        
+│       interval: step                                                                                                                                                                                    
+│       monitor: test/loss                                                                                                                                                                                
+│       mode: min                                                                                                                                                                                         
+│       ema: 0.0                                                                                                                                                                                          
+│       test: false                                                                                                                                                                                       
+│       debug: false                                                                                                                                                                                      
+│       ignore_warnings: false                                                                                                                                                                            
+│       state:                                                                                                                                                                                            
+│         mode: null                                                                                                                                                                                      
+│         n_context: 0                                                                                                                                                                                    
+│         n_context_eval: 0                                                                                                                                                                               
+│       ckpt: null                                                                                                                                                                                        
+│       disable_dataset: false                                                                                                                                                                            
+│       validate_at_start: false                                                                                                                                                                          
+│       pretrained_model_path: null                                                                                                                                                                       
+│       pretrained_model_strict_load: true                                                                                                                                                                
+│       pretrained_model_state_hook:                                                                                                                                                                      
+│         _name_: null                                                                                                                                                                                    
+│       post_init_hook:                                                                                                                                                                                   
+│         _name_: null                                                                                                                                                                                    
+│       layer_decay:                                                                                                                                                                                      
+│         _name_: null                                                                                                                                                                                    
+│         decay: 0.7                                                                                                                                                                                      
+│       gpu_mem: 12                                                                                                                                                                                       
+│       global_batch_size: 512                                                                                                                                                                            
+│                                                                                                                                                                                                         
+├── tolerance
+│   └── logdir: ./resume                                                                                                                                                                                  
+│       id: null                                                                                                                                                                                          
+│                                                                                                                                                                                                         
+├── wandb
+│   └── none                                                                                                                                                                                              
+├── trainer
+│   └── _target_: pytorch_lightning.Trainer                                                                                                                                                               
+│       devices: 1                                                                                                                                                                                        
+│       accelerator: gpu                                                                                                                                                                                  
+│       accumulate_grad_batches: 1                                                                                                                                                                        
+│       max_epochs: 400                                                                                                                                                                                   
+│       gradient_clip_val: 1.0                                                                                                                                                                            
+│       log_every_n_steps: 10                                                                                                                                                                             
+│       limit_train_batches: 1.0                                                                                                                                                                          
+│       limit_val_batches: 1.0                                                                                                                                                                            
+│       num_nodes: 1                                                                                                                                                                                      
+│       precision: 32                                                                                                                                                                                     
+│                                                                                                                                                                                                         
+├── loader
+│   └── batch_size: 50                                                                                                                                                                                    
+│       num_workers: 4                                                                                                                                                                                    
+│       pin_memory: true                                                                                                                                                                                  
+│       drop_last: true                                                                                                                                                                                   
+│                                                                                                                                                                                                         
+├── dataset
+│   └── _name_: bert_hg38                                                                                                                                                                                 
+│       bed_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/human-sequences.bed                                                                                                            
+│       fasta_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/parsed/overlap_whole_rc_canonicalization.fasta                                                                                    
+│       dataset_name: hg38                                                                                                                                                                                
+│       tokenizer_name: char                                                                                                                                                                              
+│       cache_dir: null                                                                                                                                                                                   
+│       max_length: 1024                                                                                                                                                                                  
+│       add_eos: true                                                                                                                                                                                     
+│       batch_size: 512                                                                                                                                                                                   
+│       batch_size_eval: 1024                                                                                                                                                                             
+│       num_workers: 12                                                                                                                                                                                   
+│       shuffle: true                                                                                                                                                                                     
+│       pin_memory: true                                                                                                                                                                                  
+│       max_length_val: 1024                                                                                                                                                                              
+│       max_length_test: 1024                                                                                                                                                                             
+│       use_tokenizer: false                                                                                                                                                                              
+│       pad_max_length: null                                                                                                                                                                              
+│       rc_aug: false                                                                                                                                                                                     
+│       use_fixed_len_val: false                                                                                                                                                                          
+│       replace_N_token: false                                                                                                                                                                            
+│       pad_interval: false                                                                                                                                                                               
+│                                                                                                                                                                                                         
+├── optimizer
+│   └── _name_: adamw                                                                                                                                                                                     
+│       lr: 0.001                                                                                                                                                                                         
+│       weight_decay: 0.1                                                                                                                                                                                 
+│       betas:                                                                                                                                                                                            
+│       - 0.9                                                                                                                                                                                             
+│       - 0.999                                                                                                                                                                                           
+│                                                                                                                                                                                                         
+├── scheduler
+│   └── _name_: cosine_warmup_timm                                                                                                                                                                        
+│       t_in_epochs: false                                                                                                                                                                                
+│       t_initial: 763200                                                                                                                                                                                 
+│       lr_min: 0.0001                                                                                                                                                                                    
+│       warmup_lr_init: 1.0e-06                                                                                                                                                                           
+│       warmup_t: 7632.0                                                                                                                                                                                  
+│                                                                                                                                                                                                         
+├── callbacks
+│   └── learning_rate_monitor:                                                                                                                                                                            
+│         logging_interval: step                                                                                                                                                                          
+│       timer:                                                                                                                                                                                            
+│         step: true                                                                                                                                                                                      
+│         inter_step: false                                                                                                                                                                               
+│         epoch: true                                                                                                                                                                                     
+│         val: true                                                                                                                                                                                       
+│       params:                                                                                                                                                                                           
+│         total: true                                                                                                                                                                                     
+│         trainable: true                                                                                                                                                                                 
+│         fixed: true                                                                                                                                                                                     
+│       model_checkpoint:                                                                                                                                                                                 
+│         monitor: test/loss                                                                                                                                                                              
+│         mode: min                                                                                                                                                                                       
+│         save_top_k: 1                                                                                                                                                                                   
+│         save_last: true                                                                                                                                                                                 
+│         dirpath: checkpoints/                                                                                                                                                                           
+│         filename: test/loss                                                                                                                                                                             
+│         auto_insert_metric_name: false                                                                                                                                                                  
+│         verbose: true                                                                                                                                                                                   
+│                                                                                                                                                                                                         
+├── task
+│   └── _name_: hg38                                                                                                                                                                                      
+│       loss: bert_cross_entropy                                                                                                                                                                          
+│       torchmetrics:                                                                                                                                                                                     
+│       - perplexity                                                                                                                                                                                      
+│       - num_tokens                                                                                                                                                                                      
+│                                                                                                                                                                                                         
+├── encoder
+│   └── None                                                                                                                                                                                              
+├── decoder
+│   └── None                                                                                                                                                                                              
+├── canonicalization
+│   └── overlap_check_whole_segment: true                                                                                                                                                                 
+│       orient_whole_pseudogene: false                                                                                                                                                                    
+│       orient_pseudogene_exons: false                                                                                                                                                                    
+│       orient_cdjv_segments: true                                                                                                                                                                        
+│       raise_error_if_encounter:                                                                                                                                                                         
+│       - CDS                                                                                                                                                                                             
+│       transformation: rc                                                                                                                                                                                
+│       data_path: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38                                                                                                                               
+│       ncbi_data_path: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/ncbi_dataset/data/GCF_000001405.26                                                                                       
+│       fasta_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/hg38.ml.fa                                                                                                                   
+│       gff_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/ncbi_dataset/data/GCF_000001405.26/genomic.gff                                                                                 
+│       assembly_report: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/ncbi_dataset/data/GCF_000001405.26/sequence_report.jsonl                                                                
+│       output_dir: /mnt/data/Proyectos/Research/ConvNova/convnova/data/parsed                                                                                                                            
+│       ontology_path: /mnt/data/Proyectos/Research/ConvNova/convnova/so.clean.obo                                                                                                                        
+│                                                                                                                                                                                                         
+└── model
+    └── _name_: convnova                                                                                                                                                                                  
+        for_representation: false                                                                                                                                                                         
+        alphabet_size: 5                                                                                                                                                                                  
+        d_model: 64                                                                                                                                                                                       
+        pretrain: true                                                                                                                                                                                    
+        kernel_size: 9                                                                                                                                                                                    
+        final_conv: false                                                                                                                                                                                 
+        dilation: 4                                                                                                                                                                                       
+        num_conv1d: 5                                                                                                                                                                                     
+        d_inner: 2                                                                                                                                                                                        
+        ffn: true                                                                                                                                                                                         
+        args:                                                                                                                                                                                             
+          hidden_dim: 64                                                                                                                                                                                  
+          num_cnn_stacks: 1                                                                                                                                                                               
+          dropout: 0.0                                                                                                                                                                                    
+                                                                                                                                                                                                          
+Using /mnt/data/Proyectos/Research/ConvNova/convnova/data/parsed/overlap_whole_rc_canonicalization.fasta

@@ -1,6 +1,6 @@
 _name_: hg38
-bed_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/human-sequences.bed
-fasta_file: /mnt/data/Proyectos/Research/ConvNova/convnova/data/hg38/hg38.ml.fa
+bed_file: ${oc.env:PROJECT_ROOT}/data/hg38/human-sequences.bed
+fasta_file: ${oc.env:PROJECT_ROOT}/data/hg38/hg38.ml.fa
 dataset_name: hg38
 tokenizer_name: null
 cache_dir: null

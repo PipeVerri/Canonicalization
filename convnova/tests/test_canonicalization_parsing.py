@@ -1,27 +1,38 @@
-from scripts.canonicalize_genomes import parse_record_into_segments_and_skew, is_feature_type_transcribed
+import pytest
+from scripts.canonicalize_genomes import parse_record_into_segments_and_skew, is_feature_type_transcribed, load_ontology
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
+from pathlib import Path
+import os
 
-def test_is_feature_type_transcribed():
+@pytest.fixture(scope="module")
+def ontology():
+    # Setup PROJECT_ROOT if not present
+    if "PROJECT_ROOT" not in os.environ:
+        os.environ["PROJECT_ROOT"] = str(Path(__file__).parents[1].absolute())
+    
+    ontology_path = Path(os.environ["PROJECT_ROOT"]) / "so.clean.obo"
+    return load_ontology(str(ontology_path))
+
+def test_is_feature_type_transcribed(ontology):
     # Basic tests for transcription detection using pronto/Sequence Ontology
-    # We pass explicit config to ensure tests are independent of global file config
-    assert is_feature_type_transcribed("mRNA", orient_cdjv_segments=False) == True
-    assert is_feature_type_transcribed("transcript", orient_cdjv_segments=False) == True
-    assert is_feature_type_transcribed("primary_transcript", orient_cdjv_segments=False) == True
-    assert is_feature_type_transcribed("gene", orient_cdjv_segments=False) == False
-    assert is_feature_type_transcribed("exon", orient_cdjv_segments=False) == False
-    assert is_feature_type_transcribed("lnc_RNA", orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("mRNA", ontology, orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("transcript", ontology, orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("primary_transcript", ontology, orient_cdjv_segments=False) == True
+    assert is_feature_type_transcribed("gene", ontology, orient_cdjv_segments=False) == False
+    assert is_feature_type_transcribed("exon", ontology, orient_cdjv_segments=False) == False
+    assert is_feature_type_transcribed("lnc_RNA", ontology, orient_cdjv_segments=False) == True
     
     # CDJV segments logic
-    assert is_feature_type_transcribed("V_gene_segment", orient_cdjv_segments=True) == True
-    assert is_feature_type_transcribed("V_gene_segment", orient_cdjv_segments=False) == False
+    assert is_feature_type_transcribed("V_gene_segment", ontology, orient_cdjv_segments=True) == True
+    assert is_feature_type_transcribed("V_gene_segment", ontology, orient_cdjv_segments=False) == False
     
     # Pseudogene logic
-    assert is_feature_type_transcribed("pseudogene", orient_whole_pseudogene=True) == True
-    assert is_feature_type_transcribed("pseudogene", orient_whole_pseudogene=False) == False
+    assert is_feature_type_transcribed("pseudogene", ontology, orient_whole_pseudogene=True) == True
+    assert is_feature_type_transcribed("pseudogene", ontology, orient_whole_pseudogene=False) == False
 
-def test_parse_record_into_segments_and_skew_sequential_no_overlap():
+def test_parse_record_into_segments_and_skew_sequential_no_overlap(ontology):
     training_genome = {"genome1": Seq("A" * 100)}
     record = SeqRecord(Seq(""), id="record1")
     
@@ -42,7 +53,7 @@ def test_parse_record_into_segments_and_skew_sequential_no_overlap():
     
     # Pass explicit defaults to be independent of file config
     positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
-        record, training_genome, "genome1",
+        record, training_genome, "genome1", ontology,
         orient_pseudogene_exons=False,
         raise_error_if_encounter=(),
         orient_whole_pseudogene=False,
@@ -66,7 +77,7 @@ def test_parse_record_into_segments_and_skew_sequential_no_overlap():
     check_segments_properties(positive_segments, "Positive")
     check_segments_properties(negative_segments, "Negative")
 
-def test_parse_record_into_segments_and_skew():
+def test_parse_record_into_segments_and_skew(ontology):
     training_genome = {"genome1": Seq("GGGGGGGGGG" + "CCCCCCCCCC" + "GGGGGGGGGG")}
     record = SeqRecord(Seq(""), id="record1")
     
@@ -80,15 +91,16 @@ def test_parse_record_into_segments_and_skew():
         f.sub_features = []
     
     positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
-        record, training_genome, "genome1",
-        orient_cdjv_segments=False
+        record, training_genome, "genome1", ontology,
+        orient_cdjv_segments=False,
+        
     )
     
     assert positive_segments == [(0, 10), (20, 30)]
     assert negative_segments == [(10, 20)]
     assert total_skew == 30 
 
-def test_parse_record_into_segments_and_skew_with_subfeatures():
+def test_parse_record_into_segments_and_skew_with_subfeatures(ontology):
     training_genome = {"genome1": Seq("GGGGGGGGGG" * 3)}
     record = SeqRecord(Seq(""), id="record1")
     
@@ -99,7 +111,7 @@ def test_parse_record_into_segments_and_skew_with_subfeatures():
     record.features = [parent_feature]
     
     positive_segments, negative_segments, total_skew = parse_record_into_segments_and_skew(
-        record, training_genome, "genome1",
+        record, training_genome, "genome1", ontology,
         orient_cdjv_segments=False
     )
     
