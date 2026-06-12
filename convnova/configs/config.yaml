@@ -75,4 +75,4 @@ wandb:
 
 hydra:
   run:
-    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S-%f}
+    dir: ./outputs/${wandb.group}/${now:%H-%M-%S-%f}
