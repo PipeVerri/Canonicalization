@@ -2,6 +2,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 import os
+from intervaltree import IntervalTree
 
 # Standard imports as the project is installed with pip -e .
 import src.utils as utils

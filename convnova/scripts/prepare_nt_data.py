@@ -1,7 +1,6 @@
 import os
 from datasets import load_dataset
 from pathlib import Path
-from tqdm import tqdm
 
 dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     
     # List of tasks defined in convnova/configs/dataset/nucleotide_transformer.yaml
     tasks = set(dataset["train"]["task"])
-    
+
     # Target directory is always convnova/data/nucleotide_transformer
     output_base = project_root / "data" / "nucleotide_transformer"
     
