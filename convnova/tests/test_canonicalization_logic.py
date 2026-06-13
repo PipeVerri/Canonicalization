@@ -1,4 +1,4 @@
-from scripts.canonicalize_genomes import merge_segment_list, should_canonicalize_segment, canonicalize_genome
+from src.utils.canonicalization import merge_segment_list, should_canonicalize_segment, canonicalize_genome
 from Bio.Seq import Seq
 from intervaltree import IntervalTree
 

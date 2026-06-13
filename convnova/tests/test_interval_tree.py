@@ -1,5 +1,5 @@
 from intervaltree import IntervalTree
-from scripts.canonicalize_genomes import intervaltree_to_tuples
+from src.utils.canonicalization import intervaltree_to_tuples
 
 segments = [(0, 10), (20, 30), (40, 50), (60, 80)]
 segment_index = IntervalTree.from_tuples(segments)

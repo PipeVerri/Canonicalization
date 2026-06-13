@@ -1,5 +1,5 @@
 import pytest
-from scripts.canonicalize_genomes import parse_record_into_segments_and_skew, is_feature_type_transcribed, load_ontology
+from src.utils.canonicalization import parse_record_into_segments_and_skew, is_feature_type_transcribed, load_ontology
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
