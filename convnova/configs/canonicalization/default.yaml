@@ -12,14 +12,15 @@ canonicalization:
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/hg38
   ncbi_data_path: ${.data_path}/ncbi_dataset/data/GCF_000001405.26
-  fasta_file: ${.data_path}/hg38.ml.fa
-  gff_file: ${.ncbi_data_path}/genomic.gff
-  assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
-  output_dir: ${oc.env:PROJECT_ROOT}/data/parsed
+  
+  reference_fasta_file: ${.data_path}/hg38.ml.fa
+  gff_fasta_file: ${.ncbi_data_path}/genomic.gff
+  reference_assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
+  reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
+
+  nt_benchmark_dir: ${.data_path}/nucleotide_transformer
+  nt_benchmark_output_dir: ${.data_path}/nucleotide_transformer_parsed/
+  reference_genome_index: ${.data_path}/reference_genome_index.mmi
   
   # Ontology
   ontology_path: ${oc.env:PROJECT_ROOT}/so.clean.obo
-
-# Fixed path overwrite (no eval)
-dataset:
-  fasta_file: ${canonicalization.output_dir}/overlap_whole_rc_canonicalization.fasta

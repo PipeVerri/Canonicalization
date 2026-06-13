@@ -239,3 +239,47 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_segmen
             results[t][training_genome_id] = mut_seqs[t]
 
     return results
+
+
+#################################
+# NT Benchmark canonicalization #
+#################################
+
+def canonicalize_nt_benchmark_fasta(fasta_path, aligner, to_orient_intervaltree, transformation, save_path):
+    records = read_fasta_into_records_dict(fasta_path)
+    
+    canonicalized_records = {}
+    for id in records:
+        # Align the record with the reference genome
+        seq = str(records[id])
+        best_alignment = next((h for h in aligner.map(seq) if h.is_primary), None)
+        if best_alignment is None or best_alignment.mapq < 40:
+            raise ValueError(f"Couldn't find good alignment for {id}")
+    
+        # Check if seq should be canonicalized or not
+        alignment_start = best_alignment.r_st
+        alignment_end = best_alignment.r_en
+        overlapping_segments = intervaltree_to_tuples(to_orient_intervaltree.overlap(alignment_start, alignment_end))
+        
+        # Canonicalize seq using the segments
+        for segment in overlapping_segments:
+            # Index the segment relative to the seq's position
+            segment_start = max(0, segment[0] - alignment_start)
+            segment_end = min(len(seq), segment[1] - alignment_end)
+            canonicalized_seq = MutableSeq(records[id])
+            
+            if transformation == "reverse":
+                canonicalized_seq = reverse(canonicalized_seq, segment_start, segment_end)
+            elif transformation == "complement":
+                canonicalized_seq = complement(canonicalized_seq, segment_start, segment_end)
+            elif transformation == "rc":
+                canonicalized_seq = reverse(complement(canonicalized_seq, segment_start, segment_end), segment_start, segment_end)
+            else:
+                raise ValueError(f"{transformation} not recognized")
+        
+        raise ValueError("Y canonicalization needed")
+        
+        canonicalized_records[id] = canonicalized_seq
+    
+    # Save the canonicalized_record
+    save_seqs_dict(canonicalized_records, save_path)
