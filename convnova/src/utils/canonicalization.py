@@ -283,3 +283,28 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, to_orient_intervaltree,
     
     # Save the canonicalized_record
     save_seqs_dict(canonicalized_records, save_path)
+
+def canonicalize_nt_benchmark_label(task, label):
+    HISTONE_TASKS = ("H3K4me3", "H3K27ac", "H3K27me3", "H3K4me1", "H3K36me3", "H3K9me3", "H3K9ac", "H3K4me2", "H4K20me1", "H2AFZ")
+    ENHANCERS_TASKS = ("enhancers", "enhancers_types")
+    PROMOTER_TASKS = ("promoter_all", "promoter_tata", "promoter_no_tata")
+    SPLICING_TASKS = ("splice_sites_all", "splice_sites_acceptor", "splice_sites_donor")
+    
+    if task in HISTONE_TASKS:
+        return label # Histones interact with double stranded DNA, directionality doesn't matter
+    elif task in ENHANCERS_TASKS:
+        return label # Most enhancers seem to be bidirectional
+    elif task in PROMOTER_TASKS:
+        return invert_binary_label(label) # Promoters are directional
+    elif task in SPLICING_TASKS:
+        if task == "splice_sites_all" and label == 2:
+            return label # The only task with 3 labels. non-splice site stays non-splice when taking the RC
+        return invert_binary_label(label) # 
+
+def invert_binary_label(label):
+    if label == 1:
+        return 0
+    elif label == 0:
+        return 1
+    else:
+        raise ValueError("Invalid binary label")

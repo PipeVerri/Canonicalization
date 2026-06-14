@@ -126,3 +126,13 @@ Remeber to adjust the setting for different dataset like max seq length and the 
 
 <h2>5 Acknowledgements</h2>
 <p>ConvNova builds on the training, logging and data-loading scaffolds of <strong>HyenaDNA</strong> and <strong>Caduceus</strong>, and evaluates on <strong>Genomic Benchmarks</strong>, <strong>Nucleotide Transformer tasks</strong>, and the <strong>Long-Range Benchmark</strong>. We thank the maintainers of these open resources for making rigorous comparison possible. </p>
+
+---
+
+NT transformer labels:
+- The old nucleotide_transformer_downstream_tasks says that the splice_sites_all is based off SpliceAI
+- SpliceAI (section 1a) says that the donor and acceptor samples sites were constructed by sampling a window with them at the center
+- On the nt_data notebook, when checking motifs on windows around the center, it seems like the labels are:
+  - 0: acceptor site
+  - 1: donor site
+  - 2: non-splice site
