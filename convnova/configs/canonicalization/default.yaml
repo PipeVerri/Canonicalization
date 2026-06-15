@@ -1,11 +1,11 @@
 # @package _global_
 canonicalization:
-  overlap_check_whole_segment: True
-  orient_whole_pseudogene: False
-  orient_pseudogene_exons: False
-  orient_cdjv_segments: True
-  raise_error_if_encounter: ["CDS"]
-  
+  annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
+  partial_canonicalization_works: False
+  include_cdjv_segments: True
+  include_pseudogenes: True
+  include_na_transcript_type: False
+    
   # Choice: reverse, complement, rc
   transformation: "rc"
   
@@ -14,13 +14,14 @@ canonicalization:
   ncbi_data_path: ${.data_path}/ncbi_dataset/data/GCF_000001405.26
   
   reference_fasta_file: ${.data_path}/hg38.ml.fa
-  gff_fasta_file: ${.ncbi_data_path}/genomic.gff
+  gff_fasta_file: ${.data_path}/gencode.v38.annotation.gff3
   reference_assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
   reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
 
   nt_benchmark_dir: ${.data_path}/nucleotide_transformer
   nt_benchmark_output_dir: ${.data_path}/nucleotide_transformer_parsed/
   reference_genome_index: ${.data_path}/reference_genome_index.mmi
+  partial_seq_canonicalization: False
   
   # Ontology
   ontology_path: ${oc.env:PROJECT_ROOT}/so.clean.obo
