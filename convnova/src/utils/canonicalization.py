@@ -81,9 +81,9 @@ def merge_segment_list(segments_list):
 ##############
 
 def parse_transcribed_features_from_gff(df, reference_id, 
-                                        annotations_level=2,
-                                        include_cdjv_segments=True,
-                                        include_pseudogenes=True):
+                                        annotations_level,
+                                        include_cdjv_segments,
+                                        include_pseudogenes):
     
     assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
 
@@ -136,6 +136,21 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_segmen
 
     return results
 
+def decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments):
+    negative_template_intervaltree = IntervalTree.from_tuples(negative_template_segments)
+    keep_positive_strand_cost = 0
+    keep_negative_strand_cost = 0
+
+    for (start, end) in positive_template_segments:
+        overlapping_templates = intervaltree_to_tuples(negative_template_intervaltree.overlap(start, end))
+        keep_positive_strand_cost += sum(seg_end - seg_start for seg_start, seg_end in overlapping_templates)
+        keep_negative_strand_cost += end - start
+        
+    # Decide which segments to canonicalize. Return the segments to canonicalize
+    if keep_positive_strand_cost < keep_negative_strand_cost:
+        return positive_template_segments
+    else:
+        return negative_template_segments
 
 #################################
 # NT Benchmark canonicalization #

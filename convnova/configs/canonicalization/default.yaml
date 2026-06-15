@@ -1,11 +1,13 @@
 # @package _global_
 canonicalization:
   annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
-  partial_canonicalization_works: False
   include_cdjv_segments: True
   include_pseudogenes: True
   include_na_transcript_type: False
-    
+  
+  # With partial canonicalization, even though taking one strand would have the same cost as taking the other, there's preference for the least destructive one
+  #partial_canonicalization_works: False
+
   # Choice: reverse, complement, rc
   transformation: "rc"
   
@@ -14,7 +16,7 @@ canonicalization:
   ncbi_data_path: ${.data_path}/ncbi_dataset/data/GCF_000001405.26
   
   reference_fasta_file: ${.data_path}/hg38.ml.fa
-  gff_fasta_file: ${.data_path}/gencode.v38.annotation.gff3
+  gff_fasta_file: ${.data_path}/gencode.v50.annotation.gff3
   reference_assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
   reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
 

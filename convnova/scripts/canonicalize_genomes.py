@@ -15,6 +15,7 @@ from src.utils.canonicalization import (
     parse_transcribed_features_from_gff,
     canonicalize_genome,
     save_seqs_dict,
+    decide_which_strand_should_canonicalize,
     canonicalize_nt_benchmark_fasta,
     intervaltree_to_tuples
 )
@@ -37,7 +38,7 @@ def main(config: DictConfig):
     #sequence_name_to_obo_term = load_ontology(c_cfg.ontology_path)
 
     log.info("Deciding canonicalization directions...")
-    training_genome_canonicalization_segments = {}
+    training_genome_to_canonicalize = {}
 
     annotations_df = pr.read_gff3(c_cfg.gff_fasta_file).df
     # Drop the annotations that have na on any of the subsets
@@ -50,37 +51,21 @@ def main(config: DictConfig):
         positive_template_segments, negative_template_segments = parse_transcribed_features_from_gff(
             annotations_df,
             reference_id,
-            annotations_level=c_cfg.annotations_level,
-            include_cdjv_segments=c_cfg.include_cdjv_segments,
-            include_pseudogenes=c_cfg.include_pseudogenes
+            c_cfg.annotations_level,
+            c_cfg.include_cdjv_segments,
+            c_cfg.include_pseudogenes
         )
 
         # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
         # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
-        negative_template_intervaltree = IntervalTree.from_tuples(negative_template_segments)
-        keep_positive_strand_cost = 0
-        keep_negative_strand_cost = 0
-
-        for (start, end) in positive_template_segments:
-            overlapping_templates = intervaltree_to_tuples(negative_template_intervaltree.overlap(start, end))
-            if c_cfg.partial_canonicalization_works:
-                pass # Keeping the positive strand or the negative strand increases the cost the same, because both have the same overlap length 
-            else:
-                keep_positive_strand_cost += sum(seg_end - seg_start for seg_start, seg_end in overlapping_templates)
-                keep_negative_strand_cost += end - start
-        
-        # Decide which segments to canonicalize
-        if keep_positive_strand_cost < keep_negative_strand_cost:
-            training_genome_canonicalization_segments[training_genome_id] = positive_template_segments
-        else:
-            training_genome_canonicalization_segments[training_genome_id] = negative_template_segments
+        training_genome_to_canonicalize[training_genome_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation
     log.info(f"Canonicalizating genome with transformation: {transformation}...")
     canonicalized = canonicalize_genome(
         training_genome, 
-        training_genome_canonicalization_segments, 
+        training_genome_to_canonicalize, 
         transformation,
     )
 
