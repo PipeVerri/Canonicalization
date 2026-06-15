@@ -5,7 +5,6 @@ from Bio import SeqIO
 from Bio.Seq import MutableSeq
 from Bio.SeqRecord import SeqRecord
 from intervaltree import IntervalTree
-import pronto
 import src.utils as utils
 import src.utils.train
 
@@ -29,7 +28,7 @@ def parse_ncbi_assembly(jsonl_path):
                 data.append(json.loads(line))
     return data
 
-def build_ncbi_to_training_id(assembly_path, training_genome):
+def build_ncbi_to_ucsc_id(assembly_path, training_genome):
     ncbi_to_training_id = {}
     ncbi_assembly = parse_ncbi_assembly(assembly_path)
     for assembly in ncbi_assembly:
@@ -89,7 +88,9 @@ def parse_transcribed_features_from_gff(df, reference_id,
 
     df = df.copy() # Copy the df to not overwrite the original
     df = df[df["Chromosome"] == reference_id].copy() # Filter the annotations for the target chromosome
-    df = df[df["level"] <= annotations_level] # Filter the annotations for the desired level
+    assert len(df) > 0 # Check that the chromosome actually exists
+    
+    df = df[df["level"].astype(int) <= annotations_level] # Filter the annotations for the desired level
     df = df[df["Feature"] == "transcript"] # Filter all the non-transcript features
     
     # ~ inverts the index, that's why the na is inverted
@@ -109,10 +110,14 @@ def parse_transcribed_features_from_gff(df, reference_id,
     for _, row in df.iterrows():
         # The strand for each transcribed feature is the coding strand(opposite of the template)
         # Pyranges v0 converts the 1-based index of the GFF to 0-based (https://pyranges.readthedocs.io/en/v0/tutorial.html)
-        if row["Strand"] == 1:
+        if row["Strand"] == '+':
             bisect.insort_left(positive_segments, (row["Start"], row["End"]))
-        elif row["Strand"] == -1:
+        elif row["Strand"] == '-':
             bisect.insort_left(negative_segments, (row["Start"], row["End"]))
+        else:
+            print(row)
+            print(type(row))
+            raise ValueError(f"Strand value {row['Strand']} not recognized")
 
     positive_segments = merge_segment_list(positive_segments)
     negative_segments = merge_segment_list(negative_segments)

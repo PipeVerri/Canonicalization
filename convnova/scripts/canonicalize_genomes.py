@@ -11,7 +11,7 @@ import src.utils as utils
 import src.utils.train
 from src.utils.canonicalization import (
     read_fasta_into_records_dict,
-    build_ncbi_to_training_id,
+    build_ncbi_to_ucsc_id,
     parse_transcribed_features_from_gff,
     canonicalize_genome,
     save_seqs_dict,
@@ -28,13 +28,15 @@ OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
 
 @hydra.main(config_path="../configs", config_name="config.yaml")
 def main(config: DictConfig):
+    # TODO: Use new GENCODE genome
+    
     # Process config
     config = utils.train.process_config(config)
     c_cfg = config.canonicalization
     
     log.info("Reading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.reference_fasta_file))
-    ncbi_to_training_id = build_ncbi_to_training_id(Path(c_cfg.reference_assembly_report), training_genome)
+    ncbi_to_ucsc_id = build_ncbi_to_ucsc_id(Path(c_cfg.reference_assembly_report), training_genome)
     #sequence_name_to_obo_term = load_ontology(c_cfg.ontology_path)
 
     log.info("Deciding canonicalization directions...")
@@ -47,7 +49,7 @@ def main(config: DictConfig):
         nan_columns_to_drop.append("transcript_type")
     annotations_df = annotations_df.dropna(subset=nan_columns_to_drop)
 
-    for reference_id, training_genome_id in ncbi_to_training_id.items():
+    for reference_id, ucsc_id in ncbi_to_ucsc_id.items():
         positive_template_segments, negative_template_segments = parse_transcribed_features_from_gff(
             annotations_df,
             reference_id,
@@ -58,7 +60,7 @@ def main(config: DictConfig):
 
         # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
         # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
-        training_genome_to_canonicalize[training_genome_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
+        training_genome_to_canonicalize[ucsc_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation
