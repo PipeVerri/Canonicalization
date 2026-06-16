@@ -31,9 +31,9 @@ except ImportError:
 
 try:
     from flash_attn.ops.layer_norm import dropout_add_layer_norm
+    from flash_attn.ops.rms_norm import dropout_add_rms_norm
 except ImportError:
     dropout_add_layer_norm, dropout_add_rms_norm = None, None
-from flash_attn.ops.rms_norm import dropout_add_rms_norm
 try:
     from mamba_ssm.ops.triton.layernorm import RMSNorm, layer_norm_fn, rms_norm_fn
 except ImportError:

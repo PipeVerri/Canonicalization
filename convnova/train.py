@@ -118,6 +118,7 @@ class CustomWandbLogger(WandbLogger):
                 # create new wandb process
                 while True:
                     try:
+                        self._wandb_init["id"] = wandb.util.generate_id()
                         self._experiment = wandb.init(**self._wandb_init)
                         break
                     except Exception as e:

@@ -182,17 +182,40 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
     
     canonicalized_records = {}
     unaligned_records = 0
+    aligned_records_without_annotation = 0
     
     for id in records:
         # Align the record with the reference genome, and take the primary alignment
         seq_str = str(records[id])
-        primary_alignment = next((x for x in aligner.map(seq_str) if x.is_primary), None)
+        hits = aligner.map(seq_str)
+        
+        # Find primary alignment
+        primary_alignment = None
+        for hit in hits:
+            if hit.is_primary:
+                primary_alignment = hit
+                break
 
         if primary_alignment is None:
             canonicalized_records[id] = records[id]
             unaligned_records += 1
             continue
-    
+
+        # If the primary alignment isn't on an annotated chromosome(like an unalocated segment), see if there's another alignment with the same mapq
+        if not primary_alignment.ctg in gencode_transcribed_segments_intervaltree:
+            found_annotated_hit = False
+
+            for hit in hits:
+                if hit.mapq >= primary_alignment.mapq and hit.ctg in gencode_transcribed_segments_intervaltree:
+                    primary_alignment = hit
+                    found_annotated_hit = True
+                    break
+            
+            if not found_annotated_hit:
+                canonicalized_records[id] = records[id]
+                aligned_records_without_annotation += 1
+                continue
+
         # Check if seq falls inside a transcribed segment or not
         alignment_start = primary_alignment.r_st
         alignment_end = primary_alignment.r_en
@@ -252,6 +275,10 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
     
     # Save the canonicalized_record
     save_seqs_dict(canonicalized_records, save_path)
-    
-    if unaligned_records > 0:
-        log.warning(f"Task {task_name} has {unaligned_records} / {len(records.keys())} records that couldn't be aligned")
+    unaligned_percentage = round((unaligned_records * 100) / len(records.keys()), 1)
+    aligned_without_annotation_percentage = round((aligned_records_without_annotation * 100) / len(records.keys()), 1)
+
+    if unaligned_percentage > 0.05 or aligned_without_annotation_percentage > 0.05:
+        log.warning(f"Task {task_name} has {unaligned_percentage + aligned_without_annotation_percentage}% records that couldn't be processed\n" + \
+                    f"  {unaligned_percentage}% unaligned records\n" + \
+                    f"  {aligned_without_annotation_percentage}% algined without annotations on the gff")

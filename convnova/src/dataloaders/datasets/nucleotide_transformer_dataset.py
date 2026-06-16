@@ -71,9 +71,9 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
 
         for file in (base_path.iterdir()):
             if str(file).endswith('.fasta') and split in str(file):
-                self.seqs = Fasta(str(file), read_long_names=True)
                 if self.seqs is not None:
                     raise ValueError("Overwitten self.seqs")
+                self.seqs = Fasta(str(file), read_long_names=True)
 
         self.label_mapper = {}
         for i, key in enumerate(self.seqs.keys()):

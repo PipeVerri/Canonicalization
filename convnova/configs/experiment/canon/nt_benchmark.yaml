@@ -4,13 +4,15 @@ defaults:
   - override /scheduler: cosine_warmup_timm
 
 wandb:
-  group: "baseline"
+  group: baseline-nt
+  name: with-pretrained-weights
+  #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 64
+  d_model: 128
   kernel_size: 9
   dilation: 4
   pretrain: False
@@ -19,7 +21,7 @@ model:
   d_inner: 2
   ffn: false
   args:
-    hidden_dim: 64 # same as d_model
+    hidden_dim: 128 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -66,7 +68,7 @@ trainer:
 
 
 dataset:
-  batch_size: 128
+  batch_size: 256
   dataset_name: 'H3K36me3'
   tokenizer_name: char
   use_tokenizer: False
@@ -98,11 +100,12 @@ optimizer:
 train:
   gpu_mem: ${eval:"round(float(__import__('subprocess').check_output('nvidia-smi -i 0 --query-gpu=memory.total --format=csv,noheader,nounits', shell=True).strip().decode()) / 1000)"}
   seed: 48
-  global_batch_size: ${eval:${trainer.devices}*${dataset.batch_size}}
+  global_batch_size: 256 # The original config had 2 GPUs with 128 batches each
   remove_test_loader_in_eval: true  # no test set in this benchmark
+  # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  # pretrained_model_path: 
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_baseline_big/2026-06-12-18-46-53/checkpoints/test/loss.ckpt
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

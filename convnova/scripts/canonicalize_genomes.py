@@ -97,6 +97,7 @@ def main(config: DictConfig):
         test_file_name = f"{task}_test.fasta"
         task_dir = Path(c_cfg.nt_benchmark_dir) / task
         output_task_dir = Path(c_cfg.nt_benchmark_output_dir) / task
+        output_task_dir.mkdir(parents=True, exist_ok=True)
         
         canonicalize_nt_benchmark_fasta(
             task_dir / train_file_name,
