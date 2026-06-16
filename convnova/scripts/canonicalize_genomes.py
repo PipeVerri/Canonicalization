@@ -15,7 +15,7 @@ from src.utils.canonicalization import (
     parse_transcribed_features_from_gff,
     canonicalize_genome,
     save_seqs_dict,
-    decide_which_strand_should_canonicalize,
+    should_canonicalize_negative_strand,
     canonicalize_nt_benchmark_fasta,
     intervaltree_to_tuples
 )
@@ -60,7 +60,12 @@ def main(config: DictConfig):
         if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome
             # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
             # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
-            training_genome_to_canonicalize[ucsc_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
+            
+            # If I'm making all the coding segments be on the negative strand, I should take the RC at the end to bring everything to the positive strand
+            if should_canonicalize_negative_strand(positive_template_segments, negative_template_segments):
+                training_genome_to_canonicalize[ucsc_id] = {"segments": negative_template_segments, "should_rc_at_end": False}
+            else:
+                training_genome_to_canonicalize[ucsc_id] = {"segments": negative_template_segments, "should_rc_at_end": True}
         
         gencode_transcribed_segments_intervaltree[ucsc_id] = {
             "positive": IntervalTree.from_tuples(positive_template_segments),
@@ -72,7 +77,7 @@ def main(config: DictConfig):
     log.info(f"Canonicalizating genome with transformation: {transformation}...")
     canonicalized = canonicalize_genome(
         training_genome, 
-        training_genome_to_canonicalize, 
+        training_genome_to_canonicalize,
         transformation,
     )
 

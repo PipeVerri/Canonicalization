@@ -131,10 +131,10 @@ def parse_transcribed_features_from_gff(df, ucsc_id,
 
 def canonicalize_genome(training_genome, training_genome_canonicalization_segments, transformation):
     results = {}
-    for training_genome_id, segments in training_genome_canonicalization_segments.items():
+    for training_genome_id, transformation_params in training_genome_canonicalization_segments.items():
         canonicalied = MutableSeq(training_genome[training_genome_id])
         
-        for (start, end) in segments:
+        for (start, end) in transformation_params["segments"]:
             if transformation == "reverse":
                 reverse(canonicalied, start, end)
             if transformation == "complement":
@@ -143,11 +143,15 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_segmen
                 reverse(canonicalied, start, end)
                 complement(canonicalied, start, end)
 
+        if transformation_params["should_rc_at_end"]:
+            reverse(canonicalied, 0, len(canonicalied))
+            complement(canonicalied, 0, len(canonicalied))
+
         results[training_genome_id] = canonicalied
 
     return results
 
-def decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments):
+def should_canonicalize_negative_strand(positive_template_segments, negative_template_segments):
     negative_template_intervaltree = IntervalTree.from_tuples(negative_template_segments)
     keep_positive_strand_cost = 0
     keep_negative_strand_cost = 0
@@ -159,9 +163,9 @@ def decide_which_strand_should_canonicalize(positive_template_segments, negative
         
     # Decide which segments to canonicalize. Return the segments to canonicalize
     if keep_positive_strand_cost < keep_negative_strand_cost:
-        return positive_template_segments
+        return True
     else:
-        return negative_template_segments
+        return False
 
 #################################
 # NT Benchmark canonicalization #
@@ -223,7 +227,7 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
         if primary_alignment.strand == 1:
             segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["positive"]
         elif primary_alignment.strand == -1:
-            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["positive"]
+            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["negative"]
         else:
             raise ValueError(f"Primary alignment had strand {primary_alignment.strand} on {task_name} id {id}")
         
