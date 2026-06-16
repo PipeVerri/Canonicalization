@@ -20,10 +20,10 @@ canonicalization:
   reference_assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
   reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
 
-  nt_benchmark_dir: ${.data_path}/nucleotide_transformer
-  nt_benchmark_output_dir: ${.data_path}/nucleotide_transformer_parsed/
-  reference_genome_index: ${.data_path}/reference_genome_index.mmi
+  nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
+  nt_benchmark_output_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+  reference_genome_index: ${oc.env:PROJECT_ROOT}/data/reference_genome_index.mmi
   partial_seq_canonicalization: False
-  
-  # Ontology
-  ontology_path: ${oc.env:PROJECT_ROOT}/so.clean.obo
+  # Even though promoters aren't transcribed, they can be inside a "transcript" feature if there's an ATSS(alternate transcription start site)
+  # Orienting the promoters may break them, because they're inherently directional.
+  orient_promoters: False 

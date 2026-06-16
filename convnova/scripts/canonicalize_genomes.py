@@ -27,20 +27,17 @@ OmegaConf.register_new_resolver('eval', eval)
 OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
 
 @hydra.main(config_path="../configs", config_name="config.yaml")
-def main(config: DictConfig):
-    # TODO: Use new GENCODE genome
-    
+def main(config: DictConfig):    
     # Process config
     config = utils.train.process_config(config)
     c_cfg = config.canonicalization
     
     log.info("Reading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.reference_fasta_file))
-    ncbi_to_ucsc_id = build_ncbi_to_ucsc_id(Path(c_cfg.reference_assembly_report), training_genome)
-    #sequence_name_to_obo_term = load_ontology(c_cfg.ontology_path)
 
     log.info("Deciding canonicalization directions...")
     training_genome_to_canonicalize = {}
+    gencode_transcribed_segments_intervaltree = {}
 
     annotations_df = pr.read_gff3(c_cfg.gff_fasta_file).df
     # Drop the annotations that have na on any of the subsets
@@ -49,18 +46,26 @@ def main(config: DictConfig):
         nan_columns_to_drop.append("transcript_type")
     annotations_df = annotations_df.dropna(subset=nan_columns_to_drop)
 
-    for reference_id, ucsc_id in ncbi_to_ucsc_id.items():
+    for ucsc_id in annotations_df["Chromosome"].unique().tolist(): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
+        #log.info(f"Parsing {ucsc_id} from gff...")
+        
         positive_template_segments, negative_template_segments = parse_transcribed_features_from_gff(
             annotations_df,
-            reference_id,
+            ucsc_id,
             c_cfg.annotations_level,
             c_cfg.include_cdjv_segments,
             c_cfg.include_pseudogenes
         )
 
-        # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
-        # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
-        training_genome_to_canonicalize[ucsc_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
+        if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome
+            # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
+            # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
+            training_genome_to_canonicalize[ucsc_id] = decide_which_strand_should_canonicalize(positive_template_segments, negative_template_segments)
+        
+        gencode_transcribed_segments_intervaltree[ucsc_id] = {
+            "positive": IntervalTree.from_tuples(positive_template_segments),
+            "negative": IntervalTree.from_tuples(negative_template_segments)
+        }
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation
@@ -79,39 +84,39 @@ def main(config: DictConfig):
     save_seqs_dict(canonicalized, save_path)
     log.info(f"Saved {transformation} to {save_path}")
     
-    # # Canonicalize the NT benchmark genomes
-    # log.info("Canonicalizing NT benchmark downstream tasks...")
-    # # Load the aligner index
-    # log.info("Loading reference genome index...")
-    # aligner = mp.Aligner(c_cfg.reference_genome_index)
-    # # Convert to_orient into an intervaltree
-    # training_genome_canonicalization_intervaltree = {i: IntervalTree.from_tuples(training_genome_canonicalization_segments[i]) for i in training_genome_canonicalization_segments}
+    # Canonicalize the NT benchmark genomes
+    log.info("Canonicalizing NT benchmark downstream tasks...")
+    # Load the aligner index
+    log.info("Loading reference genome index...")
+    aligner = mp.Aligner(c_cfg.reference_genome_index)
     
-    # # Process each dataset
-    # for task in os.listdir(c_cfg.nt_benchmark_dir):
-    #     log.info(f"Processing {task}...")
-    #     train_file_name = f"{task}_train.fasta"
-    #     test_file_name = f"{task}_test.fasta"
-    #     task_dir = Path(c_cfg.nt_benchmark_dir) / task
-    #     output_task_dir = Path(c_cfg.nt_benchmark_output_dir) / task
+    # Process each dataset
+    for task in os.listdir(c_cfg.nt_benchmark_dir):
+        log.info(f"Processing {task}...")
+        train_file_name = f"{task}_train.fasta"
+        test_file_name = f"{task}_test.fasta"
+        task_dir = Path(c_cfg.nt_benchmark_dir) / task
+        output_task_dir = Path(c_cfg.nt_benchmark_output_dir) / task
         
-    #     canonicalize_nt_benchmark_fasta(
-    #         task_dir / train_file_name, 
-    #         aligner, 
-    #         training_genome_canonicalization_intervaltree, 
-    #         transformation, 
-    #         output_task_dir / train_file_name,
-    #         c_cfg.partial_seq_canonicalization
-    #     )
+        canonicalize_nt_benchmark_fasta(
+            task_dir / train_file_name,
+            aligner,
+            gencode_transcribed_segments_intervaltree,
+            transformation,
+            output_task_dir / train_file_name,
+            c_cfg.partial_seq_canonicalization,
+            c_cfg.orient_promoters
+        )
         
-    #     canonicalize_nt_benchmark_fasta(
-    #         task_dir / test_file_name, 
-    #         aligner, 
-    #         training_genome_canonicalization_intervaltree, 
-    #         transformation, 
-    #         output_task_dir / test_file_name,
-    #         c_cfg.partial_seq_canonicalization
-    #     )
+        canonicalize_nt_benchmark_fasta(
+            task_dir / test_file_name,
+            aligner,
+            gencode_transcribed_segments_intervaltree,
+            transformation,
+            output_task_dir / test_file_name,
+            c_cfg.partial_seq_canonicalization,
+            c_cfg.orient_promoters
+        )
 
 if __name__ == "__main__":
     if "PROJECT_ROOT" not in os.environ:

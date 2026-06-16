@@ -79,15 +79,14 @@ def merge_segment_list(segments_list):
 # Main logic #
 ##############
 
-def parse_transcribed_features_from_gff(df, reference_id, 
+def parse_transcribed_features_from_gff(df, ucsc_id, 
                                         annotations_level,
                                         include_cdjv_segments,
                                         include_pseudogenes):
-    
     assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
 
     df = df.copy() # Copy the df to not overwrite the original
-    df = df[df["Chromosome"] == reference_id].copy() # Filter the annotations for the target chromosome
+    df = df[df["Chromosome"] == ucsc_id].copy() # Filter the annotations for the target chromosome
     assert len(df) > 0 # Check that the chromosome actually exists
     
     df = df[df["level"].astype(int) <= annotations_level] # Filter the annotations for the desired level
@@ -121,6 +120,13 @@ def parse_transcribed_features_from_gff(df, reference_id,
 
     positive_segments = merge_segment_list(positive_segments)
     negative_segments = merge_segment_list(negative_segments)
+    
+    # Ignore chrM because it's so small in humans it's reasonable that it only has genes on one strand
+    if len(positive_segments) == 0 and ucsc_id != "chrM":
+        log.warning(f"positive_segments has length 0 on {ucsc_id}")
+    if len(negative_segments) == 0 and ucsc_id != "chrM":
+        log.warning(f"negtative segments has length 0 on {ucsc_id}")
+     
     return positive_segments, negative_segments
 
 def canonicalize_genome(training_genome, training_genome_canonicalization_segments, transformation):
@@ -161,29 +167,52 @@ def decide_which_strand_should_canonicalize(positive_template_segments, negative
 # NT Benchmark canonicalization #
 #################################
 
-def canonicalize_nt_benchmark_fasta(fasta_path, aligner, training_genome_canonicalization_intervaltree, transformation, save_path, partial_seq_canonicalization):
+HISTONE_TASKS = ("H3K4me3", "H3K27ac", "H3K27me3", "H3K4me1", "H3K36me3", "H3K9me3", "H3K9ac", "H3K4me2", "H4K20me1", "H2AFZ")
+ENHANCERS_TASKS = ("enhancers", "enhancers_types")
+PROMOTER_TASKS = ("promoter_all", "promoter_tata", "promoter_no_tata")
+SPLICING_TASKS = ("splice_sites_all", "splice_sites_acceptor", "splice_sites_donor")
+
+def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_segments_intervaltree, transformation, save_path, partial_seq_canonicalization, orient_promoters):
     records = read_fasta_into_records_dict(fasta_path)
+    task_name = fasta_path.stem.replace("_train", "").replace("_test", "")
+    
+    if task_name in SPLICING_TASKS or (not orient_promoters and task_name in PROMOTER_TASKS): # On the splicing tasks, the record is already on the coding strand
+        save_seqs_dict(records, save_path)
+        return
     
     canonicalized_records = {}
-    for id in records:
-        # Align the record with the reference genome
-        seq = str(records[id])
-        best_alignment = next((h for h in aligner.map(seq) if h.is_primary), None)
-        if best_alignment is None or best_alignment.mapq < 40:
-            raise ValueError(f"Couldn't find good alignment for {id}")
+    unaligned_records = 0
     
-        # Check if seq should be canonicalized or not
-        alignment_start = best_alignment.r_st
-        alignment_end = best_alignment.r_en
-        overlapping_segments = intervaltree_to_tuples(training_genome_canonicalization_intervaltree.overlap(alignment_start, alignment_end))
+    for id in records:
+        # Align the record with the reference genome, and take the primary alignment
+        seq_str = str(records[id])
+        primary_alignment = next((x for x in aligner.map(seq_str) if x.is_primary), None)
+
+        if primary_alignment is None:
+            canonicalized_records[id] = records[id]
+            unaligned_records += 1
+            continue
+    
+        # Check if seq falls inside a transcribed segment or not
+        alignment_start = primary_alignment.r_st
+        alignment_end = primary_alignment.r_en
+        
+        if primary_alignment.strand == 1:
+            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["positive"]
+        elif primary_alignment.strand == -1:
+            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["positive"]
+        else:
+            raise ValueError(f"Primary alignment had strand {primary_alignment.strand} on {task_name} id {id}")
+        
+        transcribed_segments_that_contain_seq = intervaltree_to_tuples(segments_to_check.overlap(alignment_start, alignment_end))
         
         canonicalized_seq = MutableSeq(records[id])
         if partial_seq_canonicalization:
             # Canonicalize seq using the segments
-            for segment in overlapping_segments:
+            for segment in transcribed_segments_that_contain_seq:
                 # Index the segment relative to the seq's position
                 segment_start = max(0, segment[0] - alignment_start)
-                segment_end = min(len(seq), segment[1] - alignment_end)
+                segment_end = min(len(seq_str), segment[1] - alignment_end)
                 
                 if transformation == "reverse":
                     canonicalized_seq = reverse(canonicalized_seq, segment_start, segment_end)
@@ -196,47 +225,33 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, training_genome_canonic
         else:
             # Check if more than 50% of seq should be canonicalized
             segments_length = 0
-            for segment in overlapping_segments:
+            for segment in transcribed_segments_that_contain_seq:
                 segment_start = max(0, segment[0] - alignment_start)
-                segment_end = min(len(seq), segment[1] - alignment_end)
+                segment_end = min(len(seq_str), segment[1] - alignment_end)
                 segments_length += segment_end - segment_start
             
-            if segments_length > len(seq) / 2:
+            # in-place modifications to seq
+            if segments_length > len(seq_str) / 2:
                 if transformation == "reverse":
-                    canonicalized_seq = reverse(canonicalized_seq, 0, len(seq))
+                    reverse(canonicalized_seq, 0, len(seq_str))
                 elif transformation == "complement":
-                    canonicalized_seq = complement(canonicalized_seq, 0, len(seq))
+                    complement(canonicalized_seq, 0, len(seq_str))
                 elif transformation == "rc":
-                    canonicalized_seq = reverse(complement(canonicalized_seq, 0, len(seq)), 0, len(seq))
+                    reverse(canonicalized_seq, 0, len(seq_str))
+                    complement(canonicalized_seq, 0, len(seq_str))
                 else:
                     raise ValueError(f"{transformation} not recognized")
-        
-        raise ValueError("Y canonicalization needed")
-        
+                
         canonicalized_records[id] = canonicalized_seq
+        
+        # There's no need for canonicalizing the labels because:
+        # - On histone tasks, histones interact with double stranded DNA, the label is the same for the RC
+        # - Enhancers (seem like) they're mostly bidirectional, and even if they aren't, I can't know if taking a non-enhancer sequence's RC suddenly turns it into an enhancer
+        # - The promoters aren't transcribed
+        # - The splicing seqs are already on the coding strand
     
     # Save the canonicalized_record
     save_seqs_dict(canonicalized_records, save_path)
-
-def canonicalize_nt_benchmark_label(label, task):
-    HISTONE_TASKS = ("H3K4me3", "H3K27ac", "H3K27me3", "H3K4me1", "H3K36me3", "H3K9me3", "H3K9ac", "H3K4me2", "H4K20me1", "H2AFZ")
-    ENHANCERS_TASKS = ("enhancers", "enhancers_types")
-    PROMOTER_TASKS = ("promoter_all", "promoter_tata", "promoter_no_tata")
-    SPLICING_TASKS = ("splice_sites_all", "splice_sites_acceptor", "splice_sites_donor")
     
-    if task in HISTONE_TASKS:
-        return label # Histones interact with double stranded DNA, directionality doesn't matter
-    elif task in ENHANCERS_TASKS:
-        return label # Most enhancers seem to be bidirectional
-    elif task in PROMOTER_TASKS:
-        return invert_binary_label(label) # Promoters are directional
-    elif task in SPLICING_TASKS:
-        raise ValueError("Unimplemented")
-
-def invert_binary_label(label):
-    if label == 1:
-        return 0
-    elif label == 0:
-        return 1
-    else:
-        raise ValueError("Invalid binary label")
+    if unaligned_records > 0:
+        log.warning(f"Task {task_name} has {unaligned_records} / {len(records.keys())} records that couldn't be aligned")

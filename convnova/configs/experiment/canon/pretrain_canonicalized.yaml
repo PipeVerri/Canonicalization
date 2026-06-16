@@ -37,6 +37,8 @@ trainer:
   # strategy: null
 
 dataset:
+  fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
+
   batch_size: 512  # Per GPU
   max_length: 1024 # 262144, 524288
   # optional, default is max_length
