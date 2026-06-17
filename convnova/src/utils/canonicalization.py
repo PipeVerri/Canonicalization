@@ -48,6 +48,17 @@ def reverse(seq, start, end):
 def complement(seq, start, end):
     seq[start:end] = seq[start:end].complement()
 
+def transform_sequence(seq, start, end, transformation):
+    if transformation == "reverse":
+        reverse(seq, start, end)
+    elif transformation == "complement":
+        complement(seq, start, end)
+    elif transformation == "rc":
+        reverse(seq, start, end)
+        complement(seq, start, end)
+    else:
+        raise ValueError(f"{transformation} not recognized")
+
 def save_seqs_dict(seqs_dict, save_path):
     records = [
         SeqRecord(seq, id=name, description="")
@@ -136,13 +147,7 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_segmen
         canonicalied = MutableSeq(training_genome[training_genome_id])
         
         for (start, end) in transformation_params["segments"]:
-            if transformation == "reverse":
-                reverse(canonicalied, start, end)
-            if transformation == "complement":
-                complement(canonicalied, start, end)
-            if transformation == "rc":
-                reverse(canonicalied, start, end)
-                complement(canonicalied, start, end)
+            transform_sequence(canonicalied, start, end, transformation)
 
         if transformation_params["should_rc_at_end"]:
             reverse(canonicalied, 0, len(canonicalied))
@@ -197,6 +202,33 @@ ENHANCERS_TASKS = ("enhancers", "enhancers_types")
 PROMOTER_TASKS = ("promoter_all", "promoter_tata", "promoter_no_tata")
 SPLICING_TASKS = ("splice_sites_all", "splice_sites_acceptor", "splice_sites_donor")
 
+def find_primary_alignment(hits):
+    for hit in hits:
+        if hit.is_primary:
+            return hit
+    return None
+
+def find_annotated_alignment(hits, primary_alignment_mapq, gencode_transcribed_segments_intervaltree):
+    for hit in hits:
+        if hit.mapq >= primary_alignment_mapq and hit.ctg in gencode_transcribed_segments_intervaltree:
+            return hit
+    return None
+
+def get_transcribed_segments_that_contain_seq(alignment, gencode_transcribed_segments_intervaltree):
+    if alignment.strand == 1:
+        segments_to_check = gencode_transcribed_segments_intervaltree[alignment.ctg]["positive"]
+    elif alignment.strand == -1:
+        segments_to_check = gencode_transcribed_segments_intervaltree[alignment.ctg]["negative"]
+    else:
+        return None
+
+    return intervaltree_to_tuples(segments_to_check.overlap(alignment.r_st, alignment.r_en))
+
+def align_transcript_position_with_seq(alignment, segment, chromosome_length):
+    segment_start = max(0, segment[0] - alignment.r_st)
+    segment_end = min(chromosome_length, segment[1] - alignment.r_st)
+    return segment_start, segment_end
+
 def canonicalize_nt_benchmark_fasta(
         fasta_path, 
         aligner, 
@@ -225,45 +257,28 @@ def canonicalize_nt_benchmark_fasta(
         hits = aligner.map(seq_str)
         
         # Find primary alignment
-        primary_alignment = None
-        for hit in hits:
-            if hit.is_primary:
-                primary_alignment = hit
-                break
+        alignment = find_primary_alignment(hits)
 
-        if primary_alignment is None:
+        if alignment is None:
             canonicalized_records[id] = records[id]
             unaligned_records += 1
             continue
 
         # If the primary alignment isn't on an annotated chromosome(like an unalocated segment), see if there's another alignment with the same mapq
-        if not primary_alignment.ctg in gencode_transcribed_segments_intervaltree:
-            found_annotated_hit = False
-
-            for hit in hits:
-                if hit.mapq >= primary_alignment.mapq and hit.ctg in gencode_transcribed_segments_intervaltree:
-                    primary_alignment = hit
-                    found_annotated_hit = True
-                    break
-            
-            if not found_annotated_hit:
+        if not alignment.ctg in gencode_transcribed_segments_intervaltree:
+            annotated_alignment = find_annotated_alignment(hits, alignment.mapq, gencode_transcribed_segments_intervaltree)
+            if annotated_alignment is None:
                 canonicalized_records[id] = records[id]
                 aligned_records_without_annotation += 1
                 continue
+            else:
+                alignment = annotated_alignment
 
         # Check if seq falls inside a transcribed segment or not
-        alignment_start = primary_alignment.r_st
-        alignment_end = primary_alignment.r_en
-        
-        if primary_alignment.strand == 1:
-            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["positive"]
-        elif primary_alignment.strand == -1:
-            segments_to_check = gencode_transcribed_segments_intervaltree[primary_alignment.ctg]["negative"]
-        else:
-            raise ValueError(f"Primary alignment had strand {primary_alignment.strand} on {task_name} id {id}")
-        
-        transcribed_segments_that_contain_seq = intervaltree_to_tuples(segments_to_check.overlap(alignment_start, alignment_end))
-        
+        transcribed_segments_that_contain_seq = get_transcribed_segments_that_contain_seq(alignment, gencode_transcribed_segments_intervaltree)
+        if transcribed_segments_that_contain_seq is None:
+            ValueError(f"Primary alignment had strand {alignment.strand} on {task_name} id {id}")
+
         canonicalized_seq = MutableSeq(records[id])
         control_signal = np.zeros(len(seq_str))
 
@@ -271,39 +286,19 @@ def canonicalize_nt_benchmark_fasta(
             # Canonicalize seq using the segments
             for segment in transcribed_segments_that_contain_seq:
                 # Index the segment relative to the seq's position
-                segment_start = max(0, segment[0] - alignment_start)
-                segment_end = min(len(seq_str), segment[1] - alignment_end)
-                
-                if transformation == "reverse":
-                    canonicalized_seq = reverse(canonicalized_seq, segment_start, segment_end)
-                elif transformation == "complement":
-                    canonicalized_seq = complement(canonicalized_seq, segment_start, segment_end)
-                elif transformation == "rc":
-                    canonicalized_seq = reverse(complement(canonicalized_seq, segment_start, segment_end), segment_start, segment_end)
-                else:
-                    raise ValueError(f"{transformation} not recognized")
-            
+                segment_start, segment_end = align_transcript_position_with_seq(alignment, segment, len(seq_str))
+                transform_sequence(canonicalized_seq, segment_start, segment_end, transformation)            
                 control_signal[segment_start:segment_end] = 1
         else:
             # Check if more than 50% of seq should be canonicalized
             segments_length = 0
             for segment in transcribed_segments_that_contain_seq:
-                segment_start = max(0, segment[0] - alignment_start)
-                segment_end = min(len(seq_str), segment[1] - alignment_end)
+                segment_start, segment_end = align_transcript_position_with_seq(alignment, segment, len(seq_str))
                 segments_length += segment_end - segment_start
             
             # in-place modifications to seq
             if segments_length > len(seq_str) / 2:
-                if transformation == "reverse":
-                    reverse(canonicalized_seq, 0, len(seq_str))
-                elif transformation == "complement":
-                    complement(canonicalized_seq, 0, len(seq_str))
-                elif transformation == "rc":
-                    reverse(canonicalized_seq, 0, len(seq_str))
-                    complement(canonicalized_seq, 0, len(seq_str))
-                else:
-                    raise ValueError(f"{transformation} not recognized")
-
+                transform_sequence(canonicalized_seq, 0, len(seq_str), transformation)
                 control_signal[0:len(seq_str)] = 1
                 
         canonicalized_records[id] = canonicalized_seq

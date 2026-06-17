@@ -4,7 +4,6 @@ from Bio.Seq import Seq, MutableSeq
 from src.utils.canonicalization import (
     merge_segment_list,
     parse_transcribed_features_from_gff,
-    decide_which_strand_should_canonicalize,
 )
 
 def test_merge_segment_list():
@@ -32,7 +31,7 @@ def test_parse_transcribed_features_from_gff():
         "Chromosome": ["chr1", "chr1", "chr1", "chr1", "chr1", "chr2"],
         "Start": [0, 20, 40, 60, 80, 0],
         "End": [10, 30, 50, 70, 90, 10],
-        "Strand": [1, -1, 1, -1, -1, 1],
+        "Strand": ["+", "-", "+", "-", "-", "+"],
         "Feature": ["transcript", "transcript", "transcript", "gene", "transcript", "transcript"],
         "level": [1, 2, 3, 1, 1, 1],
         "transcript_type": ["mRNA", "mRNA", "pseudogene", "mRNA", "mRNA", "mRNA"]
