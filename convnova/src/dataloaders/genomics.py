@@ -778,7 +778,7 @@ class BertHG38(SequenceDataset):
                  add_eos=True, detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                  fast_forward_epochs=None, fast_forward_batches=None, replace_N_token=False, pad_interval=False, use_tokenizer=True, pad_max_length=None,
-                 objective="stdmlm",
+                 objective="stdmlm", use_control_signal=False, control_signal_path=None, load_control_signal_using_memmap=False,
                  *args, **kwargs):
         self.dataset_config_name = dataset_config_name
         self.tokenizer_name = tokenizer_name
@@ -806,6 +806,9 @@ class BertHG38(SequenceDataset):
         self.use_tokenizer = use_tokenizer     
         self.pad_max_length = pad_max_length 
         self.objective = objective
+        self.use_control_signal = use_control_signal
+        self.control_signal_path = None
+        self.load_control_signal_using_memmap = load_control_signal_using_memmap
 
         # handle if file paths are None (default paths)
         if self.bed_file is None:
@@ -876,11 +879,15 @@ class BertHG38(SequenceDataset):
                         pad_interval=self.pad_interval,
                         use_tokenizer=self.use_tokenizer,
                         pad_max_length=self.pad_max_length,
-                        objective=self.objective)
+                        objective=self.objective,
+                        use_control_signal=self.use_control_signal,
+                        control_signal_path=self.control_signal_path,
+                        load_control_signal_using_memmap=self.load_control_signal_using_memmap
+                        )
             for split, max_len in zip(['train', 'valid', 'test'], [self.max_length, self.max_length_val, self.max_length_test])
         ]
 
-        if self.use_fixed_len_val:
+        if self.use_fixed_len_val: # False by default
             # we're placing the fixed test set in the val dataloader, for visualization!!!
             # that means we should track mode with test loss, not val loss
 

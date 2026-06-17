@@ -114,6 +114,8 @@ class CNNModel(nn.Module):
         self.dropout = nn.Dropout(args.dropout)
 
     def forward(self, seq, t=None, cls = None, return_embedding=False, state=None):
+        # Mask can either be (seq, mask, labels) or (seq, mask, labels, control_signal)
+        
         if self.pretrain:
             mask = seq[1]
             seq = seq[0]
@@ -126,9 +128,18 @@ class CNNModel(nn.Module):
         rc_seq = torch.nn.functional.one_hot(rc_seq, num_classes=self.alphabet_size).type(torch.float32)
         seq = torch.nn.functional.one_hot(seq, num_classes=self.alphabet_size).type(torch.float32)
 
-        feat = seq.permute(0, 2, 1)
-        feat = F.gelu(self.linear(feat))
+        feat = seq.permute(0, 2, 1) # From (batch, length, alphabet) to (batch, alphabet, length)
         rc_feat = rc_seq.permute(0,2,1)
+        
+        if len(seq) == 4: # If a control signal was passed
+            control_signal = seq[4] # Unsqueeze -1 (or not) for (batch, l) to (batch,l,1)
+            control_signal_rc = 1 - control_signal
+            print(control_signal.dim)
+            raise ValueError("test error for breaking")
+            feat = torch.cat([seq, control_signal], dim=-1) # (batch, l, d+1)
+            rc_feat = torch.cat([seq, control_signal_rc], dim=-1)
+        
+        feat = F.gelu(self.linear(feat))
         rc_feat = F.gelu(self.rc_linear(rc_feat))
 
         for i in range(self.num_layers):
