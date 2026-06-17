@@ -321,7 +321,7 @@ class NucleotideTransformer(HG38):
                 padding_side='left', return_mask=False, val_ratio=0.0005, val_split_seed=2357, add_eos=False, 
                 detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                 shuffle=True, shuffle_eval=None, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
-                fast_forward_epochs=None, fast_forward_batches=None, *args, **kwargs):
+                fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=False, *args, **kwargs):
 
         self.dataset_name = dataset_name
         self.dest_path = dest_path
@@ -346,6 +346,8 @@ class NucleotideTransformer(HG38):
         self.shuffle_eval = shuffle_eval if shuffle_eval is not None else shuffle  # default is to use the same as train shuffle arg
         self.pin_memory = pin_memory
         self.drop_last = drop_last
+        self.use_control_signal = use_control_signal
+
         if "use_tokenizer" in kwargs:
             self.use_tokenizer = kwargs["use_tokenizer"]
         else:
@@ -397,6 +399,7 @@ class NucleotideTransformer(HG38):
                                 return_augs=False,
                                 return_mask=self.return_mask,
                                 use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True
+                                use_control_signal=self.use_control_signal
             )
             for split, max_len in zip(['train', 'val'], [self.max_length, self.max_length_val])
         ]
