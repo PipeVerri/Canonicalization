@@ -4,6 +4,10 @@ defaults:
   - /canonicalization: default
   - override /scheduler: cosine_warmup_timm
 
+wandb:
+  job_type: pretraining
+  group: pretraining_canonicalized
+
 model:
   _name_: convnova
   for_representation: false

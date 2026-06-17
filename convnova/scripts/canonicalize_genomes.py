@@ -17,7 +17,7 @@ from src.utils.canonicalization import (
     save_seqs_dict,
     should_canonicalize_negative_strand,
     canonicalize_nt_benchmark_fasta,
-    intervaltree_to_tuples
+    save_canonicalization_control_signal
 )
 
 log = src.utils.train.get_logger(__name__)
@@ -109,9 +109,9 @@ def main(config: DictConfig):
             aligner,
             gencode_transcribed_segments_intervaltree,
             transformation,
-            output_task_dir / train_file_name,
             c_cfg.partial_seq_canonicalization,
-            c_cfg.orient_promoters
+            c_cfg.orient_promoters,
+            output_task_dir,
         )
         
         canonicalize_nt_benchmark_fasta(
@@ -119,10 +119,16 @@ def main(config: DictConfig):
             aligner,
             gencode_transcribed_segments_intervaltree,
             transformation,
-            output_task_dir / test_file_name,
             c_cfg.partial_seq_canonicalization,
-            c_cfg.orient_promoters
+            c_cfg.orient_promoters,
+            output_task_dir,
         )
+    
+    # Save the control signal
+    log.info("Saving control signal...")
+    control_signal_dir = out_path / "control_signals"
+    control_signal_dir.mkdir(parents=True, exist_ok=True)
+    save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
 
 if __name__ == "__main__":
     if "PROJECT_ROOT" not in os.environ:

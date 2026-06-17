@@ -7,6 +7,7 @@ from Bio.SeqRecord import SeqRecord
 from intervaltree import IntervalTree
 import src.utils as utils
 import src.utils.train
+import numpy as np
 
 log = src.utils.train.get_logger(__name__)
 
@@ -167,6 +168,26 @@ def should_canonicalize_negative_strand(positive_template_segments, negative_tem
     else:
         return False
 
+
+##################
+# Control signal #
+##################
+
+def save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, out_dir):
+    for ucsc_id in training_genome_to_canonicalize:
+        if training_genome_to_canonicalize[ucsc_id]["should_rc_at_end"]:
+            control_signal = np.ones(len(training_genome[ucsc_id]))
+            segment_value = 0
+        else:
+            control_signal = np.zeros(len(training_genome[ucsc_id]))
+            segment_value = 1
+        
+        for (start, end) in training_genome_to_canonicalize[ucsc_id]["segments"]:
+            control_signal[start:end] = segment_value
+
+        np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)
+
+
 #################################
 # NT Benchmark canonicalization #
 #################################
@@ -176,18 +197,28 @@ ENHANCERS_TASKS = ("enhancers", "enhancers_types")
 PROMOTER_TASKS = ("promoter_all", "promoter_tata", "promoter_no_tata")
 SPLICING_TASKS = ("splice_sites_all", "splice_sites_acceptor", "splice_sites_donor")
 
-def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_segments_intervaltree, transformation, save_path, partial_seq_canonicalization, orient_promoters):
+def canonicalize_nt_benchmark_fasta(
+        fasta_path, 
+        aligner, 
+        gencode_transcribed_segments_intervaltree, 
+        transformation, 
+        partial_seq_canonicalization, 
+        orient_promoters, 
+        save_dir,
+    ):
     records = read_fasta_into_records_dict(fasta_path)
     task_name = fasta_path.stem.replace("_train", "").replace("_test", "")
+    save_file_path = save_dir / f"{fasta_path.stem}.fasta"
     
     if task_name in SPLICING_TASKS or (not orient_promoters and task_name in PROMOTER_TASKS): # On the splicing tasks, the record is already on the coding strand
-        save_seqs_dict(records, save_path)
+        save_seqs_dict(records, save_file_path)
         return
     
     canonicalized_records = {}
+    control_signals = {}
+
     unaligned_records = 0
     aligned_records_without_annotation = 0
-    
     for id in records:
         # Align the record with the reference genome, and take the primary alignment
         seq_str = str(records[id])
@@ -234,6 +265,8 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
         transcribed_segments_that_contain_seq = intervaltree_to_tuples(segments_to_check.overlap(alignment_start, alignment_end))
         
         canonicalized_seq = MutableSeq(records[id])
+        control_signal = np.zeros(len(seq_str))
+
         if partial_seq_canonicalization:
             # Canonicalize seq using the segments
             for segment in transcribed_segments_that_contain_seq:
@@ -249,6 +282,8 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
                     canonicalized_seq = reverse(complement(canonicalized_seq, segment_start, segment_end), segment_start, segment_end)
                 else:
                     raise ValueError(f"{transformation} not recognized")
+            
+                control_signal[segment_start:segment_end] = 1
         else:
             # Check if more than 50% of seq should be canonicalized
             segments_length = 0
@@ -268,8 +303,11 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
                     complement(canonicalized_seq, 0, len(seq_str))
                 else:
                     raise ValueError(f"{transformation} not recognized")
+
+                control_signal[0:len(seq_str)] = 1
                 
         canonicalized_records[id] = canonicalized_seq
+        control_signals[id] = control_signal
         
         # There's no need for canonicalizing the labels because:
         # - On histone tasks, histones interact with double stranded DNA, the label is the same for the RC
@@ -278,9 +316,12 @@ def canonicalize_nt_benchmark_fasta(fasta_path, aligner, gencode_transcribed_seg
         # - The splicing seqs are already on the coding strand
     
     # Save the canonicalized_record
-    save_seqs_dict(canonicalized_records, save_path)
+    save_seqs_dict(canonicalized_records, save_file_path)
     unaligned_percentage = round((unaligned_records * 100) / len(records.keys()), 1)
     aligned_without_annotation_percentage = round((aligned_records_without_annotation * 100) / len(records.keys()), 1)
+
+    # Save the control signal
+    np.savez(str(save_dir / f"{fasta_path.stem}.npz"), **control_signals)
 
     if unaligned_percentage > 0.05 or aligned_without_annotation_percentage > 0.05:
         log.warning(f"Task {task_name} has {unaligned_percentage + aligned_without_annotation_percentage}% records that couldn't be processed\n" + \
