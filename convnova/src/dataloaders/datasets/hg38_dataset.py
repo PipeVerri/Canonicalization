@@ -251,6 +251,7 @@ def random_mask(seq, mask_token_id, mask_prob=0.15):
     
     return (masked_seq, mask, None) # Make it have the same shape as bert_mask
 
+
 def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, random_token_prob=0.1, unchanged_token_prob=0.1, special_token_ids=None):
     """
     Applies BERT masking strategy to a sequence of BPE tokens.
@@ -265,7 +266,7 @@ def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, rand
         unchanged_token_prob: Probability of keeping a masked token unchanged.
     
     Returns:
-        A tuple containing: (NOT IN ORDER)
+        A tuple containing:
             - masked_seq: The masked sequence.
             - labels: The ground truth labels for the masked positions.
             - mask: The mask used to identify which tokens were masked.
@@ -275,7 +276,7 @@ def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, rand
 
     # 复制一份用于保存label
     labels = seq.clone()
-    labels[~mask] = -100  # PyTorch忽略-100的label. The things INSIDE mask are to be predicted
+    labels[~mask] = -100  # PyTorch忽略-100的label
 
     # 生成随机数矩阵
     rand = torch.rand(seq.shape)
@@ -347,6 +348,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         assert bed_path.exists(), 'path to .bed file must exist'
 
         if use_control_signal:
+            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
             self.control_signals = {}
             control_signal_dir = Path(control_signal_dir)
             assert self.control_signal_dir.exists()
@@ -440,8 +442,12 @@ class BertHG38Dataset(torch.utils.data.Dataset):
             masked = random_mask(data, self.tokenizer.mask_token_id)
         
         if self.use_control_signal:
-            # Mask the control signal and append it to masked
+            # Mask the control signal and append it to the seq
             control_signal[masked[1]] = 0
-            masked = (masked[0], masked[1], masked[2], control_signal)
+            print(control_signal.shape)
+            raise RuntimeError("Control signal shape check")
+            # TODO: Check if should unsqueeze or smth
+            seq_with_control = torch.cat([masked[0], control_signal], dim=-1)
+            masked = (seq_with_control, masked[1], masked[2])
 
         return masked, target
