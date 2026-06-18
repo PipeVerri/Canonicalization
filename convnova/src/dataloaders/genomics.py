@@ -398,7 +398,7 @@ class NucleotideTransformer(HG38):
                                 rc_aug=self.rc_aug,
                                 return_augs=False,
                                 return_mask=self.return_mask,
-                                use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True
+                                use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True,
                                 use_control_signal=self.use_control_signal
             )
             for split, max_len in zip(['train', 'val'], [self.max_length, self.max_length_val])

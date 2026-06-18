@@ -12,7 +12,7 @@ model:
   _name_: convnova
   for_representation: false
   alphabet_size: 5
-  d_model: 128
+  d_model: 64
   pretrain: true
   kernel_size: 9 # Taken from section 3.2
   final_conv: False
@@ -21,7 +21,7 @@ model:
   d_inner: 2
   ffn: true
   args:
-    hidden_dim: 128 # same as d_model
+    hidden_dim: 64 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 

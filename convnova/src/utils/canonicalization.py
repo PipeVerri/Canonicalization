@@ -229,6 +229,9 @@ def align_transcript_position_with_seq(alignment, segment, chromosome_length):
     segment_end = min(chromosome_length, segment[1] - alignment.r_st)
     return segment_start, segment_end
 
+def save_control_signals(control_signals, save_dir, fasta_path):
+    np.savez(str(save_dir / f"{fasta_path.stem}.npz"), **control_signals)
+
 def canonicalize_nt_benchmark_fasta(
         fasta_path, 
         aligner, 
@@ -242,8 +245,13 @@ def canonicalize_nt_benchmark_fasta(
     task_name = fasta_path.stem.replace("_train", "").replace("_test", "")
     save_file_path = save_dir / f"{fasta_path.stem}.fasta"
     
-    if task_name in SPLICING_TASKS or (not orient_promoters and task_name in PROMOTER_TASKS): # On the splicing tasks, the record is already on the coding strand
+    # I don't know if the splicing tasks were taken from the template or coding strand
+    # Even though promoters aren't transcribed, they can be inside a "transcript" feature if there's an ATSS(alternate transcription start site)
+    # Orienting the promoters may break them, because they're inherently directional.
+    if not orient_promoters and task_name in PROMOTER_TASKS:
         save_seqs_dict(records, save_file_path)
+        control_signals = {id: np.zeros(len(records[id])) for id in records}
+        save_control_signals(control_signals, save_dir, fasta_path)
         return
     
     canonicalized_records = {}
@@ -316,7 +324,7 @@ def canonicalize_nt_benchmark_fasta(
     aligned_without_annotation_percentage = round((aligned_records_without_annotation * 100) / len(records.keys()), 1)
 
     # Save the control signal
-    np.savez(str(save_dir / f"{fasta_path.stem}.npz"), **control_signals)
+    save_control_signals(control_signals, save_dir, fasta_path)
 
     if unaligned_percentage > 0.05 or aligned_without_annotation_percentage > 0.05:
         log.warning(f"Task {task_name} has {unaligned_percentage + aligned_without_annotation_percentage}% records that couldn't be processed\n" + \

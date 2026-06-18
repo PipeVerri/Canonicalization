@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - canon/nt_benchmark
+  - _self_
+
+wandb:
+  group: pretraining_canonicalized
+  #mode: disabled
+
+dataset:
+  dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+
+train:
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_canonicalized/2026-06-17/08-53-01/checkpoints/test/loss.ckpt
