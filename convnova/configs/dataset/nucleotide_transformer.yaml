@@ -1,5 +1,5 @@
 _name_: nucleotide_transformer  # this links to the overall SequenceDataset of all nucleotide transformer datasets
-dataset_name: enhancer  # this specifies which dataset in nuc trx
+dataset_name: enhancers  # this specifies which dataset in nuc trx
 dest_path: null  # path to overall nuc trx datasets
 max_length: ${.${.dataset_name}.max_length}
 d_output: ${.${.dataset_name}.classes} 
@@ -12,12 +12,12 @@ __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
 # these are used to find the right attributes automatically for each dataset
-enhancer:
+enhancers:
   train_len: 14968
   classes: 2
   max_length: 200
   metric: mcc
-enhancer_types:
+enhancers_types:
   train_len: 14968
   classes: 3
   max_length: 200
@@ -77,7 +77,7 @@ promoter_all:
   classes: 2
   max_length: 300
   metric: f1_macro
-promoter_non_tata:
+promoter_no_tata:
   train_len: 47759
   classes: 2
   max_length: 300
@@ -87,12 +87,12 @@ promoter_tata:
   classes: 2
   max_length: 300
   metric: f1_macro
-splice_sites_acceptor:
+splice_sites_acceptors:
   train_len: 19961
   classes: 2
   max_length: 600
   metric: f1_macro
-splice_sites_donor:
+splice_sites_donors:
   train_len: 19775
   classes: 2
   max_length: 600

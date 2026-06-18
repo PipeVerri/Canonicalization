@@ -136,3 +136,11 @@ NT transformer labels:
   - 0: acceptor site
   - 1: donor site
   - 2: non-splice site
+
+TODO:
+- [ ] Checkear que el baseline de train.py nuevo sea igual que el de train.py viejo
+- [x] Testear el script de canonicalizacion de NT benchmark
+- [ ] Checkear que la señal de control no rompa todo
+- [ ] Checkear que el fine-tuning del canonicalizado logee los hparams de canonicalizacion 
+- [ ] Hacer el sweep(1 random seed cada uno)
+- [ ] Hacer el mega-sweep(10 random seed cada uno)

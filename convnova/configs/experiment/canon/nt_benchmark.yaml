@@ -5,14 +5,14 @@ defaults:
 
 wandb:
   job_type: finetuning
-  name: baseline_finetuned_old_benchmark
+  group: pretraining_baseline_old_code
   #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 128
+  d_model: 64
   kernel_size: 9
   dilation: 4
   pretrain: False
@@ -21,7 +21,7 @@ model:
   d_inner: 2
   ffn: false
   args:
-    hidden_dim: 128 # same as d_model
+    hidden_dim: 64 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -105,7 +105,7 @@ train:
   # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_baseline_big/2026-06-16/10-36-40/checkpoints/test/loss.ckpt
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_baseline/2026-06-17/13-24-05/checkpoints/test/loss.ckpt
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

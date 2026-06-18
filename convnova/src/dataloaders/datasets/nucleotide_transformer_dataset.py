@@ -67,6 +67,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
 
         # use Path object
         base_path = Path(dest_path) / dataset_name 
+        print(base_path)
         assert base_path.exists(), 'path to fasta file must exist'
 
         for file in (base_path.iterdir()):
