@@ -3,6 +3,7 @@ import torch
 # from random import random 
 import random
 from pathlib import Path
+import numpy as np
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 
@@ -46,7 +47,8 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         rc_aug=False,
         return_augs=False,
         return_mask=False,
-        use_tokenizer=True 
+        use_tokenizer=True,
+        use_control_signal=False
     ):
 
         self.max_length = max_length
@@ -60,6 +62,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         self.return_mask = return_mask
         self.use_tokenizer = use_tokenizer
         self.seqs = None
+        self.control_signal = None
 
         # change "val" split to "test".  No val available, just test
         if split == "val":
@@ -75,6 +78,11 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                 if self.seqs is not None:
                     raise ValueError("Overwitten self.seqs")
                 self.seqs = Fasta(str(file), read_long_names=True)
+                if use_control_signal:
+                    self.control_signal = {}
+                    control_signals_npz = np.load(file / ".." / f"{file.stem}.npz")
+                    for seq_key in control_signals_npz:
+                        self.control_signal[seq_key] = control_signals_npz[seq_key]
 
         self.label_mapper = {}
         for i, key in enumerate(self.seqs.keys()):
@@ -111,6 +119,14 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
 
         # need to wrap in list
         target = torch.LongTensor([y])  # offset by 1, includes eos
+
+        # Add the control_signal to the seq_ids tensor
+        if self.control_signal is not None:
+            seq_control_signal = self.control_signal[seq_id]
+            print(seq_ids.shape)
+            print(seq_control_signal.shape)
+            raise RuntimeError("Unsqueeze may be needed. Check that shapes match")
+            seq_ids = torch.cat([seq_ids, seq_control_signal], dim=-1)
 
         if self.return_mask:
             return seq_ids, target, {'mask': torch.BoolTensor(seq['attention_mask'])}

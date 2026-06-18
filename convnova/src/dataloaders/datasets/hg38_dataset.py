@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from random import randrange, random
 import numpy as np
-
+import torch.nn.functional as F
 
 """
 
@@ -48,6 +48,7 @@ class FastaInterval():
         shift_augs = None,
         rc_aug = False,
         pad_interval = False,
+        control_signals = None
     ):
         fasta_file = Path(fasta_file)
         assert fasta_file.exists(), 'path to fasta file must exist'
@@ -57,7 +58,8 @@ class FastaInterval():
         # self.max_length = max_length # -1 for adding sos or eos token
         self.shift_augs = shift_augs
         self.rc_aug = rc_aug
-        self.pad_interval = pad_interval        
+        self.pad_interval = pad_interval
+        self.control_signals = control_signals
 
         # calc len of each chromosome in fasta file, store in dict
         self.chr_lens = {}
@@ -78,7 +80,10 @@ class FastaInterval():
         # chromosome_length = len(chromosome)
         chromosome_length = self.chr_lens[chr_name]
 
-        if exists(self.shift_augs):
+        if exists(self.shift_augs): # shift_augs is always passed as None in genomics.py
+            if exists(self.control_signals):
+                raise RuntimeError("Shift augs unimplemented for control signals")
+
             min_shift, max_shift = self.shift_augs
             max_shift += 1
 
@@ -116,12 +121,23 @@ class FastaInterval():
         seq = str(chromosome[start:end])
 
         if self.rc_aug and coin_flip():
+            if exists(self.control_signals):
+                raise RuntimeError("RC aug unimplemented for control signals")
+
             seq = string_reverse_complement(seq)
+
+        if exists(self.control_signals):
+            control_signal = self.control_signals[chr_name][start:end]
 
         if self.pad_interval:
             seq = ('.' * left_padding) + seq + ('.' * right_padding)
+            if exists(self.control_signals):
+                control_signal = F.pad(control_signal, (left_padding, right_padding), value=0)
 
-        return seq
+        if exists(self.control_signals):
+            return seq, self.control_signals
+        else:
+            return seq
 
 class HG38Dataset(torch.utils.data.Dataset):
 
@@ -233,7 +249,8 @@ def random_mask(seq, mask_token_id, mask_prob=0.15):
     masked_seq = seq.clone()
     masked_seq[mask] = mask_token_id
     
-    return (masked_seq, mask)
+    return (masked_seq, mask, None) # Make it have the same shape as bert_mask
+
 
 def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, random_token_prob=0.1, unchanged_token_prob=0.1, special_token_ids=None):
     """
@@ -310,6 +327,9 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         pad_interval = False,  # options for different padding
         use_tokenizer = True,
         objective = "stdmlm",
+        use_control_signal = False,
+        control_signal_dir = None,
+        load_control_signal_using_memmap = False,
     ):
 
         self.max_length = max_length
@@ -322,9 +342,22 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         self.pad_interval = pad_interval   
         self.use_tokenizer = use_tokenizer 
         self.objective = objective     
+        self.use_control_signal = use_control_signal
 
         bed_path = Path(bed_file)
         assert bed_path.exists(), 'path to .bed file must exist'
+
+        if use_control_signal:
+            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
+            self.control_signals = {}
+            control_signal_dir = Path(control_signal_dir)
+            assert self.control_signal_dir.exists()
+            for file in control_signal_dir.iterdir():
+                if file.suffix == ".npy":
+                    if load_control_signal_using_memmap:
+                        self.control_signals[file.stem] = torch.from_numpy(np.load(control_signal_dir / file, mmap_mode="r")).share_memory_()
+                    else:
+                        self.control_signals[file.stem] = torch.from_numpy(np.load(control_signal_dir / file)).share_memory_()
 
         # read bed file
         df_raw = pd.read_csv(str(bed_path), sep = '\t', names=['chr_name', 'start', 'end', 'split'])
@@ -338,6 +371,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
             shift_augs = shift_augs,
             rc_aug = rc_aug,
             pad_interval = pad_interval,
+            control_signals=self.control_signals
         )
 
     def __len__(self):
@@ -353,8 +387,12 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         # row = (chr, start, end, split)
         chr_name, start, end = (row[0], row[1], row[2])
 
-        seq = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
+        if self.use_control_signal:
+            seq, control_signal = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
+        else:
+            seq = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
 
+        # Uses character tokenizer by default
         if self.tokenizer_name == 'char':
 
             seq = self.tokenizer(seq,
@@ -397,7 +435,19 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         target = seq.clone()  # offset by 1, includes eos
         special_token_ids = self.tokenizer.all_special_ids
 
+        # (seq, mask, labels)
         if self.objective=="stdmlm":
-                return bert_mask(data, self.tokenizer.mask_token_id, self.tokenizer.pad_token_id, self.tokenizer.vocab_size, special_token_ids=special_token_ids), target
+            masked = bert_mask(data, self.tokenizer.mask_token_id, self.tokenizer.pad_token_id, self.tokenizer.vocab_size, special_token_ids=special_token_ids)
         else:
-            return random_mask(data, self.tokenizer.mask_token_id), target
+            masked = random_mask(data, self.tokenizer.mask_token_id)
+        
+        if self.use_control_signal:
+            # Mask the control signal and append it to the seq
+            control_signal[masked[1]] = 0
+            print(control_signal.shape)
+            raise RuntimeError("Control signal shape check")
+            # TODO: Check if should unsqueeze or smth
+            seq_with_control = torch.cat([masked[0], control_signal], dim=-1)
+            masked = (seq_with_control, masked[1], masked[2])
+
+        return masked, target

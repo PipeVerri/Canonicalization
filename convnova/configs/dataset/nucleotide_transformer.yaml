@@ -11,6 +11,7 @@ train_len: ${.${.dataset_name}.train_len}
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
+use_control_signal: False
 # these are used to find the right attributes automatically for each dataset
 enhancers:
   train_len: 14968

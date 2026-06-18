@@ -13,3 +13,6 @@ shuffle: True
 pin_memory: True
 __train_len: ${div_up:1_000_000_000, ${.max_length}}
 __l_max: ${.max_length}
+use_control_signal: False
+control_signal_path: null
+load_control_signal_using_memmap: False

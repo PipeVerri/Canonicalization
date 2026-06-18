@@ -114,10 +114,16 @@ class CNNModel(nn.Module):
         self.dropout = nn.Dropout(args.dropout)
 
     def forward(self, seq, t=None, cls = None, return_embedding=False, state=None):
+        # Mask can either be (seq, mask, labels) or (seq, mask, labels, control_signal)
+        
         if self.pretrain:
             mask = seq[1]
             seq = seq[0]
         
+        control_signal = None
+        if seq.shape[1] == 2: # Check if seq comes with a control signal
+            seq, control_signal = seq.unbind(dim=1) # Separate the (batch, 2, L) into 2 tensors of shape (batch, L)
+
         # ACGTN - 01234
         N = seq==4
         rc_seq = 3-seq
@@ -126,9 +132,14 @@ class CNNModel(nn.Module):
         rc_seq = torch.nn.functional.one_hot(rc_seq, num_classes=self.alphabet_size).type(torch.float32)
         seq = torch.nn.functional.one_hot(seq, num_classes=self.alphabet_size).type(torch.float32)
 
-        feat = seq.permute(0, 2, 1)
-        feat = F.gelu(self.linear(feat))
+        if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
+            control_signal_rc = 1 - control_signal
+            seq = torch.cat([seq, control_signal_rc], dim=-1)
+            rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1)
+
+        feat = seq.permute(0, 2, 1) # From (batch, length, alphabet) to (batch, alphabet, length)
         rc_feat = rc_seq.permute(0,2,1)
+        feat = F.gelu(self.linear(feat))
         rc_feat = F.gelu(self.rc_linear(rc_feat))
 
         for i in range(self.num_layers):
