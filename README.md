@@ -144,3 +144,10 @@ TODO:
 - [ ] Checkear que el fine-tuning del canonicalizado logee los hparams de canonicalizacion 
 - [ ] Hacer el sweep(1 random seed cada uno)
 - [ ] Hacer el mega-sweep(10 random seed cada uno)
+
+Unaligned:
+- H4
+- H4ac
+- H3
+- H3K79me3
+- H3K14ac
