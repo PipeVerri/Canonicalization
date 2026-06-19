@@ -45,6 +45,7 @@ if __name__ == "__main__":
 
     # Target directory is always convnova/data/nucleotide_transformer
     output_base = project_root / "data" / "nucleotide_transformer"
+    os.system(f"rm -r {str(output_base)}/*")
     
     print(f"Base output directory: {output_base}")
     

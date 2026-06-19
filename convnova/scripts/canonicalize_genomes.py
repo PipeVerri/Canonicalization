@@ -92,6 +92,8 @@ def main(config: DictConfig):
     aligner = mp.Aligner(c_cfg.reference_genome_index)
     
     # Process each dataset
+    badly_aligned_tasks = []
+
     for task in os.listdir(c_cfg.nt_benchmark_dir):
         log.info(f"Processing {task}...")
         train_file_name = f"{task}_train.fasta"
@@ -100,7 +102,7 @@ def main(config: DictConfig):
         output_task_dir = Path(c_cfg.nt_benchmark_output_dir) / task
         output_task_dir.mkdir(parents=True, exist_ok=True)
         
-        canonicalize_nt_benchmark_fasta(
+        was_badly_aligned = canonicalize_nt_benchmark_fasta(
             task_dir / train_file_name,
             aligner,
             gencode_transcribed_segments_intervaltree,
@@ -109,6 +111,8 @@ def main(config: DictConfig):
             c_cfg.orient_promoters,
             output_task_dir,
         )
+        if was_badly_aligned:
+            badly_aligned_tasks.append(train_file_name)
         
         canonicalize_nt_benchmark_fasta(
             task_dir / test_file_name,
@@ -125,6 +129,11 @@ def main(config: DictConfig):
     control_signal_dir = out_path / "control_signals"
     control_signal_dir.mkdir(parents=True, exist_ok=True)
     save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
+
+    if len(badly_aligned_tasks) > 0:
+        print("Badly aligned tasks(worse than 50% off):")
+        for t in badly_aligned_tasks:
+            print(t)
 
 if __name__ == "__main__":
     if "PROJECT_ROOT" not in os.environ:

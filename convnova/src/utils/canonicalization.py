@@ -364,3 +364,8 @@ def canonicalize_nt_benchmark_fasta(
         log.warning(f"Task {task_name} has {unaligned_percentage + aligned_without_annotation_percentage}% records that couldn't be processed\n" + \
                     f"  {unaligned_percentage}% unaligned records\n" + \
                     f"  {aligned_without_annotation_percentage}% algined without annotations on the gff")
+    
+    if unaligned_percentage + aligned_without_annotation_percentage > 50:
+        return True
+    else:
+        return False
