@@ -327,9 +327,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         pad_interval = False,  # options for different padding
         use_tokenizer = True,
         objective = "stdmlm",
-        use_control_signal = False,
-        control_signal_dir = None,
-        load_control_signal_using_memmap = False,
+        control_signals=None
     ):
 
         self.max_length = max_length
@@ -342,22 +340,10 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         self.pad_interval = pad_interval   
         self.use_tokenizer = use_tokenizer 
         self.objective = objective     
-        self.use_control_signal = use_control_signal
+        self.control_signals = control_signals
 
         bed_path = Path(bed_file)
         assert bed_path.exists(), 'path to .bed file must exist'
-
-        if use_control_signal:
-            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
-            self.control_signals = {}
-            control_signal_dir = Path(control_signal_dir)
-            assert self.control_signal_dir.exists()
-            for file in control_signal_dir.iterdir():
-                if file.suffix == ".npy":
-                    if load_control_signal_using_memmap:
-                        self.control_signals[file.stem] = torch.from_numpy(np.load(control_signal_dir / file, mmap_mode="r")).share_memory_()
-                    else:
-                        self.control_signals[file.stem] = torch.from_numpy(np.load(control_signal_dir / file)).share_memory_()
 
         # read bed file
         df_raw = pd.read_csv(str(bed_path), sep = '\t', names=['chr_name', 'start', 'end', 'split'])
@@ -387,7 +373,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         # row = (chr, start, end, split)
         chr_name, start, end = (row[0], row[1], row[2])
 
-        if self.use_control_signal:
+        if exists(self.control_signals):
             seq, control_signal = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
         else:
             seq = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
@@ -441,7 +427,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         else:
             masked = random_mask(data, self.tokenizer.mask_token_id)
         
-        if self.use_control_signal:
+        if exists(self.control_signals):
             # Mask the control signal and append it to the seq
             control_signal[masked[1]] = 0
             print(control_signal.shape)

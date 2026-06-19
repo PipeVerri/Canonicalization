@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - canon/pretrain
+  - /canonicalization: default
+  - _self_
+
+wandb:
+  group: pretraining_control_signal
+  tags: ["new_code"]
+  #mode: disabled
+
+dataset:
+  use_control_signal: True
+  control_signal_dir: ${oc.env:PROJECT_ROOT}/data/parsed/control_signals/
+  load_control_signal_using_memmap: False

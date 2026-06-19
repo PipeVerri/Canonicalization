@@ -5,6 +5,8 @@ from typing import Any, List, Union
 from torch.utils.data.dataloader import DataLoader, Dataset
 from transformers import AutoTokenizer
 from datasets import Dataset
+import torch
+import numpy as np
 
 from src.dataloaders.base import SequenceDataset, default_data_path
 from src.dataloaders.fault_tolerant_sampler import RandomFaultTolerantSampler
@@ -781,7 +783,7 @@ class BertHG38(SequenceDataset):
                  add_eos=True, detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                  fast_forward_epochs=None, fast_forward_batches=None, replace_N_token=False, pad_interval=False, use_tokenizer=True, pad_max_length=None,
-                 objective="stdmlm", use_control_signal=False, control_signal_path=None, load_control_signal_using_memmap=False,
+                 objective="stdmlm", use_control_signal=False, control_signal_dir=None, load_control_signal_using_memmap=False,
                  *args, **kwargs):
         self.dataset_config_name = dataset_config_name
         self.tokenizer_name = tokenizer_name
@@ -810,7 +812,7 @@ class BertHG38(SequenceDataset):
         self.pad_max_length = pad_max_length 
         self.objective = objective
         self.use_control_signal = use_control_signal
-        self.control_signal_path = None
+        self.control_signal_dir = control_signal_dir
         self.load_control_signal_using_memmap = load_control_signal_using_memmap
 
         # handle if file paths are None (default paths)
@@ -865,6 +867,21 @@ class BertHG38(SequenceDataset):
             self.dataset_test.fasta.seqs.close()
             del self.dataset_test.fasta.seqs
     
+        # Create the control signals dict here because 3 BertHG38Datasets are instantiated
+        control_signals = None
+        if self.use_control_signal:
+            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
+            control_signals = {}
+            self.control_signal_dir = Path(self.control_signal_dir)
+            assert self.control_signal_dir.exists()
+
+            for file in self.control_signal_dir.iterdir():
+                if file.suffix == ".npy":
+                    if self.load_control_signal_using_memmap:
+                        control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file, mmap_mode="r"))
+                    else:
+                        control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file))
+
         # Create all splits: torch datasets
         self.dataset_train, self.dataset_val, self.dataset_test = [
             BertHG38Dataset(split=split,
@@ -883,9 +900,7 @@ class BertHG38(SequenceDataset):
                         use_tokenizer=self.use_tokenizer,
                         pad_max_length=self.pad_max_length,
                         objective=self.objective,
-                        use_control_signal=self.use_control_signal,
-                        control_signal_path=self.control_signal_path,
-                        load_control_signal_using_memmap=self.load_control_signal_using_memmap
+                        control_signals=control_signals
                         )
             for split, max_len in zip(['train', 'valid', 'test'], [self.max_length, self.max_length_val, self.max_length_test])
         ]
