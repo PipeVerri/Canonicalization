@@ -134,7 +134,7 @@ class CNNModel(nn.Module):
 
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal_rc = 1 - control_signal
-            seq = torch.cat([seq, control_signal_rc], dim=-1)
+            seq = torch.cat([seq, control_signal], dim=-1)
             rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1)
 
         feat = seq.permute(0, 2, 1) # From (batch, length, alphabet) to (batch, alphabet, length)

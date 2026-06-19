@@ -135,7 +135,7 @@ class FastaInterval():
                 control_signal = F.pad(control_signal, (left_padding, right_padding), value=0)
 
         if exists(self.control_signals):
-            return seq, self.control_signals
+            return seq, control_signal
         else:
             return seq
 
