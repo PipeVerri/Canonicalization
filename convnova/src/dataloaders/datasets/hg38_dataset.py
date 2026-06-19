@@ -127,7 +127,7 @@ class FastaInterval():
             seq = string_reverse_complement(seq)
 
         if exists(self.control_signals):
-            control_signal = self.control_signals[chr_name][start:end]
+            control_signal = self.control_signals[chr_name][start:end].clone().float()
 
         if self.pad_interval:
             seq = ('.' * left_padding) + seq + ('.' * right_padding)
@@ -302,6 +302,15 @@ def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, rand
 
     return (seq, mask, labels)
 
+def append_control_signal(masked, control_signal):
+    if exists(control_signal):
+        # Mask the control signal and append it to the seq
+        control_signal[masked[1]] = 0
+        # masked[0] has Shape([1024]), control_signal has Shape([1024]) also
+        seq_with_control = torch.stack([masked[0], control_signal], dim=0)
+        masked = (seq_with_control, masked[1], masked[2])
+    return masked
+
 class BertHG38Dataset(torch.utils.data.Dataset):
 
     '''
@@ -341,6 +350,8 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         self.use_tokenizer = use_tokenizer 
         self.objective = objective     
         self.control_signals = control_signals
+        if control_signals is not None:
+            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
 
         bed_path = Path(bed_file)
         assert bed_path.exists(), 'path to .bed file must exist'
@@ -373,6 +384,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         # row = (chr, start, end, split)
         chr_name, start, end = (row[0], row[1], row[2])
 
+        control_signal = None
         if exists(self.control_signals):
             seq, control_signal = self.fasta(chr_name, start, end, max_length=self.max_length, return_augs=self.return_augs)
         else:
@@ -411,7 +423,8 @@ class BertHG38Dataset(torch.utils.data.Dataset):
             data = seq
             target = seq.clone()
             seq, mask, labels = bert_mask(data, 4, 5, 5, special_token_ids=[4])
-            return bert_mask(data, 4, 5, 5, special_token_ids=[4]), target
+            masked = bert_mask(data, 4, 5, 5, special_token_ids=[4])
+            return append_control_signal(masked, control_signal), target
 
         if self.replace_N_token:
             # replace N token with a pad token, so we can ignore it in the loss
@@ -427,13 +440,4 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         else:
             masked = random_mask(data, self.tokenizer.mask_token_id)
         
-        if exists(self.control_signals):
-            # Mask the control signal and append it to the seq
-            control_signal[masked[1]] = 0
-            print(control_signal.shape)
-            raise RuntimeError("Control signal shape check")
-            # TODO: Check if should unsqueeze or smth
-            seq_with_control = torch.cat([masked[0], control_signal], dim=-1)
-            masked = (seq_with_control, masked[1], masked[2])
-
-        return masked, target
+        return append_control_signal(masked, control_signal), target

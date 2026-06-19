@@ -870,7 +870,6 @@ class BertHG38(SequenceDataset):
         # Create the control signals dict here because 3 BertHG38Datasets are instantiated
         control_signals = None
         if self.use_control_signal:
-            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
             control_signals = {}
             self.control_signal_dir = Path(self.control_signal_dir)
             assert self.control_signal_dir.exists()

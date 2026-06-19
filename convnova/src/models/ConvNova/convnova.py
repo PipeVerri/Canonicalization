@@ -54,7 +54,7 @@ def build_conv_layers(hidden_dim, kernel_size, num_layers, num_stacks, dilation_
     return conv_layers
 
 class CNNModel(nn.Module):
-    def __init__(self, args, alphabet_size, for_representation=False, pretrain=False, dilation=2, kernel_size=9, num_conv1d=5, d_inner=2, final_conv=False, ffn=True, **kwargs):
+    def __init__(self, args, alphabet_size, for_representation=False, pretrain=False, dilation=2, kernel_size=9, num_conv1d=5, d_inner=2, final_conv=False, ffn=True, use_control_signal=False, **kwargs):
         super().__init__()
         self.alphabet_size = alphabet_size
         self.args = args
@@ -68,8 +68,11 @@ class CNNModel(nn.Module):
         self.num_cnn_stacks = args.num_cnn_stacks
         self.hidden_dim = int(1.42*args.hidden_dim)
         self.ffn = ffn
+        self.use_control_signal = use_control_signal
 
         inp_size = self.alphabet_size
+        if self.use_control_signal:
+            inp_size += 1
 
         self.linear = nn.Conv1d(inp_size, args.hidden_dim, kernel_size=9, padding=4)
         
@@ -123,6 +126,7 @@ class CNNModel(nn.Module):
         control_signal = None
         if seq.shape[1] == 2: # Check if seq comes with a control signal
             seq, control_signal = seq.unbind(dim=1) # Separate the (batch, 2, L) into 2 tensors of shape (batch, L)
+            seq = seq.long()
 
         # ACGTN - 01234
         N = seq==4
@@ -133,6 +137,7 @@ class CNNModel(nn.Module):
         seq = torch.nn.functional.one_hot(seq, num_classes=self.alphabet_size).type(torch.float32)
 
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
+            control_signal = control_signal.unsqueeze(-1)
             control_signal_rc = 1 - control_signal
             seq = torch.cat([seq, control_signal], dim=-1)
             rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1)
