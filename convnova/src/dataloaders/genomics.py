@@ -880,6 +880,7 @@ class BertHG38(SequenceDataset):
                         control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file, mmap_mode="r"))
                     else:
                         control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file))
+                    control_signals[file.stem].flags.writeable = False
 
         # Create all splits: torch datasets
         self.dataset_train, self.dataset_val, self.dataset_test = [

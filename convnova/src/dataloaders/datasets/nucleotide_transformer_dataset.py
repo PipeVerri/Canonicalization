@@ -83,6 +83,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                     control_signals_npz = np.load(file / ".." / f"{file.stem}.npz")
                     for seq_key in control_signals_npz:
                         self.control_signal[seq_key] = control_signals_npz[seq_key]
+                        self.control_signal[seq_key].flags.writeable = False
 
         self.label_mapper = {}
         for i, key in enumerate(self.seqs.keys()):
@@ -125,8 +126,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             seq_control_signal = self.control_signal[seq_id]
             print(seq_ids.shape)
             print(seq_control_signal.shape)
-            raise RuntimeError("Unsqueeze may be needed. Check that shapes match")
-            seq_ids = torch.cat([seq_ids, seq_control_signal], dim=-1)
+            seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)
 
         if self.return_mask:
             return seq_ids, target, {'mask': torch.BoolTensor(seq['attention_mask'])}

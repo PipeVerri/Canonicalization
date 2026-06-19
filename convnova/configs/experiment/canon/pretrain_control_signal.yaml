@@ -7,7 +7,7 @@ defaults:
 wandb:
   group: pretraining_control_signal
   tags: ["new_code"]
-  mode: disabled
+  #mode: disabled
 
 dataset:
   use_control_signal: True
