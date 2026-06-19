@@ -157,21 +157,49 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_segmen
 
     return results
 
-def should_canonicalize_negative_strand(positive_template_segments, negative_template_segments):
-    negative_template_intervaltree = IntervalTree.from_tuples(negative_template_segments)
-    keep_positive_strand_cost = 0
-    keep_negative_strand_cost = 0
+def calculate_overlap_length(start, end, overlap_start, overlap_end):
+    return max(0, min(end, overlap_end) - max(start, overlap_start))
 
-    for (start, end) in positive_template_segments:
-        overlapping_templates = intervaltree_to_tuples(negative_template_intervaltree.overlap(start, end))
-        keep_positive_strand_cost += sum(seg_end - seg_start for seg_start, seg_end in overlapping_templates)
-        keep_negative_strand_cost += end - start
+def get_branch_segments_to_canonicalize_and_cost(to_orient, correctly_oriented_intervaltree, orient_all_segments, partial_canonicalization_works):
+    cost = 0
+    to_canonicalize = to_orient if orient_all_segments else []
+
+    for (start, end) in to_orient:
+        overlaps = intervaltree_to_tuples(correctly_oriented_intervaltree.overlap(start, end))
+        ignore_segment_cost = end - start
+        if partial_canonicalization_works:
+            orient_segment_cost = sum(calculate_overlap_length(start, end, overlap_start, overlap_end) for (overlap_start, overlap_end) in overlaps)
+        else:
+            orient_segment_cost = sum(overlap_end - overlap_start for (overlap_start, overlap_end) in overlaps)
         
-    # Decide which segments to canonicalize. Return the segments to canonicalize
-    if keep_positive_strand_cost < keep_negative_strand_cost:
-        return True
+        if orient_all_segments:
+            cost += orient_segment_cost
+        else:
+            if ignore_segment_cost < orient_segment_cost:
+                cost += ignore_segment_cost
+            else:
+                cost += orient_segment_cost
+                to_canonicalize.append((start, end))
+
+    return to_canonicalize, cost
+
+def generate_to_canonicalize_and_should_rc_at_end(positive_coding_segments, negative_coding_segments, orient_all_segments, partial_canonicalization_works):
+    positive_coding_intervaltree = IntervalTree.from_tuples(positive_coding_segments)
+    negative_coding_intervaltree = IntervalTree.from_tuples(negative_coding_segments)
+
+    keep_positive_to_orient, keep_positive_cost = get_branch_segments_to_canonicalize_and_cost(
+        negative_coding_segments, positive_coding_intervaltree, 
+        orient_all_segments, partial_canonicalization_works
+    )
+    keep_negative_to_orient, keep_negative_cost = get_branch_segments_to_canonicalize_and_cost(
+        positive_coding_segments, negative_coding_intervaltree,
+        orient_all_segments, partial_canonicalization_works
+    )
+
+    if keep_positive_cost <= keep_negative_cost:
+        return keep_positive_to_orient, False
     else:
-        return False
+        return keep_negative_to_orient, True
 
 
 ##################
@@ -232,6 +260,11 @@ def align_transcript_position_with_seq(alignment, segment, chromosome_length):
 def save_control_signals(control_signals, save_dir, fasta_path):
     np.savez(str(save_dir / f"{fasta_path.stem}.npz"), **control_signals)
 
+def complete_control_signals(control_signals, records):
+    for id in records:
+        if not id in control_signals:
+            control_signals[id] = np.zeros(len(records[id]))
+
 def canonicalize_nt_benchmark_fasta(
         fasta_path, 
         aligner, 
@@ -250,7 +283,7 @@ def canonicalize_nt_benchmark_fasta(
     # Orienting the promoters may break them, because they're inherently directional.
     if not orient_promoters and task_name in PROMOTER_TASKS:
         save_seqs_dict(records, save_file_path)
-        control_signals = {id: np.zeros(len(records[id])) for id in records}
+        control_signals = {id: np.zeros(len(records[id])) for id in records} # Save a control signal with all zeros
         save_control_signals(control_signals, save_dir, fasta_path)
         return
     
@@ -324,6 +357,7 @@ def canonicalize_nt_benchmark_fasta(
     aligned_without_annotation_percentage = round((aligned_records_without_annotation * 100) / len(records.keys()), 1)
 
     # Save the control signal
+    complete_control_signals(control_signals, records) # Set the unprocessed records' control signals to 0s
     save_control_signals(control_signals, save_dir, fasta_path)
 
     if unaligned_percentage > 0.05 or aligned_without_annotation_percentage > 0.05:

@@ -2,29 +2,9 @@ import pytest
 import pandas as pd
 from Bio.Seq import Seq, MutableSeq
 from src.utils.canonicalization import (
-    merge_segment_list,
     parse_transcribed_features_from_gff,
+    canonicalize_genome
 )
-
-def test_merge_segment_list():
-    # Empty list
-    assert merge_segment_list([]) == []
-    
-    # Non-overlapping segments (already sorted)
-    segments = [(0, 10), (20, 30), (40, 50)]
-    assert merge_segment_list(segments) == segments
-    
-    # Overlapping segments
-    segments = [(0, 10), (5, 15), (20, 30)]
-    assert merge_segment_list(segments) == [(0, 15), (20, 30)]
-    
-    # Contiguous segments
-    segments = [(0, 10), (10, 20)]
-    assert merge_segment_list(segments) == [(0, 20)]
-    
-    # Nested segments
-    segments = [(0, 100), (10, 20), (30, 40)]
-    assert merge_segment_list(segments) == [(0, 100)]
 
 def test_parse_transcribed_features_from_gff():
     data = {
@@ -73,3 +53,46 @@ def test_parse_transcribed_features_from_gff():
         df_cdjv, "chr1", annotations_level=3, include_cdjv_segments=False, include_pseudogenes=True
     )
     assert neg == [(80, 90)]
+
+
+def test_canonicalize_genome():
+    # This is a basic test to check if the function runs without errors and produces expected results.
+    training_genome = {"genome1": Seq("ACGTACGTAC" + "TTTTTTTTTT" + "ACGTACGTAC")}
+    
+    canonicalization = {
+        "genome1": {
+            "segments": [(0, 10), (20, 30)],
+            "should_rc_at_end": False
+        }
+    }
+
+    reverse = canonicalize_genome(
+        training_genome, 
+        canonicalization,
+        "reverse"
+    )["genome1"]
+    complement = canonicalize_genome(
+        training_genome, 
+        canonicalization,
+        "complement"
+    )["genome1"]
+    rc = canonicalize_genome(
+        training_genome, 
+        canonicalization,
+        "rc"
+    )["genome1"]
+
+    assert str(reverse)    == "CATGCATGCA" + "TTTTTTTTTT" + "CATGCATGCA"
+    assert str(complement) == "TGCATGCATG" + "TTTTTTTTTT" + "TGCATGCATG"
+    assert str(rc)         == "GTACGTACGT" + "TTTTTTTTTT" + "GTACGTACGT"
+
+    canonicalization = {
+        "genome1": {
+            "segments": [],
+            "should_rc_at_end": True
+        }
+    }
+    canon = canonicalize_genome(training_genome, canonicalization, "rc")
+    #print(str(canon))
+    #print(str(training_genome["genome1"].reverse_complement()))
+    assert str(canon["genome1"]) == str(training_genome["genome1"].reverse_complement())

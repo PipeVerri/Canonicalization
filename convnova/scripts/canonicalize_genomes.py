@@ -15,7 +15,7 @@ from src.utils.canonicalization import (
     parse_transcribed_features_from_gff,
     canonicalize_genome,
     save_seqs_dict,
-    should_canonicalize_negative_strand,
+    generate_to_canonicalize_and_should_rc_at_end,
     canonicalize_nt_benchmark_fasta,
     save_canonicalization_control_signal
 )
@@ -49,7 +49,7 @@ def main(config: DictConfig):
     for ucsc_id in annotations_df["Chromosome"].unique().tolist(): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
         #log.info(f"Parsing {ucsc_id} from gff...")
         
-        positive_template_segments, negative_template_segments = parse_transcribed_features_from_gff(
+        positive_coding_segments, negative_coding_segments = parse_transcribed_features_from_gff(
             annotations_df,
             ucsc_id,
             c_cfg.annotations_level,
@@ -57,19 +57,15 @@ def main(config: DictConfig):
             c_cfg.include_pseudogenes
         )
 
-        if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome
-            # For each overlapping segment, calculate the cost of bringing stuff from - to + vs + to -
-            # The iteration and intervaltree works with positive/negative or negative/positive. The choice of putting negative_template_segments is completely arbitrary
-            
-            # If I'm making all the coding segments be on the negative strand, I should take the RC at the end to bring everything to the positive strand
-            if should_canonicalize_negative_strand(positive_template_segments, negative_template_segments):
-                training_genome_to_canonicalize[ucsc_id] = {"segments": negative_template_segments, "should_rc_at_end": False}
-            else:
-                training_genome_to_canonicalize[ucsc_id] = {"segments": negative_template_segments, "should_rc_at_end": True}
+        if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome            
+            segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
+                positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
+            )
+            training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
         
         gencode_transcribed_segments_intervaltree[ucsc_id] = {
-            "positive": IntervalTree.from_tuples(positive_template_segments),
-            "negative": IntervalTree.from_tuples(negative_template_segments)
+            "positive": IntervalTree.from_tuples(positive_coding_segments),
+            "negative": IntervalTree.from_tuples(negative_coding_segments)
         }
 
     # Apply the canonicalization to the training genome
