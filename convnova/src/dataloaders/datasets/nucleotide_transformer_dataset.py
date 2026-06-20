@@ -80,8 +80,10 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                     raise ValueError("Overwitten self.seqs")
                 self.seqs = Fasta(str(file), read_long_names=True)
                 if use_control_signal:
+                    print("**USING CONTROL SIGNAL**")
                     self.control_signal = {}
-                    control_signals_npz = np.load(base_path / f"{file.stem}.npz", mmap_mode="r") # TODO: Quick test to check if im writing into it
+                    # I can add memmap_mode="r" to check that I'm not writing into it
+                    control_signals_npz = np.load(base_path / f"{file.stem}.npz")
                     for seq_key in control_signals_npz:
                         self.control_signal[seq_key] = torch.from_numpy(control_signals_npz[seq_key])
 
@@ -128,7 +130,6 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                 raise RuntimeError("Control signal unimplemented for EOS token")
 
             seq_control_signal = self.control_signal[seq_id]
-            print(f"Seq ids shape {seq_ids.shape}, ctrl shape {seq_control_signal.shape} x shape {len(x)}")
             seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)
 
         if self.return_mask:

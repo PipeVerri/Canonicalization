@@ -126,7 +126,7 @@ class CNNModel(nn.Module):
         control_signal = None
         if seq.shape[1] == 2: # Check if seq comes with a control signal
             seq, control_signal = seq.unbind(dim=1) # Separate the (batch, 2, L) into 2 tensors of shape (batch, L)
-            seq = seq.long()
+            seq = seq.long() # Convert to long to be able to apply one_hot
 
         # ACGTN - 01234
         N = seq==4
@@ -139,8 +139,8 @@ class CNNModel(nn.Module):
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal = control_signal.unsqueeze(-1)
             control_signal_rc = 1 - control_signal
-            seq = torch.cat([seq, control_signal], dim=-1)
-            rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1)
+            seq = torch.cat([seq, control_signal], dim=-1).type(torch.float32)
+            rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1).type(torch.float32)
 
         feat = seq.permute(0, 2, 1) # From (batch, length, alphabet) to (batch, alphabet, length)
         rc_feat = rc_seq.permute(0,2,1)

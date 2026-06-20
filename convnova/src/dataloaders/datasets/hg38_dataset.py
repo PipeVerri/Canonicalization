@@ -351,7 +351,7 @@ class BertHG38Dataset(torch.utils.data.Dataset):
         self.objective = objective     
         self.control_signals = control_signals
         if control_signals is not None:
-            print("*** USING CONTROL SIGNAL ***") # TODO: Remove
+            print("*** USING CONTROL SIGNAL ***")
 
         bed_path = Path(bed_file)
         assert bed_path.exists(), 'path to .bed file must exist'

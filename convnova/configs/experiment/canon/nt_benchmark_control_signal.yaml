@@ -6,12 +6,12 @@ defaults:
 
 wandb:
   group: pretraining_control_signal
-  tags: ["new_code"]
-  mode: disabled
+  #mode: disabled
 
 dataset:
   dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
   use_control_signal: True
+  dataset_name: "promoter_no_tata"
 
 train:
   pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_control_signal/2026-06-19/13-38-32/checkpoints/test/loss.ckpt

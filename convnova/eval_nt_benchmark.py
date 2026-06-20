@@ -9,31 +9,31 @@ import sys
 from datetime import datetime
 
 TASKS = [
-    "enhancers",
-    "enhancers_types",
-    "H3",
+    "H2AFZ",
+    "H3K27ac",
+    "H3K27me3",
+    "H3K36me3",
     "H3K4me1",
     "H3K4me2",
     "H3K4me3",
     "H3K9ac",
-    "H3K14ac",
-    "H3K36me3",
-    "H3K79me3",
-    "H4",
-    "H4ac",
+    "H3K9me3",
+    "H4K20me1",
     "promoter_all",
-    "promoter_no_tata",
     "promoter_tata",
-    "splice_sites_acceptors",
-    "splice_sites_donors",
+    "promoter_no_tata",
     "splice_sites_all",
+    "splice_sites_donors",
+    "splice_sites_acceptors",
+    "enhancers",
+    "enhancers_types",
 ]
 
 
-def run_task(task: str, extra_args: list[str] = []) -> bool:
+def run_task(task: str, exp_name, extra_args: list[str] = []) -> bool:
     cmd = [
         sys.executable, "train.py",
-        "experiment=canon/nt_benchmark",
+        exp_name,
         f"dataset.dataset_name={task}",
         *extra_args,
     ]
@@ -53,12 +53,12 @@ def run_task(task: str, extra_args: list[str] = []) -> bool:
     return True
 
 
-def main():
+def main(exp):
     failed = []
     succeeded = []
 
     for task in TASKS:
-        ok = run_task(task)
+        ok = run_task(task, exp)
         (succeeded if ok else failed).append(task)
 
     # Summary
@@ -73,4 +73,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    exp = sys.argv[1]
+    if not exp.startswith("experiment="):
+        raise ValueError("Experiment not specified")
+
+    main(exp)
