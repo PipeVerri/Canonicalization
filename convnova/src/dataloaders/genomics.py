@@ -373,7 +373,7 @@ class NucleotideTransformer(HG38):
         # TODO instantiate with registry
 
         if self.tokenizer_name == 'char':
-            print("**Using Char-level tokenizer**")
+            print("**Using Char-level tokenizer**") # Uses char tokenizer by default
             self.tokenizer = CharacterTokenizer(
                 characters=['A', 'C', 'G', 'T', 'N'],
                 model_max_length=self.max_length + 2,  # add 2 since default adds eos/eos tokens, crop later
@@ -880,7 +880,6 @@ class BertHG38(SequenceDataset):
                         control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file, mmap_mode="r"))
                     else:
                         control_signals[file.stem] = torch.from_numpy(np.load(self.control_signal_dir / file))
-                    control_signals[file.stem].flags.writeable = False
 
         # Create all splits: torch datasets
         self.dataset_train, self.dataset_val, self.dataset_test = [

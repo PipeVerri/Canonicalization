@@ -63,6 +63,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         self.use_tokenizer = use_tokenizer
         self.seqs = None
         self.control_signal = None
+        self.dataset_name = dataset_name
 
         # change "val" split to "test".  No val available, just test
         if split == "val":
@@ -80,10 +81,9 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                 self.seqs = Fasta(str(file), read_long_names=True)
                 if use_control_signal:
                     self.control_signal = {}
-                    control_signals_npz = np.load(file / ".." / f"{file.stem}.npz")
+                    control_signals_npz = np.load(base_path / f"{file.stem}.npz", mmap_mode="r") # TODO: Quick test to check if im writing into it
                     for seq_key in control_signals_npz:
-                        self.control_signal[seq_key] = control_signals_npz[seq_key]
-                        self.control_signal[seq_key].flags.writeable = False
+                        self.control_signal[seq_key] = torch.from_numpy(control_signals_npz[seq_key])
 
         self.label_mapper = {}
         for i, key in enumerate(self.seqs.keys()):
@@ -107,11 +107,12 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             max_length=self.max_length,
             truncation=True,
         )
-        seq_ids = seq["input_ids"]  # get input_ids
+
+        seq_ids = seq["input_ids"] # get input_ids
         assert type(seq_ids)==list
         seq_ids = torch.LongTensor(seq_ids)
         if not self.use_tokenizer:
-            seq_ids = seq_ids-7
+            seq_ids = seq_ids-7 # Each character id starts at 7(CharacterTokenizer). The rest are special tokens
             mask = (seq_ids >= 4) | (seq_ids < 0)
             seq_ids[mask] = 4
 
@@ -123,9 +124,11 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
 
         # Add the control_signal to the seq_ids tensor
         if self.control_signal is not None:
+            if self.add_eos:
+                raise RuntimeError("Control signal unimplemented for EOS token")
+
             seq_control_signal = self.control_signal[seq_id]
-            print(seq_ids.shape)
-            print(seq_control_signal.shape)
+            print(f"Seq ids shape {seq_ids.shape}, ctrl shape {seq_control_signal.shape} x shape {len(x)}")
             seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)
 
         if self.return_mask:
