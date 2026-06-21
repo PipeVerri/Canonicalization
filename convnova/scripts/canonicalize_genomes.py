@@ -51,8 +51,9 @@ def main(config: DictConfig):
         nan_columns_to_drop.append("transcript_type")
     annotations_df = annotations_df.dropna(subset=nan_columns_to_drop)
 
-    for ucsc_id in annotations_df["Chromosome"].unique().tolist(): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
-        #log.info(f"Parsing {ucsc_id} from gff...")
+    chromosomes = annotations_df["Chromosome"].unique().tolist()
+    for idx, ucsc_id in enumerate(chromosomes): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
+        log.info(f"Parsing {idx} / {len(chromosomes)} from gff...")
         
         positive_coding_segments, negative_coding_segments = parse_transcribed_features_from_gff(
             annotations_df,
@@ -90,11 +91,19 @@ def main(config: DictConfig):
     save_seqs_dict(canonicalized, save_path)
     log.info(f"Saved {transformation} to {save_path}")
     
+    # Save the control signal
+    log.info("Saving control signal...")
+    control_signal_dir = out_path / "control_signals"
+    control_signal_dir.mkdir(parents=True, exist_ok=True)
+    save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
+    
     # Canonicalize the NT benchmark genomes
     log.info("Canonicalizing NT benchmark downstream tasks...")
     # Load the aligner index
     log.info("Loading reference genome index...")
     aligner = mp.Aligner(c_cfg.reference_genome_index)
+    # Clean the parsed NT benchmark dir in case there's the old dataset
+    os.system(f"rm -r {str(c_cfg.nt_benchmark_dir)}/*")
     
     # Process each dataset
     badly_aligned_tasks = []
@@ -128,12 +137,6 @@ def main(config: DictConfig):
             c_cfg.orient_promoters,
             output_task_dir,
         )
-    
-    # Save the control signal
-    log.info("Saving control signal...")
-    control_signal_dir = out_path / "control_signals"
-    control_signal_dir.mkdir(parents=True, exist_ok=True)
-    save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
 
     if len(badly_aligned_tasks) > 0:
         print("Badly aligned tasks(worse than 50% off):")

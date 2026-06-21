@@ -13,10 +13,10 @@ canonicalization:
   
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/hg38
-  ncbi_data_path: ${.data_path}/ncbi_dataset/data/GCF_000001405.26
+  ncbi_data_path: ${.data_path}/ncbi/ncbi_dataset/data/GCF_000001405.40
   
   reference_fasta_file: ${.data_path}/hg38.ml.fa
-  gff_fasta_file: ${.data_path}/gencode.v50.annotation.gff3
+  gff_fasta_file: ${.data_path}/gencode.v50.primary_assembly.annotation.gff3
   using_ncbi_annotations: False
   sequence_report_path: ${.ncbi_data_path}/sequence_report.jsonl
 
@@ -24,7 +24,7 @@ canonicalization:
 
   nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
   nt_benchmark_output_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
-  reference_genome_index: ${oc.env:PROJECT_ROOT}/data/reference_genome_index.mmi
+  reference_genome_index: ${oc.env:PROJECT_ROOT}/data/hg38_index.mmi
   partial_seq_canonicalization: False
   # Even though promoters aren't transcribed, they can be inside a "transcript" feature if there's an ATSS(alternate transcription start site)
   # Orienting the promoters may break them, because they're inherently directional.

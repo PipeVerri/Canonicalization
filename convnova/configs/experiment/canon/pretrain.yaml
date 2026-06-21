@@ -41,7 +41,7 @@ trainer:
   # strategy: null
 
 dataset:
-  batch_size: 256  # Smaller than global_batch_size for batch accumulation
+  batch_size: 512  # Smaller than global_batch_size for batch accumulation
   max_length: 1024 # 262144, 524288
   # optional, default is max_length
   max_length_val: ${dataset.max_length}
