@@ -30,9 +30,16 @@ def parse_sequence_report(jsonl_path):
     return data
 
 def rename_ncbi_annotations_to_ucsc(annotations, sequence_report):
-    # The goal is to rename the annotations chromosomes for them to have their ucscStyleName
-    # Scaffolds won't be filtered to be able to align the downstream tasks sequences with them
-    to_rename = {report["refseqAccession"]: report["ucscStyleName"] for report in sequence_report if report["role"] == "assembled-molecule"}
+    # Parse NCBI's GFF record to use gencode's chromosome/scaffolds names
+    # For assembled chromosomes, the gencode name is the ucsc id, for the rest, is the genbank accession
+    
+    to_rename = {}
+    for report in sequence_report:
+        if report["role"] == "assembled-molecule":
+            to_rename[report["refseqAccession"]] = report["ucscStyleName"]
+        else:
+            to_rename[report["refseqAccession"]] = report["genbankAccession"]
+    
     for name, new_name in to_rename.items():
         annotations["Chromosome"] = annotations["Chromosome"].replace(name, new_name)
 

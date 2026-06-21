@@ -103,7 +103,7 @@ def main(config: DictConfig):
     log.info("Loading reference genome index...")
     aligner = mp.Aligner(c_cfg.reference_genome_index)
     # Clean the parsed NT benchmark dir in case there's the old dataset
-    os.system(f"rm -r {str(c_cfg.nt_benchmark_dir)}/*")
+    os.system(f"rm -r {str(c_cfg.nt_benchmark_output_dir)}/*")
     
     # Process each dataset
     badly_aligned_tasks = []
