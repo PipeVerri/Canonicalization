@@ -11,7 +11,8 @@ import src.utils as utils
 import src.utils.train
 from src.utils.canonicalization import (
     read_fasta_into_records_dict,
-    build_ncbi_to_ucsc_id,
+    parse_sequence_report,
+    rename_ncbi_annotations_to_ucsc,
     parse_transcribed_features_from_gff,
     canonicalize_genome,
     save_seqs_dict,
@@ -40,6 +41,10 @@ def main(config: DictConfig):
     gencode_transcribed_segments_intervaltree = {}
 
     annotations_df = pr.read_gff3(c_cfg.gff_fasta_file).df
+    if c_cfg.using_ncbi_annotations:
+        seq_report = parse_sequence_report(c_cfg.sequence_report_path)
+        rename_ncbi_annotations_to_ucsc(annotations_df, seq_report)
+    
     # Drop the annotations that have na on any of the subsets
     nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
     if not c_cfg.include_na_transcript_type:

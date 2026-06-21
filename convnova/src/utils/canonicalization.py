@@ -21,7 +21,7 @@ def read_fasta_into_records_dict(fasta_path):
         records[record.id] = record.seq
     return records
 
-def parse_ncbi_assembly(jsonl_path):
+def parse_sequence_report(jsonl_path):
     data = []
     with open(jsonl_path, "r") as f:
         for line in f:
@@ -29,14 +29,12 @@ def parse_ncbi_assembly(jsonl_path):
                 data.append(json.loads(line))
     return data
 
-def build_ncbi_to_ucsc_id(assembly_path, training_genome):
-    ncbi_to_training_id = {}
-    ncbi_assembly = parse_ncbi_assembly(assembly_path)
-    for assembly in ncbi_assembly:
-        if assembly["ucscStyleName"] in training_genome:
-            ncbi_to_training_id[assembly["refseqAccession"]] = assembly["ucscStyleName"]
-    return ncbi_to_training_id
-
+def rename_ncbi_annotations_to_ucsc(annotations, sequence_report):
+    # The goal is to rename the annotations chromosomes for them to have their ucscStyleName
+    # Scaffolds won't be filtered to be able to align the downstream tasks sequences with them
+    to_rename = {report["refseqAccession"]: report["ucscStyleName"] for report in sequence_report if report["role"] == "assembled-molecule"}
+    for name, new_name in to_rename.items():
+        annotations["Chromosome"] = annotations["Chromosome"].replace(name, new_name)
 
 #########################
 # Biopython Seq Parsing #

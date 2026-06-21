@@ -17,7 +17,9 @@ canonicalization:
   
   reference_fasta_file: ${.data_path}/hg38.ml.fa
   gff_fasta_file: ${.data_path}/gencode.v50.annotation.gff3
-  reference_assembly_report: ${.ncbi_data_path}/sequence_report.jsonl
+  using_ncbi_annotations: False
+  sequence_report_path: ${.ncbi_data_path}/sequence_report.jsonl
+
   reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
 
   nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
