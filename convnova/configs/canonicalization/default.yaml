@@ -1,31 +1,49 @@
 # @package _global_
 canonicalization:
+  # Canonicalization config
   annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
   include_cdjv_segments: True
   include_pseudogenes: True
   include_na_transcript_type: False
-  
   orient_all_segments: False
   partial_canonicalization_works: False
+  transformation: "rc"  # reverse, complement, rc
 
-  # Choice: reverse, complement, rc
-  transformation: "rc"
-  
-  # Paths
-  data_path: ${oc.env:PROJECT_ROOT}/data/hg38
-  ncbi_data_path: ${.data_path}/ncbi/ncbi_dataset/data/GCF_000001405.40
-  
-  reference_fasta_file: ${.data_path}/hg38.ml.fa
-  gff_fasta_file: ${.data_path}/gencode.v50.primary_assembly.annotation.gff3
-  using_ncbi_annotations: False
-  sequence_report_path: ${.ncbi_data_path}/sequence_report.jsonl
-
-  reference_fasta_output_dir: ${oc.env:PROJECT_ROOT}/data/parsed/
-
-  nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
-  nt_benchmark_output_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
-  reference_genome_index: ${oc.env:PROJECT_ROOT}/data/hg38_index.mmi
+  # Dowstream tasks canonicalization config
   partial_seq_canonicalization: False
   # Even though promoters aren't transcribed, they can be inside a "transcript" feature if there's an ATSS(alternate transcription start site)
   # Orienting the promoters may break them, because they're inherently directional.
-  orient_promoters: False 
+  orient_promoters: False
+  
+  # Paths
+  data_path: ${oc.env:PROJECT_ROOT}/data/
+
+  pretraining_fasta_file: ${.data_path}/hg38/hg38.ml.fa
+  pretraining_fasta_output_file: ${.data_path}/parsed/
+
+  nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
+  nt_benchmark_output_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+
+  hg38:
+    index_file: ${.data_path}/hg38_index.mmi
+    gff_file: ${.data_path}/hg38/gencode.v50.primary_assembly.annotation.gff3
+    rename_gff_using_seq_report: False
+    sequence_report_file: ${.data_path}/hg38/ncbi_dataset/data/GCF_000001405.26/sequene_report.jsonl
+
+  mouse:
+    index_file: ${.data_path}/mouse_index.mmi
+    gff_file: ${.data_path}/mouse/gencode.vM39.primary_assembly.annotation.gff3
+    rename_gff_using_seq_report: False
+    sequence_report_file: ${.data_path}/mouse/ncbi_dataset/data/GCF_000001635.27/sequence_report.jsonl
+  
+  drosophilia:
+    index_file: ${.data_path}/drosophilia_index.mmi
+    gff_file: ${.data_path}/drosophilia/ncbi_dataset/data/GCF_000001215.4/genomic.gff
+    rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
+    sequence_report_file: ${.data_path}/drosophilia/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
+  
+  roundworm:
+    index_file: ${.data_path}/roundworm_index.mmi
+    gff_file: ${.data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/genomic.gff
+    rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
+    sequence_report_file: ${.data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/sequence_report.jsonl

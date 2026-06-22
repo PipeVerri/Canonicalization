@@ -18,7 +18,8 @@ from src.utils.canonicalization import (
     save_seqs_dict,
     generate_to_canonicalize_and_should_rc_at_end,
     canonicalize_nt_benchmark_fasta,
-    save_canonicalization_control_signal
+    save_canonicalization_control_signal,
+    ParsedGenome
 )
 
 log = src.utils.train.get_logger(__name__)
@@ -33,46 +34,17 @@ def main(config: DictConfig):
     config = utils.train.process_config(config)
     c_cfg = config.canonicalization
     
-    log.info("Reading training genome...")
+    log.info("Loading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.reference_fasta_file))
 
-    log.info("Deciding canonicalization directions...")
     training_genome_to_canonicalize = {}
-    gencode_transcribed_segments_intervaltree = {}
-
-    annotations_df = pr.read_gff3(c_cfg.gff_fasta_file).df
-    if c_cfg.using_ncbi_annotations:
-        seq_report = parse_sequence_report(c_cfg.sequence_report_path)
-        rename_ncbi_annotations_to_ucsc(annotations_df, seq_report)
-    
-    # Drop the annotations that have na on any of the subsets
-    nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
-    if not c_cfg.include_na_transcript_type:
-        nan_columns_to_drop.append("transcript_type")
-    annotations_df = annotations_df.dropna(subset=nan_columns_to_drop)
-
-    chromosomes = annotations_df["Chromosome"].unique().tolist()
-    for idx, ucsc_id in enumerate(chromosomes): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
-        log.info(f"Parsing {idx} / {len(chromosomes)} from gff...")
-        
-        positive_coding_segments, negative_coding_segments = parse_transcribed_features_from_gff(
-            annotations_df,
-            ucsc_id,
-            c_cfg.annotations_level,
-            c_cfg.include_cdjv_segments,
-            c_cfg.include_pseudogenes
-        )
-
+    def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
         if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome            
             segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
                 positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
             )
             training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
-        
-        gencode_transcribed_segments_intervaltree[ucsc_id] = {
-            "positive": IntervalTree.from_tuples(positive_coding_segments),
-            "negative": IntervalTree.from_tuples(negative_coding_segments)
-        }
+    hg38 = ParsedGenome(c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments, genome_name="hg38")
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation
@@ -99,9 +71,6 @@ def main(config: DictConfig):
     
     # Canonicalize the NT benchmark genomes
     log.info("Canonicalizing NT benchmark downstream tasks...")
-    # Load the aligner index
-    log.info("Loading reference genome index...")
-    aligner = mp.Aligner(c_cfg.reference_genome_index)
     # Clean the parsed NT benchmark dir in case there's the old dataset
     os.system(f"rm -r {str(c_cfg.nt_benchmark_output_dir)}/*")
     

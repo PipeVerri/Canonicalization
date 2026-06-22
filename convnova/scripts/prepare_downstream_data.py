@@ -1,6 +1,8 @@
 import os
 from datasets import load_dataset
 from pathlib import Path
+from genomic_benchmarks.loc2seq import download_dataset
+from genomic_benchmarks.data_check import is_downloaded
 
 dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 
@@ -34,6 +36,13 @@ def export_to_fasta(task_name, output_dir):
     write_split_into_fasta(task_dir / f"{task_name}_train.fasta", filtered_dataset["train"])
     write_split_into_fasta(task_dir / f"{task_name}_test.fasta", filtered_dataset["test"])
 
+def download_genomic_benchmark_task(dataset_name, output_path):
+    if not is_downloaded(dataset_name, cache_path=output_path):
+        print("downloading {} to {}".format(dataset_name, output_path))
+        download_dataset(dataset_name, version=0, dest_path=output_path)
+    else:
+        print("already downloaded {}".format(dataset_name))
+
 if __name__ == "__main__":
     # Get the directory of the current script (convnova/scripts/)
     script_dir = Path(__file__).resolve().parent
@@ -48,6 +57,23 @@ if __name__ == "__main__":
     os.system(f"rm -r {str(output_base)}/*")
     
     print(f"Base output directory: {output_base}")
-    
+
+    print(f"Processing NT benchmark downstream tasks...")
     for task in tasks:
         export_to_fasta(task, output_base)
+    
+    print(f"Processing genomic benchmark downstream tasks...")
+    tasks = (
+        "dummy_mouse_enhancers_ensembl", 
+        "demo_coding_vs_intergenomic_seqs", 
+        "demo_human_or_worm",
+        "human_enhancers_cohn",
+        "human_enhancers_ensembl",
+        "human_ensembl_regulatory",
+        "human_nontata_promoters",
+        "human_ocr_ensembl"
+    )
+    output_path = project_root / "data" / "genomic_benchmark"
+    
+    for t in tasks:
+        download_genomic_benchmark_task(t, output_path)

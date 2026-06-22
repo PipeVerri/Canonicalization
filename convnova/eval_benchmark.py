@@ -7,8 +7,9 @@ Replaces the Hydra multirun to ensure each task gets its own W&B run.
 import subprocess
 import sys
 from datetime import datetime
+import argparse
 
-TASKS = [
+NT_BENCHMARK_TASKS = (
     "H2AFZ",
     "H3K27ac",
     "H3K27me3",
@@ -26,14 +27,24 @@ TASKS = [
     "splice_sites_donors",
     "splice_sites_acceptors",
     "enhancers",
-    "enhancers_types",
-]
+    "enhancers_types"
+)
 
+GENOMIC_BENCHMARK_TASKS = (
+    "dummy_mouse_enhancers_ensembl", 
+    "demo_coding_vs_intergenomic_seqs", 
+    "demo_human_or_worm",
+    "human_enhancers_cohn",
+    "human_enhancers_ensembl",
+    "human_ensembl_regulatory",
+    "human_nontata_promoters",
+    "human_ocr_ensembl"
+)
 
 def run_task(task: str, exp_name, extra_args: list[str] = []) -> bool:
     cmd = [
         sys.executable, "train.py",
-        exp_name,
+        f"experiment={exp_name}",
         f"dataset.dataset_name={task}",
         *extra_args,
     ]
@@ -52,18 +63,17 @@ def run_task(task: str, exp_name, extra_args: list[str] = []) -> bool:
     print(f"[OK] Task '{task}' completed successfully")
     return True
 
-
-def main(exp):
+def main(tasks, experiment):
     failed = []
     succeeded = []
 
-    for task in TASKS:
-        ok = run_task(task, exp)
+    for task in tasks:
+        ok = run_task(task, experiment)
         (succeeded if ok else failed).append(task)
 
     # Summary
     print(f"\n{'='*60}")
-    print(f"SUMMARY — {len(TASKS)} tasks total")
+    print(f"SUMMARY — {len(tasks)} tasks total")
     print(f"  ✓ Succeeded ({len(succeeded)}): {', '.join(succeeded) or 'none'}")
     print(f"  ✗ Failed    ({len(failed)}): {', '.join(failed) or 'none'}")
     print('='*60)
@@ -71,10 +81,17 @@ def main(exp):
     if failed:
         sys.exit(1)
 
-
 if __name__ == "__main__":
-    exp = sys.argv[1]
-    if not exp.startswith("experiment="):
-        raise ValueError("Experiment not specified")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--experiment", required=True)
+    parser.add_argument("-t", "--task", required=True)
+    args = parser.parse_args()
 
-    main(exp)
+    if args.task == "nt-benchmark":
+        to_eval = NT_BENCHMARK_TASKS
+    elif args.task == "genomic-benchmark":
+        to_eval = GENOMIC_BENCHMARK_TASKS
+    else:
+        raise ValueError("Task not recognized")
+
+    main(to_eval, args.experiment)

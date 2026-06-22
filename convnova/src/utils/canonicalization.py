@@ -8,6 +8,8 @@ from intervaltree import IntervalTree
 import src.utils as utils
 import src.utils.train
 import numpy as np
+import pyranges as pr
+import mappy as mp
 
 log = src.utils.train.get_logger(__name__)
 
@@ -42,6 +44,69 @@ def rename_ncbi_annotations_to_ucsc(annotations, sequence_report):
     
     for name, new_name in to_rename.items():
         annotations["Chromosome"] = annotations["Chromosome"].replace(name, new_name)
+
+class ParsedGenome:
+    """Loads the genome index and parses it's .gff file to take the positive and negative segments"""
+    def __init__(self, global_config, genome_config, verbose=True, genome_name=None, parse_segments_using=None) -> None:
+        self.global_config = global_config
+        self.genome_config = genome_config
+        self.verbose = verbose
+
+        if verbose and genome_name is not None:
+            log.info(f"Parsing {genome_name}")
+        
+        # Load the index
+        if verbose:
+            log.info("  Loading genome index...")
+        self.index = mp.Aligner(genome_config.index_file)
+
+        # Load the GFF
+        if verbose:
+            log.info("  Loading GFF file...")
+        
+        annotations_df = pr.read_gff3(genome_config.gff_file).df
+
+        # Rename it to match the GENCODE chromosome names
+        if genome_config.rename_gff_using_seq_report:
+            seq_report = parse_sequence_report(genome_config.sequence_report_file)
+            rename_ncbi_annotations_to_ucsc(annotations_df, seq_report)
+        
+        annotations_df = self._clean_annotations_df(annotations_df)
+        self.genome_transcribed_segments = self._parse_annotations_df_into_segments(annotations_df, parse_segments_using)
+
+
+    def _clean_annotations_df(self, annotations_df):
+        nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
+        if not self.global_config.include_na_transcript_type:
+            nan_columns_to_drop.append("transcript_type")
+        return annotations_df.dropna(subset=nan_columns_to_drop)
+    
+    def _parse_annotations_df_into_segments(self, annotations_df, parse_segments_using):
+        # Extract the coding segments from it
+        chromosomes = annotations_df["Chromosome"].unique().tolist()
+        genome_transcribed_segments = {}
+
+        for idx, ucsc_id in enumerate(chromosomes): # Parse the whole df to know the transcribed segments later for the NT benchmark canonicalization
+            if self.verbose:
+                log.info(f"Parsing {idx} / {len(chromosomes)} from gff...")
+
+            positive_coding_segments, negative_coding_segments = parse_transcribed_features_from_gff(
+                annotations_df,
+                ucsc_id,
+                self.global_config.annotations_level,
+                self.global_config.include_cdjv_segments,
+                self.global_config.include_pseudogenes
+            )
+
+            if parse_segments_using is not None:
+                parse_segments_using(positive_coding_segments, negative_coding_segments, ucsc_id)
+            
+            genome_transcribed_segments[ucsc_id] = {
+                "positive": IntervalTree.from_tuples(positive_coding_segments),
+                "negative": IntervalTree.from_tuples(negative_coding_segments)
+            }
+        
+        return genome_transcribed_segments
 
 #########################
 # Biopython Seq Parsing #
