@@ -1,7 +1,6 @@
 _name_: genomic_benchmark
 dataset_name: dummy_mouse_enhancers_ensembl
 dest_path: null
-max_length: 1024
 d_output: ${.${.dataset_name}.classes}
 use_padding: True
 padding_side: 'left'

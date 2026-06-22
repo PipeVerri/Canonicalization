@@ -75,4 +75,4 @@ wandb:
 
 hydra:
   run:
-    dir: ./outputs/${wandb.group}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: ./outputs/${wandb.job_type}/${wandb.group}/${now:%Y-%m-%d}/${now:%H-%M-%S}
