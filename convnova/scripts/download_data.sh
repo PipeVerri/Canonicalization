@@ -4,14 +4,19 @@ source $SCRIPT_DIR/../.env
 
 mkdir -p $SCRIPT_DIR/../data/hg38
 mkdir -p $SCRIPT_DIR/../data/mouse
-mkdir -p $SCRIPT_DIR/../data/gene_finding
+mkdir -p $SCRIPT_DIR/../data/bend_benchmark
 
 # ConvNova's training hg38 genome
 curl https://storage.googleapis.com/basenji_barnyard2/hg38.ml.fa.gz > $SCRIPT_DIR/../data/hg38/hg38.ml.fa.gz
 curl https://storage.googleapis.com/basenji_barnyard2/sequences_human.bed > $SCRIPT_DIR/../data/hg38/human-sequences.bed
-# BEND gene finding
-curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/gene_finding/gene_finding.bed > $SCRIPT_DIR/../data/gene_finding/gene_finding.bed
-curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/gene_finding/gene_finding.hdf5 > $SCRIPT_DIR/../data/gene_finding/gene_finding.hdf5
+
+# BEND benchmark
+curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/gene_finding/gene_finding.bed > $SCRIPT_DIR/../data/bend_benchmark/gene_finding.bed
+curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/gene_finding/gene_finding.hdf5 > $SCRIPT_DIR/../data/bend_benchmark/gene_finding.hdf5
+curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/cpg_methylation/cpg_methylation.bed > $SCRIPT_DIR/../data/bend_benchmark/cpg_methylation.bed
+curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/variant_effects/variant_effects_disease.bed > $SCRIPT_DIR/../data/bend_benchmark/variant_effects_disease.bed
+curl https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data/variant_effects/variant_effects_expression.bed > $SCRIPT_DIR/../data/bend_benchmark/variant_effects_expression.bed
+
 
 # Download the genomes from GENCODE because they're in UCSC style names by default
 

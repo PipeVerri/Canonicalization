@@ -180,7 +180,6 @@ class LMTask(BaseTask):
         self._state = state
         x, w = decoder(x, state=state, **z)
 
-        x = x.logits
         if isinstance(x, tuple): # x come out from bert lm head
             x = list(x)
             x[0] = rearrange(x[0], '... C -> (...) C')

@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - /trainer: default
+  - /loader: default
+  - /dataset: bend_benchmark
+  - /optimizer: adamw # A.2.3
+  - /scheduler: plateau # The scheduler is overrided with cosine annealing(Section A.2.3), but every other pipeline has this scheduler
+  - /callbacks: [base, checkpoint]
+
+train:
+  monitor: val/${dataset.metric}
+  mode: max
+
+task:
+  _name_: ${dataset.task_name}
+  loss: cross_entropy
+  metrics:
+    - ${dataset.metric}
+
+encoder: id # I don't know if it should be null or id
+decoder: ${dataset.decoder}
