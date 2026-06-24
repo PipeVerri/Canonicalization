@@ -1,0 +1,23 @@
+name: convnova
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.10
+  - minimap2
+  - ncbi-datasets-cli
+  - pip:
+    - -r requirements.txt
+    - torch==2.1.0 
+    - torchvision==0.16.0 
+    - torchaudio==2.1.0 
+    - pytorch-lightning==1.8.6
+    - packaging
+    - lightning_utilities
+    - torchmetrics
+    - tensorboardX
+    - pip install "setuptools>=59.6.0,<68.0.0" # For pkg_resources
+    - h5py
+    - intervaltree
+    - mappy
+    - -e .

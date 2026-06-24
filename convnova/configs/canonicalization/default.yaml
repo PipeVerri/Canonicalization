@@ -36,11 +36,11 @@ canonicalization:
     rename_gff_using_seq_report: False
     sequence_report_file: ${.data_path}/mouse/ncbi_dataset/data/GCF_000001635.27/sequence_report.jsonl
   
-  drosophilia:
-    index_file: ${.data_path}/drosophilia_index.mmi
-    gff_file: ${.data_path}/drosophilia/ncbi_dataset/data/GCF_000001215.4/genomic.gff
+  drosophila:
+    index_file: ${.data_path}/drosophila_index.mmi
+    gff_file: ${.data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/genomic.gff
     rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
-    sequence_report_file: ${.data_path}/drosophilia/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
+    sequence_report_file: ${.data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
   
   roundworm:
     index_file: ${.data_path}/roundworm_index.mmi

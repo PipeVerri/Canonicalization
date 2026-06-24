@@ -6,3 +6,4 @@ outputs/
 multirun/
 .env
 .agents/
+convnova.egg-info/

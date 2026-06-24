@@ -1,4 +1,0 @@
-biopython
-pytest
-hydra-core
-numpy

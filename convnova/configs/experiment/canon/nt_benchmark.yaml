@@ -4,10 +4,9 @@ defaults:
   - override /scheduler: cosine_warmup_timm
 
 wandb:
-  job_type: finetuning
-  group: pretraining_baseline
-  tags: ["old_code"]
-  #mode: disabled
+  job_type: nt_benchmark
+  group: baseline
+  mode: disabled
 
 model:
   _name_: convnova
