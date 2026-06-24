@@ -1,6 +1,8 @@
+from collections import namedtuple
 from pyfaidx import Fasta
 import torch
-# from random import random 
+import torch.nn as nn
+# from random import random
 import random
 from pathlib import Path
 import numpy as np
@@ -8,6 +10,26 @@ import h5py
 import pandas as pd
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
+import src.tasks.decoders as _decoders
+
+_BendOutput = namedtuple("BendOutput", ["logits"])
+
+
+class BendLinearDecoder(nn.Module):
+    """Linear decoder that wraps its output in a namedtuple so LMTask's
+    ``x.logits`` attribute access works for fine-tuning (non-pretrain) models."""
+
+    def __init__(self, d_model, d_output):
+        super().__init__()
+        self.linear = nn.Linear(d_model, d_output)
+
+    def forward(self, x, **kwargs):
+        return _BendOutput(logits=self.linear(x))
+
+
+_decoders.registry["bend_linear"] = BendLinearDecoder
+_decoders.dataset_attrs["bend_linear"] = ["d_output"]
+_decoders.model_attrs["bend_linear"] = ["d_output"]
 
 class BendBenchmarkDataset(torch.utils.data.Dataset):
 

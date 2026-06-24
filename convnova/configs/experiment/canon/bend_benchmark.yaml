@@ -6,7 +6,7 @@ defaults:
 wandb:
   job_type: bend_benchmark
   group: baseline_big
-  #mode: disabled
+  mode: disabled
 
 model:
   _name_: convnova

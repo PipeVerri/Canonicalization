@@ -6,13 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "convnova"
 version = "0.1.0"
 description = "ConvNova research project"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "biopython",
-    "pytest",
-    "hydra-core",
-    "numpy",
-    # Add other key dependencies if needed, but these are the ones used in the test/scripts
 ]
 
 [tool.setuptools]

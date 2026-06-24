@@ -74,7 +74,6 @@ class ParsedGenome:
         annotations_df = self._clean_annotations_df(annotations_df)
         self.genome_transcribed_segments = self._parse_annotations_df_into_segments(annotations_df, parse_segments_using)
 
-
     def _clean_annotations_df(self, annotations_df):
         nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
         if not self.global_config.include_na_transcript_type:

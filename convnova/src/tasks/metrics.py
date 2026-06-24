@@ -80,14 +80,12 @@ class RecallPerClass(CorrectAggregatedMetric):
         return numerator, denominator
 
 
-def mcc(logits, y):
+def mcc(logits, y, ignore_index=-100):
     logits = logits.view(-1, logits.shape[-1])
     y = y.view(-1)
-    mask = y != -100
-    logits = logits[mask]
-    y = y[mask]
-    y_hat = torch.argmax(logits, dim=-1)
-    return matthews_corrcoef(y.cpu().numpy(), y_hat.cpu().numpy())
+    mask = y != ignore_index
+    y_hat = torch.argmax(logits[mask], dim=-1)
+    return matthews_corrcoef(y[mask].cpu().numpy(), y_hat.cpu().numpy())
 
 
 def last_k_ppl(logits, y, seq_len=1024, k=None):

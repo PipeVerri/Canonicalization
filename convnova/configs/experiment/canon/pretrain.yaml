@@ -5,8 +5,8 @@ defaults:
 
 wandb:
   job_type: pretraining
-  #mode: disabled
-  group: pretraining_baseline
+  mode: disabled
+  group: baseline
 
 model:
   _name_: convnova

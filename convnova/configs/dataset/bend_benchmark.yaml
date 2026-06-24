@@ -48,7 +48,7 @@ gene_finding:
   task_name: lm
   task_loss: cross_entropy
   decoder:
-    _name_: linear
+    _name_: bend_linear
 
 variant_effects_disease:
   bed_path: ${..dataset_dir}/variant_effects_disease.bed
