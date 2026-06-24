@@ -5,23 +5,23 @@ defaults:
 
 wandb:
   job_type: pretraining
-  mode: disabled
+  #mode: disabled
   group: baseline_massive
 
 model:
   _name_: convnova
   for_representation: false
   alphabet_size: 5
-  d_model: 64
+  d_model: 196
   pretrain: true
   kernel_size: 9 # Taken from section 3.2
   final_conv: False
   dilation: 4
-  num_conv1d: 5
+  num_conv1d: 10
   d_inner: 2
   ffn: true
   args:
-    hidden_dim: 64 # same as d_model
+    hidden_dim: 196 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -42,7 +42,7 @@ trainer:
 
 dataset:
   batch_size: 512  # Smaller than global_batch_size for batch accumulation
-  max_length: 1024 # 262144, 524288
+  max_length: 16_386 # 16384 + 2 for BOS and EOS tokens
   # optional, default is max_length
   max_length_val: ${dataset.max_length}
   max_length_test: ${dataset.max_length}

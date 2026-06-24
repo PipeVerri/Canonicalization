@@ -21,3 +21,5 @@ dependencies:
     - intervaltree
     - mappy
     - -e .
+  
+# Download flash_attn from https://mjunya.com/flash-attention-prebuild-wheels/
