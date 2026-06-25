@@ -5,7 +5,7 @@ defaults:
 
 wandb:
   job_type: pretraining
-  #mode: disabled
+  mode: disabled
   group: baseline_massive
 
 model:
@@ -41,7 +41,7 @@ trainer:
   # strategy: null
 
 dataset:
-  batch_size: 512  # Smaller than global_batch_size for batch accumulation
+  batch_size: 1  # Smaller than global_batch_size for batch accumulation
   max_length: 16_386 # 16384 + 2 for BOS and EOS tokens
   # optional, default is max_length
   max_length_val: ${dataset.max_length}

@@ -11,11 +11,7 @@ train:
   monitor: val/${dataset.metric}
   mode: max
 
-task:
-  _name_: ${dataset.task_name}
-  loss: cross_entropy
-  metrics:
-    - ${dataset.metric}
+task: ${dataset.task}
 
 encoder: id # I don't know if it should be null or id
 decoder: ${dataset.decoder}

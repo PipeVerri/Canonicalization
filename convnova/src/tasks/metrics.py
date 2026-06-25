@@ -160,6 +160,13 @@ def binary_cross_entropy(logits, y):
     return F.binary_cross_entropy_with_logits(logits, y.float())
 
 
+def auroc(logits, y):
+    # multilabel: logits (batch, n_classes), y (batch, n_classes) binary integers
+    scores = torch.sigmoid(logits).detach().cpu().numpy()
+    y_np = y.cpu().numpy()
+    return roc_auc_score(y_np, scores, average='macro')
+
+
 def binary_accuracy(logits, y):
     return torch.eq(logits.squeeze(-1) >= 0, y).float().mean()
 
@@ -181,6 +188,7 @@ def padded_cross_entropy(logits, y, pad_mask, pad_value=-1):
 
 
 def cross_entropy(logits, y, ignore_index=-100):
+    print(f"Logits shape {logits.shape} | y shape {y.shape}")
     logits = logits.view(-1, logits.shape[-1])
     y = y.view(-1)
     return F.cross_entropy(logits, y, ignore_index=ignore_index)
@@ -395,6 +403,7 @@ output_metric_fns = {
     "f1_binary": f1_binary,
     "f1_macro": f1_macro,
     "f1_micro": f1_micro,
+    "auroc": auroc,
     "roc_auc_macro": roc_auc_macro,
     "roc_auc_micro": roc_auc_micro,
     "soft_cross_entropy": soft_cross_entropy,  # only for pytorch 1.10+

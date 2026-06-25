@@ -15,6 +15,7 @@ import src.tasks.decoders as _decoders
 _BendOutput = namedtuple("BendOutput", ["logits"])
 
 
+# The LM task expects a NamedTUple with x.logits, which is added using this wrapper
 class BendLinearDecoder(nn.Module):
     """Linear decoder that wraps its output in a namedtuple so LMTask's
     ``x.logits`` attribute access works for fine-tuning (non-pretrain) models."""
@@ -86,13 +87,14 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             to_convert_to_int = ["start", "end", "length"]
         elif dataset_name == "cpg_methylation":
             bed_columns = ["chromosome", "start", "end", "strand", "label", "split"]
-            to_convert_to_int = ["start", "end", "length"]
+            to_convert_to_int = ["start", "end"]
         else:
             raise RuntimeError(f"Unrecognized dataset {dataset_name}")
         
         df = pd.read_csv(str(bed_path), sep="\t", header=None, names=bed_columns)
-        df = df.iloc[1:].reset_index(drop=True)
-        df = df[df["split"] == split] # train, test, valid split
+        df = df.iloc[1:].reset_index(drop=True) # The first row has the column names
+        df = df[df["split"] == split] # train, test, valid
+
         for col in to_convert_to_int:
             df[col] = df[col].astype(int)
         self.df = df
@@ -134,8 +136,8 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         # Get the target
         if self.dataset_name == "cpg_methylation":
             y = [0] * 7
-            if not pd.isna(df_seq["Score"]):
-                for label_idx in df_seq["Score"].split(","):
+            if not pd.isna(df_seq["label"]):
+                for label_idx in df_seq["label"].split(","):
                     y[int(label_idx)] = 1
         elif self.dataset_name == "gene_finding":
             # The cross_entropy task expects a tensor with the labels themselves, not the one-hot encoded labels

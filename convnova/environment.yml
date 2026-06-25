@@ -16,10 +16,11 @@ dependencies:
     - lightning_utilities
     - torchmetrics
     - tensorboardX
-    - pip install "setuptools>=59.6.0,<68.0.0" # For pkg_resources
+    - "setuptools>=59.6.0,<68.0.0" # For pkg_resources
     - h5py
     - intervaltree
     - mappy
+    - ipykernel
     - -e .
   
 # Download flash_attn from https://mjunya.com/flash-attention-prebuild-wheels/

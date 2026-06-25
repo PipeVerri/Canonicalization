@@ -5,7 +5,7 @@ defaults:
 
 wandb:
   job_type: pretraining
-  mode: disabled
+  #mode: disabled
   group: baseline
 
 model:

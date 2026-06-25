@@ -9,8 +9,7 @@ labels_path: ${oc.select:.${.dataset_name}.labels_path,null} # If there isn't a 
 fasta_path: ${.${.dataset_name}.fasta_path}
 
 decoder: ${.${.dataset_name}.decoder}
-task_name: ${.${.dataset_name}.task_name}
-task_loss: ${.${.dataset_name}.task_loss}
+task: ${.${.dataset_name}.task}
 
 max_length: ${.${.dataset_name}.max_length}
 d_output: ${.${.dataset_name}.classes}
@@ -26,15 +25,21 @@ metric: ${.${.dataset_name}.metric}
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml
 cpg_methylation:
   bed_path: ${..dataset_dir}/cpg_methylation.bed
+  decoder_name: sequence
+  decoder_mode: pool
   metric: auroc
   max_length: 512
-  classes: 2
+  classes: 7
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
-  task_name: multilabel
-  task_loss: binary_cross_entropy
+
   decoder:
     _name_: sequence
     mode: pool
+  task:
+    _name_: base
+    loss: binary_cross_entropy
+    metrics:
+      - auroc
 
 gene_finding:
   bed_path: ${..dataset_dir}/gene_finding.bed
@@ -45,10 +50,12 @@ gene_finding:
   max_length: 14_000
   classes: 9
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
-  task_name: lm
-  task_loss: cross_entropy
+
   decoder:
     _name_: bend_linear
+  task:
+    _name_: lm
+    loss: cross_entropy
 
 variant_effects_disease:
   bed_path: ${..dataset_dir}/variant_effects_disease.bed
