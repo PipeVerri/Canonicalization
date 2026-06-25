@@ -9,6 +9,7 @@ from sklearn.metrics import f1_score, roc_auc_score, matthews_corrcoef
 from torchmetrics import Metric
 from torchmetrics.classification import MulticlassRecall, MulticlassPrecision
 from scipy import stats
+import numpy as np
 
 class CorrectAggregatedMetric(Metric):
     """This is needed to calculate some metrics b/c small batch sizes cause aggregation via a simple
@@ -162,9 +163,15 @@ def binary_cross_entropy(logits, y):
 
 def auroc(logits, y):
     # multilabel: logits (batch, n_classes), y (batch, n_classes) binary integers
+    # Returns None if no class has both labels present (batch is unevaluable).
     scores = torch.sigmoid(logits).detach().cpu().numpy()
     y_np = y.cpu().numpy()
-    return roc_auc_score(y_np, scores, average='macro')
+    aucs = [
+        roc_auc_score(y_np[:, i], scores[:, i])
+        for i in range(y_np.shape[1])
+        if len(np.unique(y_np[:, i])) > 1
+    ]
+    return float(np.mean(aucs))
 
 
 def binary_accuracy(logits, y):

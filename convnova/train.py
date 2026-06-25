@@ -346,12 +346,12 @@ class SequenceLightningModule(pl.LightningModule):
         # Metrics
         metrics = self.metrics(x, y, **w)
         metrics["loss"] = loss
-        metrics = {f"{prefix}/{k}": v for k, v in metrics.items()}
+        metrics = {f"{prefix}/{k}": v for k, v in metrics.items() if v is not None}
 
         # Calculate torchmetrics
         # torchmetrics = getattr(self, f'{prefix}_torchmetrics')
         # torchmetrics(x, y, loss=loss)
-        
+
         log_on_step = 'eval' in self.hparams and self.hparams.eval.get('log_on_step', False) and prefix == 'train'
 
         self.log_dict(
