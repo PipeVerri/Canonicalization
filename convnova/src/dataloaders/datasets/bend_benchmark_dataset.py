@@ -83,11 +83,17 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         self.seqs = Fasta(str(fasta_path))
         
         if dataset_name == "gene_finding":
-            bed_columns = ["chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split"]
-            to_convert_to_int = ["start", "end", "length"]
+            bed_columns = ("chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split")
+            to_convert_to_int = ("start", "end", "length")
         elif dataset_name == "cpg_methylation":
-            bed_columns = ["chromosome", "start", "end", "strand", "label", "split"]
-            to_convert_to_int = ["start", "end"]
+            bed_columns = ("chromosome", "start", "end", "strand", "label", "split")
+            to_convert_to_int = ("start", "end")
+        elif dataset_name == "variant_effects_disease":
+            bed_columns = ("chromosome", "start", "end", "ref", "alt", "split", "label", "full_label", "Consequence")
+            to_convert_to_int = ("start", "end", "label")
+        elif dataset_name == "variant_effects_expression":
+            bed_columns = ("chromosome", "start", "end", "ref", "alt", "split", "label", "Consequence", "actual")
+            to_convert_to_int = ("start", "end", "label")
         else:
             raise RuntimeError(f"Unrecognized dataset {dataset_name}")
         
@@ -116,7 +122,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         df_seq = self.df.iloc[idx]
-        seq = self.seqs[df_seq["chromosome"]][df_seq["start"]:df_seq["end"]].seq
+        seq = self.seqs[df_seq["chromosome"]][df_seq["start"]:df_seq["end"]][:].seq # Replaced on the variant_effects tasks, [:] copies the string just in case
 
         seq = self.tokenizer(seq,
             add_special_tokens=True if self.add_eos else False,  # this is what controls adding eos
@@ -149,6 +155,19 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             elif seq_len < self.max_length:
                 #print(f"idx={idx}, seq_len={seq_len}, y.shape={y.shape}, true_idx={df_seq.name}")
                 y = np.pad(y, (self.max_length - seq_len, 0), mode="constant", constant_values=-100)
+        elif self.dataset_name == "variant_effects_disease" or self.dataset_name == "variant_effects_expression":
+            # Start = end, indicates the position of the SNP
+            seq_start = df_seq["start"] - (self.max_length // 2)
+            seq_end = df_seq["start"] + (self.max_length - (self.max_length // 2))
+            seq = self.seqs[df_seq["chromosome"]][seq_start:seq_end].seq
+            
+            if seq_start < 0 or len(seq) != (seq_end - seq_start): # The len diff is used to check that seq_end hasn't gone overboard
+                raise ValueError("SNP seq escapes chromosome bounds")
+            
+            seq_snp = seq[:] # Copy the string
+            seq_snp[len(seq_snp) // 2] = df_seq["alt"] # Apply the snp, the centered nucleotide will always be on the lower bound because of the way that seq is built
+            
+            return seq, seq_snp, {"label": df_seq["label"]}
         else:
             raise RuntimeError(f"{self.dataset_name} not implemented in bend benchmark")
         target = torch.LongTensor(y)

@@ -6,7 +6,7 @@ defaults:
 wandb:
   job_type: bend_benchmark
   group: baseline_big
-  mode: disabled
+  #mode: disabled
 
 model:
   _name_: convnova
@@ -38,7 +38,7 @@ trainer:
 # cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
 dataset:
   dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/
-  dataset_name: "cpg_methylation"
+  dataset_name: "variant_effects_disease"
   batch_size: 256
   use_padding: True
   padding_side: 'left'

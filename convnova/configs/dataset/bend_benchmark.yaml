@@ -25,8 +25,6 @@ metric: ${.${.dataset_name}.metric}
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml
 cpg_methylation:
   bed_path: ${..dataset_dir}/cpg_methylation.bed
-  decoder_name: sequence
-  decoder_mode: pool
   metric: auroc
   max_length: 512
   classes: 7
@@ -44,8 +42,6 @@ cpg_methylation:
 gene_finding:
   bed_path: ${..dataset_dir}/gene_finding.bed
   labels_path: ${..dataset_dir}/gene_finding.hdf5
-  decoder_name: linear
-  decoder_mode: null
   metric: mcc
   max_length: 14_000
   classes: 9
@@ -59,12 +55,25 @@ gene_finding:
 
 variant_effects_disease:
   bed_path: ${..dataset_dir}/variant_effects_disease.bed
-  metric: auroc
+  decoder_name: sequence
   max_length: 512
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
+  classes: 2
+
+  metric: null
+  decoder: null
+  task:
+    _name_: base
+    loss: binary_cross_entropy
 
 variant_effects_expression:
   bed_path: ${..dataset_dir}/variant_effects_expression.bed
-  metric: auroc
   max_length: 512
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
+  classes: 2
+
+  metric: null
+  decoder: null
+  task:
+    _name_: base
+    loss: binary_cross_entropy
