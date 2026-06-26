@@ -109,6 +109,23 @@ def iter_sequences(df: pd.DataFrame, fasta: Fasta, max_length: int):
 # Inference
 # ---------------------------------------------------------------------------
 
+def _pool(emb: torch.Tensor, mode: str, snp_idx: int) -> torch.Tensor:
+    """Reduce (B, L, d_model) → (B, d_model).
+
+    mean : average over all sequence positions (SequenceDecoder pool equivalent).
+    snp  : take only the position of the mutated nucleotide.
+           The SNP is always at snp_idx = max_length // 2 because the window
+           is extracted centered on the variant and sequences outside chromosome
+           bounds are skipped, so no padding shifts the index.
+    """
+    if mode == "mean":
+        return emb.mean(dim=1)
+    elif mode == "snp":
+        return emb[:, snp_idx, :]
+    else:
+        raise ValueError(f"Unknown pool_mode '{mode}'. Choose 'mean' or 'snp'.")
+
+
 @torch.no_grad()
 def compute_cosine_similarities(
     backbone: torch.nn.Module,
@@ -117,6 +134,7 @@ def compute_cosine_similarities(
     max_length: int,
     batch_size: int,
     device: torch.device,
+    pool_mode: str = "mean",
 ) -> pd.DataFrame:
     """
     Run inference over all variants and return a DataFrame with columns
@@ -124,7 +142,9 @@ def compute_cosine_similarities(
     """
     samples = list(iter_sequences(df, fasta, max_length))
     print(f"  {len(samples)} variants after filtering")
+    print(f"  pool_mode: {pool_mode}")
 
+    snp_idx = max_length // 2
     all_scores: list[float] = []
     all_labels: list[int]   = []
 
@@ -138,8 +158,8 @@ def compute_cosine_similarities(
         emb_ref, _ = backbone(refs)   # (B, L, d_model)
         emb_alt, _ = backbone(alts)
 
-        emb_ref = emb_ref.mean(dim=1)          # (B, d_model)
-        emb_alt = emb_alt.mean(dim=1)
+        emb_ref = _pool(emb_ref, pool_mode, snp_idx)  # (B, d_model)
+        emb_alt = _pool(emb_alt, pool_mode, snp_idx)
 
         cos_sim = F.cosine_similarity(emb_ref, emb_alt, dim=-1)  # (B,)
 
@@ -164,7 +184,8 @@ def main(config: DictConfig) -> None:
         raise ValueError("Wrong dataset name")
     
     max_length = config.dataset.max_length
-    batch_size = 3000 # Harcoded bigger batch size
+    batch_size = 3000  # hardcoded bigger batch size
+    pool_mode  = config.dataset.get("pool_mode", "mean")  # "mean" | "snp"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # --- Model ---------------------------------------------------------------
@@ -182,7 +203,7 @@ def main(config: DictConfig) -> None:
     fasta = Fasta(fasta_path)
 
     # --- Inference -----------------------------------------------------------
-    results = compute_cosine_similarities(backbone, df, fasta, max_length, batch_size, device)
+    results = compute_cosine_similarities(backbone, df, fasta, max_length, batch_size, device, pool_mode)
 
     # --- W&B -----------------------------------------------------------------
     wandb.init(
@@ -190,9 +211,11 @@ def main(config: DictConfig) -> None:
         entity=config.wandb.get("entity", None),
         group=config.wandb.get("group", None),
         job_type=config.wandb.get("job_type", None),
-        name=f"zeroshot-{dataset_name}",
-        tags=["zeroshot", dataset_name],
+        name=f"zeroshot-{dataset_name}-{pool_mode}",
+        tags=["zeroshot", dataset_name, pool_mode],
         config=OmegaConf.to_container(config, resolve=True, throw_on_missing=False),
+        dir="/tmp",
+        mode=config.wandb.get("mode", "disabled")
     )
 
     # --- AUROC ---------------------------------------------------------------
@@ -212,6 +235,7 @@ def main(config: DictConfig) -> None:
         print(f"  AUROC   : {auroc:.4f}")
         wandb.log({
             f"zeroshot/{dataset_name}/auroc": auroc,
+            "pool_mode": pool_mode,
             "n_samples": len(results),
             "n_pos": n_pos,
             "n_neg": n_neg,

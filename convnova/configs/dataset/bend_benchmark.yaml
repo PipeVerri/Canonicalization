@@ -7,6 +7,7 @@ dataset_name: ???
 bed_path: ${.${.dataset_name}.bed_path}
 labels_path: ${oc.select:.${.dataset_name}.labels_path,null} # If there isn't a labels_path, set it to null
 fasta_path: ${.${.dataset_name}.fasta_path}
+pool_mode: "snp" # Only applies to the zero shot tasks
 
 decoder: ${.${.dataset_name}.decoder}
 task: ${.${.dataset_name}.task}

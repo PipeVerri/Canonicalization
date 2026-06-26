@@ -38,7 +38,7 @@ trainer:
 # cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
 dataset:
   dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/
-  dataset_name: "variant_effects_disease"
+  dataset_name: "variant_effects_expression"
   batch_size: 256
   use_padding: True
   padding_side: 'left'
