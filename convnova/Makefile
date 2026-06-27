@@ -3,10 +3,10 @@ DATA := data
 include .env
 #export
 
-.PHONY: all pretrain bend gencode gencode-human gencode-mouse ncbi index \
+.PHONY: all pretrain bend deepsea gencode gencode-human gencode-mouse ncbi index \
         index-hg38 index-mouse index-drosophila index-roundworm
 
-all: pretrain bend gencode ncbi index
+all: pretrain bend deepsea gencode ncbi index
 
 # ─── ConvNova / hg38 training data ──────────────────────────────────────────
 
@@ -26,6 +26,7 @@ $(DATA)/hg38/human-sequences.bed: | $(DATA)/hg38
 # ─── BEND benchmark ─────────────────────────────────────────────────────────
 
 BEND_URL := https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data
+DEEPSEA_URL := https://deepsea.princeton.edu/media/code/deepsea_train_bundle.v0.9.tar.gz
 
 bend: \
 	$(DATA)/bend_benchmark/gene_finding.bed \
@@ -48,6 +49,14 @@ $(DATA)/bend_benchmark/variant_effects_disease.bed: | $(DATA)/bend_benchmark
 
 $(DATA)/bend_benchmark/variant_effects_expression.bed: | $(DATA)/bend_benchmark
 	curl -L $(BEND_URL)/variant_effects/variant_effects_expression.bed -o $@
+
+# ─── DeepSEA data download ─────────────────────────────────────────────────
+
+deepsea: $(DATA)/deepsea/train.mat
+
+$(DATA)/deepsea/train.mat: | $(DATA)/deepsea
+	curl -L $(DEEPSEA_URL) -o $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz
+	tar -xzf $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz -C $(DATA)/deepsea
 
 # ─── GENCODE annotations + genomes ──────────────────────────────────────────
 
@@ -142,5 +151,5 @@ $(DATA)/roundworm_index.mmi: $(DATA)/roundworm/ncbi_dataset/data/GCF_000002985.6
 
 # ─── Directory creation ──────────────────────────────────────────────────────
 
-$(DATA)/hg38 $(DATA)/mouse $(DATA)/bend_benchmark $(DATA)/drosophila $(DATA)/roundworm:
+$(DATA)/hg38 $(DATA)/mouse $(DATA)/bend_benchmark $(DATA)/drosophila $(DATA)/roundworm $(DATA)/deepsea:
 	mkdir -p $@

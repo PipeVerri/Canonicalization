@@ -211,6 +211,8 @@ class HG38(SequenceDataset):
             sampler=sampler,
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
+            persistent_workers=self.num_workers > 0,
+            prefetch_factor=4 if self.num_workers > 0 else None,
         )
 
     def load_state_dict(self, checkpoint):
@@ -311,6 +313,7 @@ class BendBenchmark(HG38):
             )
             for split in ['train', 'val', "test"]
         ]
+
 class GenomicBenchmark(HG38):
     _name_ = "genomic_benchmark"
     l_output = 0  # need to set this for decoder to work correctly
@@ -509,24 +512,20 @@ class NucleotideTransformer(HG38):
 class ChromatinProfile(HG38):
     _name_= 'chromatin_profile'
     l_output = 0  # need to set this for decoder to work correctly for seq level
-    def __init__(self, data_path, ref_genome_path, ref_genome_version=None,
-                 tokenizer_name=None, dataset_config_name=None, 
-                 max_length=1000, d_output=2, rc_aug=False, add_eos=True, val_only=False,
+    def __init__(self, tokenizer_name=None, dataset_path=None,
+                 max_length=1000, d_output=919, rc_aug=False, add_eos=True, val_only=False,
                  batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                  fast_forward_epochs=None, fast_forward_batches=None,
                  *args, **kwargs):
         
-        self.data_path = data_path
-        self.ref_genome_path = ref_genome_path
-        self.ref_genome_version = ref_genome_version
-        self.dataset_config_name = dataset_config_name
         self.tokenizer_name = tokenizer_name
         self.d_output = d_output
         self.rc_aug = rc_aug  # reverse compliment augmentation
         self.max_length = max_length
         self.add_eos = add_eos
-        
+        self.dataset_path = Path(dataset_path)
+        assert self.dataset_path.exists()
         self.val_only=val_only
         
         self.batch_size = batch_size
@@ -546,6 +545,8 @@ class ChromatinProfile(HG38):
         self.fast_forward_batches = fast_forward_batches
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
+        
+        self.datasets = None
 
     def setup(self, stage=None):
         if self.tokenizer_name == 'char':
@@ -564,20 +565,30 @@ class ChromatinProfile(HG38):
 
         self.vocab_size = len(self.tokenizer)
         
+        if self.datasets is None:
+            self.datasets = {
+                "train": (np.load(self.dataset_path / "train-x.npy"), np.load(self.dataset_path / "train-y.npy")),
+                "test": (np.load(self.dataset_path / "test-x.npy"), np.load(self.dataset_path / "test-y.npy")),
+                "valid": (np.load(self.dataset_path / "valid-x.npy"), np.load(self.dataset_path / "valid-y.npy"))
+            }
+        
         # Create all splits: torch datasets
         if self.val_only:
-            splits=['val']*3
+            splits=['valid']*3
         else:
-            splits=['train','val','test']
+            splits=['train','valid','test']
         self.dataset_train, self.dataset_val, self.dataset_test = [
             ChromatinProfileDataset(
-                max_length=self.max_length,
-                ref_genome_path = self.ref_genome_path,
-                ref_genome_version = self.ref_genome_version,
-                coords_target_path = f'{self.data_path}/{split}_{self.ref_genome_version}_coords_targets.csv',
+                self.datasets[split][0],
+                self.datasets[split][1],
+                self.max_length,
+                d_output=self.d_output,
                 tokenizer=self.tokenizer,
                 tokenizer_name=self.tokenizer_name,
-                use_padding=True,
+                use_padding=None,
+                add_eos=self.add_eos,
+                rc_aug=self.rc_aug,
+                use_tokenizer=False
             )
             for split in splits
         ]

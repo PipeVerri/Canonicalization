@@ -3,6 +3,11 @@ from datasets import load_dataset
 from pathlib import Path
 from genomic_benchmarks.loc2seq import download_dataset
 from genomic_benchmarks.data_check import is_downloaded
+import h5py
+from scipy.io import loadmat
+import numpy as np
+import math
+from tqdm import tqdm
 
 dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 
@@ -42,6 +47,50 @@ def download_genomic_benchmark_task(dataset_name, output_path):
         download_dataset(dataset_name, version=0, dest_path=output_path)
     else:
         print("already downloaded {}".format(dataset_name))
+        
+def process_deepsea_data(deepsea_dir, chunk_size=10000):
+    for f in ("train", "test", "valid"):
+        print(f"  Processing {f}...")
+        file_dir = deepsea_dir / f"{f}.mat"
+        assert file_dir.exists()
+
+        if f == "train":
+            with h5py.File(file_dir) as data:
+                total = data["trainxdata"].shape[-1]
+                n_chunks = math.ceil(total / chunk_size)
+
+                x_all, y_all = [], []
+                for i in tqdm(range(n_chunks), desc=f"  {f}", unit="chunk"):
+                    start, end = i * chunk_size, min((i + 1) * chunk_size, total)
+
+                    x_chunk = data["trainxdata"][..., start:end].transpose(2, 0, 1) # (N, 1000, 4) 
+                    x_chunk = np.argmax(x_chunk, axis=2) # (N, 1000)
+                    x_all.append(x_chunk)
+
+                    y_chunk = data["traindata"][..., start:end].T
+                    y_all.append(y_chunk)
+
+                x = np.concatenate(x_all, axis=0)
+                y = np.concatenate(y_all, axis=0)
+
+        else:
+            data = loadmat(file_dir)
+            x_raw = data[f"{f}xdata"].reshape(-1, 4, 1000)
+            y = data[f"{f}data"].reshape(-1, 919)
+
+            total = x_raw.shape[0]
+            n_chunks = math.ceil(total / chunk_size)
+            x_parts = []
+
+            for i in tqdm(range(n_chunks), desc=f"  {f}", unit="chunk"):
+                start, end = i * chunk_size, min((i + 1) * chunk_size, total)
+                x_parts.append(np.argmax(x_raw[start:end], axis=1))
+
+            x = np.concatenate(x_parts, axis=0)
+            del x_raw
+
+        np.save(deepsea_dir / f"{f}-x.npy", x)
+        np.save(deepsea_dir / f"{f}-y.npy", y)
 
 if __name__ == "__main__":
     # Get the directory of the current script (convnova/scripts/)
@@ -57,6 +106,9 @@ if __name__ == "__main__":
     os.system(f"rm -r {str(output_base)}/*")
     
     print(f"Base output directory: {output_base}")
+
+    print(f"Processing deepsea tasks...")
+    process_deepsea_data(project_root / "data/deepsea/")
 
     print(f"Processing NT benchmark downstream tasks...")
     for task in tasks:

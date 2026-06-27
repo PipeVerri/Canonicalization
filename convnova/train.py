@@ -161,6 +161,7 @@ class SequenceLightningModule(pl.LightningModule):
         self._has_setup = False
 
         self.setup()  ## Added by KS
+        self.config = config
 
     def setup(self, stage=None):
         if not self.hparams.train.disable_dataset:
@@ -343,8 +344,13 @@ class SequenceLightningModule(pl.LightningModule):
         else:
             loss = self.loss_val(x, y, **w)
 
-        # Metrics
-        metrics = self.metrics(x, y, **w)
+        # Metrics — skip during training; per-batch metrics force GPU sync and are statistically
+        # meaningless for multi-label AUROC over small batches.
+        if prefix != "train" or (prefix == "train" and self.config.train.get("compute_train_torchmetrics", True)):
+            metrics = self.metrics(x, y, **w)
+        else:
+            metrics = {}
+        
         metrics["loss"] = loss
         metrics = {f"{prefix}/{k}": v for k, v in metrics.items() if v is not None}
 

@@ -3,14 +3,20 @@ defaults:
   - /trainer: default
   - /loader: default
   - /dataset: chromatin_profile
-  - /task: multilabel_classification
   - /optimizer: adamw
   - /scheduler: plateau
   - /callbacks: [base, checkpoint]
 
 train:
-  monitor: val/accuracy # Needed for plateau scheduler
+  monitor: val/auroc
   mode: max
+  compute_train_torchmetrics: False
+
+task:
+  _name_: base
+  loss: binary_cross_entropy
+  metrics:
+    - auroc
 
 encoder: id
 

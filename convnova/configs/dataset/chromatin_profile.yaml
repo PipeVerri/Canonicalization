@@ -1,12 +1,12 @@
 _name_: chromatin_profile
-dataset_name: chromatin_profile
-ref_genome_path: '/home/callum/private/hyena/build-deepsea-training-dataset/hg19/hg19.fa'
-ref_genome_version: 'hg19'
-data_path: '/home/callum/private/hyena/safari-internal-inf/data/chromatin_profile/'
-max_length: 1024
-d_output: 919 
+dataset_path: ${oc.env:PROJECT_ROOT}/data/deepsea/
+max_length: 1000
+train_len: ${.max_length}
+d_output: 919
 use_padding: True
 padding_side: 'left'
 add_eos: False
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
+num_workers: 0  # data is fully in RAM; more workers hurts via IPC overhead
+pin_memory: true
