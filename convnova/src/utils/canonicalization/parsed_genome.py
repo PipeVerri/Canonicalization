@@ -146,7 +146,7 @@ class ParsedGenome:
         return positive_segments, negative_segments
 
     def find_annotated_alignment(self, seq_str):
-        hits = self.aligner.align(seq_str)
+        hits = self.aligner.map(seq_str)
         # Find the primary hit
         primary_hit = find_primary_hit(hits)
         if primary_hit is None:

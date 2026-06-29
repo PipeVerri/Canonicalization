@@ -4,8 +4,10 @@ from .utils import read_fasta_into_records_dict, save_records_into_fasta, interv
 from .parsed_genome import ParsedGenome, AlignmentError
 import numpy as np
 from pathlib import Path
-from Bio.Seq import MutableSeq
+from Bio.Seq import MutableSeq, Seq
 from collections import namedtuple
+import pandas as pd
+import h5py
 
 def get_alignment_transcribed_segments(alignment, reference_genome: ParsedGenome):
     if alignment.strand == 1:
@@ -16,9 +18,6 @@ def get_alignment_transcribed_segments(alignment, reference_genome: ParsedGenome
         raise RuntimeError(f"Unknown strand: {alignment.strand}")
 
     return intervaltree_to_tuples(segments_to_check.overlap(alignment.r_st, alignment.r_en))
-
-def save_control_signals(control_signals, output_path):
-    np.savez(output_path, control_signals)
 
 class CanonicalizedDownstreamTask:
     def __init__(self, config, task_config, tasks_list):
@@ -44,12 +43,12 @@ class CanonicalizedDownstreamTask:
     def canonicalize_available_tasks(self, reference_genome):
         for task in self.has_downstream_task_been_processed:
             if not self.has_downstream_task_been_processed[task] and task["reference_genome_name"] == reference_genome.name:
-                self._process_task(task, reference_genome)
+                self.process_task(task, reference_genome)
     
-    def _process_task(self, task, reference_genome: ParsedGenome):
+    def process_task(self, task, reference_genome: ParsedGenome) -> None:
         raise RuntimeError("unimplemented")
 
-    def _align_and_canonicalize_record(self, seq, task_name, reference_genome: ParsedGenome):
+    def align_and_canonicalize_record(self, seq, task_name, reference_genome: ParsedGenome):
         alignment, status = reference_genome.find_annotated_alignment(str(seq))
         self.unaligned_tasks_counter[task_name]["total_tasks"] += 1
 
@@ -60,7 +59,7 @@ class CanonicalizedDownstreamTask:
                 self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += 1
             else:
                 raise RuntimeError(f"Unknown alignment error: {status}")
-            return seq, False, np.zeros(len(seq))
+            return seq, np.zeros(len(seq))
         else:
             return self._canonicalize_record(seq, alignment, reference_genome)
 
@@ -82,7 +81,7 @@ class CanonicalizedDownstreamTask:
             transform_sequence(seq_canon, 0, len(seq), self.config.transformation)
             control_signal[0:len(seq)] = 1
 
-        return seq_canon, more_than_half_of_seq_oriented, control_signal
+        return seq_canon, control_signal
 
     def _verify_all_tasks_were_canonicalized(self):
         unprocessed_tasks = []
@@ -110,7 +109,7 @@ class NTBenchmark(CanonicalizedDownstreamTask):
     def __init__(self, config, task_config):
         super().__init__(config, task_config, {t: "hg38" for t in self.HISTONE_TASKS + self.ENHANCERS_TASKS + self.PROMOTER_TASKS + self.SPLICING_TASKS})
 
-    def _process_task(self, task, reference_genome: ParsedGenome):
+    def process_task(self, task, reference_genome: ParsedGenome):
         assert reference_genome.name == "hg38"
         self._process_fasta_file(task["task_name"], "train", reference_genome)
         self._process_fasta_file(task["task_name"], "train", reference_genome)
@@ -129,20 +128,18 @@ class NTBenchmark(CanonicalizedDownstreamTask):
             control_signals[parsed_id] = control_signal
 
         save_records_into_fasta(parsed_records, output_path)
-        save_control_signals(control_signals, str(output_path).replace(".fasta", ".npz"))
+        np.savez(str(output_path).replace(".fasta", ".npz"), **control_signals)
 
     def _process_record(self, task_name, record_id, seq, reference_genome: ParsedGenome):
-        if task_name in self.PROMOTER_TASKS and not self.config.orient_promoters:
+        if task_name in self.task_config.skip_tasks:
             return record_id, seq, np.zeros(len(seq)) # 0s for the control signal
-
-        alignment, status = reference_genome.find_annotated_alignment(str(seq))
 
         # There's no need for canonicalizing the labels because:
         # - On histone tasks, histones interact with double stranded DNA, the label is the same for the RC
         # - Enhancers (seem like) they're mostly bidirectional, and even if they aren't, I can't know if taking a non-enhancer sequence's RC suddenly turns it into an enhancer
         # - The promoters aren't transcribed
         # - The splicing seqs are already on the coding strand
-        seq_canon, _, control_signal = self._canonicalize_record(seq, alignment, reference_genome)
+        seq_canon, control_signal = self.align_and_canonicalize_record(seq, task_name, reference_genome)
         return record_id, seq_canon, control_signal
 
 class GenomicBenchmark(CanonicalizedDownstreamTask):
@@ -162,25 +159,113 @@ class GenomicBenchmark(CanonicalizedDownstreamTask):
             {"task_name": "human_ocr_ensembl", "reference_genome_name": "hg38"},
         ))
 
-    def _process_task(self, task, reference_genome: ParsedGenome):
+    def process_task(self, task, reference_genome: ParsedGenome):
         # Each task has the structure of split/label/seq.txt
         for split in os.listdir(self.input_dir / task["task_name"]):
             if task.get("folder_name") is not None:
                 self._process_seqs_dir(
                     task["task_name"],
                     self.input_dir / task["task_name"] / split / task["folder_name"],
-                    self.output_dir / task["task_name"] / split / task["folder_name"]
+                    self.output_dir / task["task_name"] / split / task["folder_name"],
+                    reference_genome
                 )
             else:
                 for label in os.listdir(self.input_dir / task["task_name"] / split):
                     self._process_seqs_dir(
                         task["task_name"],
                         self.input_dir / task["task_name"] / split / label,
-                        self.output_dir / task["task_name"] / split / label
+                        self.output_dir / task["task_name"] / split / label,
+                        reference_genome
                     )
         self.has_downstream_task_been_processed[task] = True
 
-    def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output):
+    def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output, reference_genome: ParsedGenome):
+        control_signals = {}
         for file in os.listdir(seqs_dir_input):
             with open(seqs_dir_input / file, "r") as f:
                 seq = f.read().strip()
+            
+            if task_name in self.task_config.skip_tasks:
+                seq_canon = seq
+                control_signal = np.zeros(len(seq))
+            else:
+                seq_canon, control_signal = self.align_and_canonicalize_record(seq, task_name, reference_genome)
+            
+            with open(seqs_dir_output / file, "w") as f:
+                f.write(str(seq_canon))
+            control_signals[f] = control_signal
+        
+        np.savez(str(seqs_dir_output / "control_signals.npz"), **control_signals)
+
+class BendBenchmark(CanonicalizedDownstreamTask):
+    gene_finding_bed_columns = ("chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split")
+    
+    def __init__(self, config, task_config):
+        super().__init__(config, task_config, [{"task_name": t, "reference_genome_name": "hg38"} for t in (
+            "gene_finding", "cpg_methylation", "variant_effects_disease", "variant_effects_expression"
+        )])
+    
+    def process_task(self, task, reference_genome: ParsedGenome) -> None:
+        bed_name = task["task_name"] + ".bed"
+        (self.input_dir / bed_name).copy(self.output_dir / bed_name) # The bed file stays the same for all
+
+        # The only thing that needs to be canonicalized are the gene_finding labels
+        if task["task_name"] != "gene_finding":
+            self.has_downstream_task_been_processed[task] = True
+            return
+        
+        df = pd.read_csv(str(self.input_dir / f"{task['task_name']}.bed"), sep="\t", header=None, names=self.gene_finding_bed_columns)
+        df = df.iloc[1:].reset_index() # The first row has the column names, drop it
+        df[("start, end")] = df[("start", "end")].astype(int) # Convert the cols to int
+        
+        with h5py.File(self.input_dir / bed_name.replace(".bed", ".h5"), "r") as f:
+            labels = f["labels"]
+        
+        # Make a mock alignment and get the control signals to know which labels to flip
+        Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"])
+    
+        canonicalized_labels = []
+        for idx, label in enumerate(labels):
+            df_row = df.iloc[idx]
+            if df_row["strand"] == '+':
+                strand = 1
+            elif df_row["strand"] == '-':
+                strand = -1
+            else:
+                raise RuntimeError(f"Strand {df_row['strand']} not recognized")
+
+            alignment = Alignment(df_row["start"], df_row["end"], df_row["chromosome"], strand)
+            mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
+            _, control_signal = self._canonicalize_record(mock_seq, alignment, reference_genome)
+        
+            # Flip the labels according to the control signal
+            # The labels are {Ef, Df, If, Af, Er, Dr, Ir, Ar, NC} (exon, donor, acceptor, intron) and the strand they're on (A.1)
+            mask = control_signal.astype(bool)
+            mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3]) # Ef -> Er, Df -> Dr...
+            canonicalized_label = label.copy()
+            canonicalized_label[mask] = mapping[canonicalized_label[mask]]
+
+            canonicalized_labels.append(canonicalized_label)
+        
+        # Save the canonicalized labels
+        canonicalized_labels = np.stack(canonicalized_labels)
+        with h5py.File(self.output_dir / bed_name.replace(".bed", ".h5")) as f:
+            f.create_dataset("labels", data=canonicalized_labels)
+        self.has_downstream_task_been_processed[task] = True
+
+class ChromatinProfiles(CanonicalizedDownstreamTask):
+    def __init__(self, config, task_config):
+        # Even though the dataset was built using hg19, I'll use the features from hg38 and map them to hg19
+        super().__init__(config, task_config, (
+            {"task_name": "deepsea", "reference_genome_name": "hg38"}
+        ))
+    
+    def process_task(self, task, reference_genome: ParsedGenome) -> None:
+        self._process_split("train", reference_genome)
+        self._process_split("test", reference_genome)
+        self._process_split("valid", reference_genome)
+        self.has_downstream_task_been_processed[task] = True
+    
+    def _process_split(self, split, reference_genome: ParsedGenome):
+        mat_path = self.input_dir / f"{split}.mat"
+        raise RuntimeError("unimplemented")

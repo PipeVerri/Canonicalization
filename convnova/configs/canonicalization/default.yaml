@@ -20,15 +20,23 @@ canonicalization:
   nt_benchmark:
     input_dir: ${.data_path}/nucleotide_transformer
     output_dir: ${.data_path}/nucleotide_transformer_parsed/
-    orient_promoters: False
+    skip_tasks: ["promoter_all", "promoter_tata", "promoter_no_tata"]
 
   genomic_benchmark:
     input_dir: ${.data_path}/genomic_benchmark/
     output_dir: ${.data_path}/genomic_benchmark_parsed/
-    orient_promoters: False
+    skip_tasks: ["human_nontata_promoters"] # Should maybe include the OCR task
+
+  bend_benchmark:
+    input_dir: ${.data_path}/bend_benchmark/
+    output_dir: ${.data_path}/bend_benchmark_parsed/
+    skip_tasks: ["variant_effects_disease", "variant_effects_expression"] # I think the SNP may break when transforming the sequence
+  
+  deepsea:
+    input_dir: ${.data_path}/deepsea/
+    output_dir: ${.data_path}/deepsea_parsed/
 
   # Reference genomes config
-
   hg38:
     index_file: ${.data_path}/hg38_index.mmi
     gff_file: ${.data_path}/hg38/gencode.v50.primary_assembly.annotation.gff3
