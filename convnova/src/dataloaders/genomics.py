@@ -212,7 +212,6 @@ class HG38(SequenceDataset):
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
             persistent_workers=self.num_workers > 0,
-            prefetch_factor=4 if self.num_workers > 0 else None,
         )
 
     def load_state_dict(self, checkpoint):
@@ -527,7 +526,6 @@ class ChromatinProfile(HG38):
         self.dataset_path = Path(dataset_path)
         assert self.dataset_path.exists()
         self.val_only=val_only
-        
         self.batch_size = batch_size
         self.batch_size_eval = batch_size_eval if batch_size_eval is not None else self.batch_size
         self.num_workers = num_workers

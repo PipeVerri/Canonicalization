@@ -253,7 +253,8 @@ class BendBenchmark(CanonicalizedDownstreamTask):
             f.create_dataset("labels", data=canonicalized_labels)
         self.has_downstream_task_been_processed[task] = True
 
-class ChromatinProfiles(CanonicalizedDownstreamTask):
+# The SNPs occurs on both strands, so taking the RC should leave the label intact
+class ChromatinProfile(CanonicalizedDownstreamTask):
     def __init__(self, config, task_config):
         # Even though the dataset was built using hg19, I'll use the features from hg38 and map them to hg19
         super().__init__(config, task_config, (
@@ -261,11 +262,32 @@ class ChromatinProfiles(CanonicalizedDownstreamTask):
         ))
     
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
-        self._process_split("train", reference_genome)
-        self._process_split("test", reference_genome)
-        self._process_split("valid", reference_genome)
+        self._process_split("train", task["task_name"], reference_genome)
+        self._process_split("test", task["task_name"], reference_genome)
+        self._process_split("valid", task["task_name"], reference_genome)
         self.has_downstream_task_been_processed[task] = True
     
-    def _process_split(self, split, reference_genome: ParsedGenome):
-        mat_path = self.input_dir / f"{split}.mat"
-        raise RuntimeError("unimplemented")
+    def _process_split(self, split, task_name, reference_genome: ParsedGenome):
+        # Load using mmap because they're massive
+        x = np.load(self.input_dir / f"{split}-x.npy", mmap_mode="r")
+        y = np.load(self.input_dir / f"{split}-y.npy", mmap_mode="r") # Only load it to copy it to the output folder 
+
+        x_canonicalized = []
+        control_signals = []
+        vocab = np.array(["A", "C", "G", "T", "N"]) # Taken from the definition of CharTokenizer in genomics.py
+        char_to_idx = {c: idx for idx, c in enumerate(vocab)}
+        
+        # Canonicalize each sequence
+        for seq_arr in x:
+            seq = "".join(vocab[seq_arr])
+            seq_canon, control_signal = self.align_and_canonicalize_record(seq, task_name, reference_genome)
+            seq_canon_arr = np.array([char_to_idx[c] for c in str(seq_canon)])
+            x_canonicalized.append(seq_canon_arr)
+            control_signals.append(control_signal)
+        
+        # Save them
+        x_canonicalized = np.stack(x_canonicalized)
+        control_signals = np.stack(control_signals)
+        np.save(str(self.output_dir / f"{split}-x.npy"), x_canonicalized)
+        np.save(str(self.output_dir / f"{split}-y.npy"), y)
+        np.save(str(self.output_dir / f"{split}-control-signal.npy"), control_signals)

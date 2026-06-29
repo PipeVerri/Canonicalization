@@ -30,7 +30,7 @@ canonicalization:
   bend_benchmark:
     input_dir: ${.data_path}/bend_benchmark/
     output_dir: ${.data_path}/bend_benchmark_parsed/
-    skip_tasks: ["variant_effects_disease", "variant_effects_expression"] # I think the SNP may break when transforming the sequence
+    skip_tasks: ["variant_effects_disease", "variant_effects_expression"] # The SNP may break when transforming the sequence
   
   deepsea:
     input_dir: ${.data_path}/deepsea/
