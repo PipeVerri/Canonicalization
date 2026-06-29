@@ -8,21 +8,26 @@ canonicalization:
   orient_all_segments: False
   partial_canonicalization_works: False
   transformation: "rc"  # reverse, complement, rc
-
-  # Dowstream tasks canonicalization config
-  partial_seq_canonicalization: False
-  # Even though promoters aren't transcribed, they can be inside a "transcript" feature if there's an ATSS(alternate transcription start site)
-  # Orienting the promoters may break them, because they're inherently directional.
-  orient_promoters: False
   
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/
-
   pretraining_fasta_file: ${.data_path}/hg38/hg38.ml.fa
   pretraining_fasta_output_file: ${.data_path}/parsed/
 
-  nt_benchmark_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer
-  nt_benchmark_output_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+  # Downstream tasks canonicalization config
+  partial_downstream_canonicalization: False
+
+  nt_benchmark:
+    input_dir: ${.data_path}/nucleotide_transformer
+    output_dir: ${.data_path}/nucleotide_transformer_parsed/
+    orient_promoters: False
+
+  genomic_benchmark:
+    input_dir: ${.data_path}/genomic_benchmark/
+    output_dir: ${.data_path}/genomic_benchmark_parsed/
+    orient_promoters: False
+
+  # Reference genomes config
 
   hg38:
     index_file: ${.data_path}/hg38_index.mmi
