@@ -6,6 +6,7 @@ import bisect
 import mappy as mp
 from intervaltree import IntervalTree
 from enum import Enum
+import gc
 
 log = src.utils.train.get_logger(__name__)
 
@@ -40,8 +41,8 @@ def rename_ncbi_annotations_to_ucsc(annotations, sequence_report):
 class ParsedGenome:
     """Loads the genome index and parses it's .gff file to take the positive and negative segments"""
 
-    def __init__(self, genome_name, global_config, genome_config, verbose=True, parse_segments_using=None, hydra_logger=True) -> None:
-        self.global_config = global_config
+    def __init__(self, genome_name, canonicalization_config, genome_config, verbose=True, parse_segments_using=None, hydra_logger=True) -> None:
+        self.canonicalization_config = canonicalization_config
         self.genome_config = genome_config
         self.verbose = verbose
         self.hydra_logger = hydra_logger
@@ -60,18 +61,37 @@ class ParsedGenome:
             self._log("  Loading GFF file...")
 
         annotations_df = pr.read_gff3(genome_config.gff_file).df
-
         # Rename it to match the GENCODE chromosome names
         if genome_config.rename_gff_using_seq_report:
             seq_report = parse_sequence_report(genome_config.sequence_report_file)
             rename_ncbi_annotations_to_ucsc(annotations_df, seq_report)
 
-        annotations_df = self._clean_annotations_df(annotations_df)
+        annotations_df = self._clean_annotations_df(annotations_df) # Drop the rows that have nan on the important columns
+        annotations_df = self._filter_transcribed_features(annotations_df) # Filter the df to only contain transcribed features
         self.genome_transcribed_segments = self._parse_annotations_df_into_segments(annotations_df, parse_segments_using)
+
+    def _filter_transcribed_features(self, df):
+        annotations_level = self.canonicalization_config.annotations_level
+        assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
+
+        df = df[df["level"].astype(int) <= annotations_level]  # Filter the annotations for the desired level
+        df = df[df["Feature"] == "transcript"]  # Filter all the non-transcript features
+
+        # ~ inverts the index, that's why the na is inverted
+        # If the user wants to exclude na transcript_types, it's taken care of when dropping the na columns in the beggining
+        if not self.canonicalization_config.include_pseudogenes:
+            df = df[~df["transcript_type"].str.contains("pseudogene", na=False)]
+        if not self.canonicalization_config.include_cdjv_segments:
+            df = df[~df["transcript_type"].str.contains("IG_C", na=False)]
+            df = df[~df["transcript_type"].str.contains("IG_D", na=False)]
+            df = df[~df["transcript_type"].str.contains("IG_J", na=False)]
+            df = df[~df["transcript_type"].str.contains("IG_V", na=False)]
+        
+        return df
 
     def _clean_annotations_df(self, annotations_df):
         nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
-        if not self.global_config.include_na_transcript_type:
+        if not self.canonicalization_config.include_na_transcript_type:
             nan_columns_to_drop.append("transcript_type")
         return annotations_df.dropna(subset=nan_columns_to_drop)        
 
@@ -98,31 +118,14 @@ class ParsedGenome:
         return genome_transcribed_segments
 
     def _parse_transcribed_features_from_gff(self, df, ucsc_id):
-        annotations_level = self.global_config.annotations_level
-        assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
-
-        df = df.copy()  # Copy the df to not overwrite the original
-        df = df[df["Chromosome"] == ucsc_id].copy()  # Filter the annotations for the target chromosome
+        chromosome_feautres = df[df["Chromosome"] == ucsc_id]  # Filter the annotations for the target chromosome
         assert len(df) > 0  # Check that the chromosome actually exists
-
-        df = df[df["level"].astype(int) <= annotations_level]  # Filter the annotations for the desired level
-        df = df[df["Feature"] == "transcript"]  # Filter all the non-transcript features
-
-        # ~ inverts the index, that's why the na is inverted
-        # If the user wants to exclude na transcript_types, it's taken care of when dropping the na columns in the beggining
-        if not self.global_config.include_pseudogenes:
-            df = df[~df["transcript_type"].str.contains("pseudogene", na=False)]
-        if not self.global_config.include_cdjv_segments:
-            df = df[~df["transcript_type"].str.contains("IG_C", na=False)]
-            df = df[~df["transcript_type"].str.contains("IG_D", na=False)]
-            df = df[~df["transcript_type"].str.contains("IG_J", na=False)]
-            df = df[~df["transcript_type"].str.contains("IG_V", na=False)]
 
         # Build the positive and negative segments list
         positive_segments = []
         negative_segments = []
 
-        for _, row in df.iterrows():
+        for _, row in chromosome_feautres.iterrows():
             # The strand for each transcribed feature is the coding strand(opposite of the template)
             # Pyranges v0 converts the 1-based index of the GFF to 0-based (https://pyranges.readthedocs.io/en/v0/tutorial.html)
             if row["Strand"] == '+':
@@ -179,6 +182,11 @@ class ParsedGenome:
             log.info(message)
         else:
             print(message)
+
+    def cleanup(self):
+        del self.aligner
+        del self.genome_transcribed_segments
+        gc.collect()
 
 class AlignmentError(Enum):
     PrimaryAlignmentNotFound = 1

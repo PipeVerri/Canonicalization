@@ -12,51 +12,51 @@ canonicalization:
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/
   pretraining_fasta_file: ${.data_path}/hg38/hg38.ml.fa
-  pretraining_fasta_output_file: ${.data_path}/parsed/
+  pretraining_fasta_output_dir: ${.data_path}/parsed/
 
   # Downstream tasks canonicalization config
   partial_downstream_canonicalization: False
 
   nt_benchmark:
-    input_dir: ${.data_path}/nucleotide_transformer
-    output_dir: ${.data_path}/nucleotide_transformer_parsed/
+    input_dir: ${..data_path}/nucleotide_transformer
+    output_dir: ${..data_path}/nucleotide_transformer_parsed/
     skip_tasks: ["promoter_all", "promoter_tata", "promoter_no_tata"]
 
   genomic_benchmark:
-    input_dir: ${.data_path}/genomic_benchmark/
-    output_dir: ${.data_path}/genomic_benchmark_parsed/
+    input_dir: ${..data_path}/genomic_benchmark/
+    output_dir: ${..data_path}/genomic_benchmark_parsed/
     skip_tasks: ["human_nontata_promoters"] # Should maybe include the OCR task
 
   bend_benchmark:
-    input_dir: ${.data_path}/bend_benchmark/
-    output_dir: ${.data_path}/bend_benchmark_parsed/
+    input_dir: ${..data_path}/bend_benchmark/
+    output_dir: ${..data_path}/bend_benchmark_parsed/
     skip_tasks: ["variant_effects_disease", "variant_effects_expression"] # The SNP may break when transforming the sequence
   
   deepsea:
-    input_dir: ${.data_path}/deepsea/
-    output_dir: ${.data_path}/deepsea_parsed/
+    input_dir: ${..data_path}/deepsea/
+    output_dir: ${..data_path}/deepsea_parsed/
 
   # Reference genomes config
   hg38:
-    index_file: ${.data_path}/hg38_index.mmi
-    gff_file: ${.data_path}/hg38/gencode.v50.primary_assembly.annotation.gff3
+    index_file: ${..data_path}/hg38_index.mmi
+    gff_file: ${..data_path}/hg38/gencode.v50.primary_assembly.annotation.gff3
     rename_gff_using_seq_report: False
-    sequence_report_file: ${.data_path}/hg38/ncbi_dataset/data/GCF_000001405.26/sequene_report.jsonl
+    sequence_report_file: ${..data_path}/hg38/ncbi_dataset/data/GCF_000001405.26/sequene_report.jsonl
 
   mouse:
-    index_file: ${.data_path}/mouse_index.mmi
-    gff_file: ${.data_path}/mouse/gencode.vM39.primary_assembly.annotation.gff3
+    index_file: ${..data_path}/mouse_index.mmi
+    gff_file: ${..data_path}/mouse/gencode.vM39.primary_assembly.annotation.gff3
     rename_gff_using_seq_report: False
-    sequence_report_file: ${.data_path}/mouse/ncbi_dataset/data/GCF_000001635.27/sequence_report.jsonl
+    sequence_report_file: ${..data_path}/mouse/ncbi_dataset/data/GCF_000001635.27/sequence_report.jsonl
   
   drosophila:
-    index_file: ${.data_path}/drosophila_index.mmi
-    gff_file: ${.data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/genomic.gff
+    index_file: ${..data_path}/drosophila_index.mmi
+    gff_file: ${..data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/genomic.gff
     rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
-    sequence_report_file: ${.data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
+    sequence_report_file: ${..data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
   
   roundworm:
-    index_file: ${.data_path}/roundworm_index.mmi
-    gff_file: ${.data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/genomic.gff
+    index_file: ${..data_path}/roundworm_index.mmi
+    gff_file: ${..data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/genomic.gff
     rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
-    sequence_report_file: ${.data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/sequence_report.jsonl
+    sequence_report_file: ${..data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/sequence_report.jsonl
