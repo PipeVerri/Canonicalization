@@ -1,5 +1,4 @@
 import json
-from .utils import merge_segment_list
 import src.utils.train
 import pyranges as pr
 import bisect
@@ -7,6 +6,10 @@ import mappy as mp
 from intervaltree import IntervalTree
 from enum import Enum
 import gc
+from pathlib import Path
+import io
+import pronto
+from .utils import merge_segment_list
 
 log = src.utils.train.get_logger(__name__)
 
@@ -38,6 +41,27 @@ def rename_ncbi_annotations_to_ucsc(annotations, sequence_report):
     for name, new_name in to_rename.items():
         annotations["Chromosome"] = annotations["Chromosome"].replace(name, new_name)
 
+def load_and_clean_obo_file(ontology_path):
+    output = ""
+    with Path(ontology_path).open(encoding="utf-8") as f:
+        for line in f:
+            # Remove the xrefs with backlash
+            if (line.startswith("xref:") and "\\" in line) or (line.startswith("def:")):
+                continue
+            output += line + "\n"
+    return io.BytesIO(output.encode("utf-8"))
+
+def load_ontology(ontology_path):
+    sequence_ontology = pronto.Ontology(load_and_clean_obo_file(ontology_path))
+
+    sequence_name_to_obo_term = {
+        term.name: term
+        for term in sequence_ontology.terms()
+        if term.name is not None and not term.obsolete
+    }
+    
+    return sequence_name_to_obo_term
+
 class ParsedGenome:
     """Loads the genome index and parses it's .gff file to take the positive and negative segments"""
 
@@ -50,15 +74,15 @@ class ParsedGenome:
 
         if verbose:
             self._log(f"Parsing {genome_name}")
-
         # Load the index
         if verbose:
             self._log("  Loading genome index...")
         self.aligner = mp.Aligner(genome_config.index_file)
-
         # Load the GFF
         if verbose:
             self._log("  Loading GFF file...")
+        # Load the SO for parsing NCBI's genomes, it's light so there's no need to check if it should load
+        self.ontology = load_ontology(canonicalization_config.sequence_ontology_file)
 
         annotations_df = pr.read_gff3(genome_config.gff_file).df
         # Rename it to match the GENCODE chromosome names
@@ -67,10 +91,43 @@ class ParsedGenome:
             rename_ncbi_annotations_to_ucsc(annotations_df, seq_report)
 
         annotations_df = self._clean_annotations_df(annotations_df) # Drop the rows that have nan on the important columns
-        annotations_df = self._filter_transcribed_features(annotations_df) # Filter the df to only contain transcribed features
+        # Filter the df to only contain transcribed features
+        if genome_config.is_gff_from_ncbi:
+            annotations_df = self._filter_ncbi_transcribed_features(annotations_df)
+        else:
+            annotations_df = self._filter_gencode_transcribed_features(annotations_df)
+
         self.genome_transcribed_segments = self._parse_annotations_df_into_segments(annotations_df, parse_segments_using)
 
-    def _filter_transcribed_features(self, df):
+    def _filter_ncbi_transcribed_features(self, df):
+        feature_mask = {f: self._is_ontology_feature_transcribed(f) for f in df["Feature"].unique()}
+        df = df[df["Feature"].map(feature_mask) == True]
+        return df
+
+    def _is_ontology_feature_transcribed(self, name):
+        ancestors = ["transcript","mRNA", "primary_transcript"] 
+        if self.canonicalization_config.include_pseudogenes:
+            ancestors.append("pseudogene")
+        if self.canonicalization_config.include_cdjv_segments:
+            ancestors.extend(("C_gene_segment", "D_gene_segment", "J_gene_segment", "V_gene_segment"))
+
+        term = self.ontology.get(name)
+        if term is None:
+            term = self.ontology.get(name.replace("_", ""))
+            if term is None:
+                log.warning(f"{name} not found in Sequence Ontology")
+                return False
+
+        superclases = term.superclasses(with_self=True)
+
+        for a in ancestors:
+            a_term = self.ontology.get(a)
+            if a_term in superclases:
+                return True
+
+        return False
+
+    def _filter_gencode_transcribed_features(self, df):
         annotations_level = self.canonicalization_config.annotations_level
         assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
 
@@ -91,7 +148,7 @@ class ParsedGenome:
 
     def _clean_annotations_df(self, annotations_df):
         nan_columns_to_drop = ["Feature", "Start", "End", "Strand", "Chromosome"]
-        if not self.canonicalization_config.include_na_transcript_type:
+        if not self.canonicalization_config.include_na_transcript_type and not self.genome_config.is_gff_from_ncbi:
             nan_columns_to_drop.append("transcript_type")
         return annotations_df.dropna(subset=nan_columns_to_drop)        
 

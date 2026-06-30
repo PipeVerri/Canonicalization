@@ -13,6 +13,7 @@ canonicalization:
   data_path: ${oc.env:PROJECT_ROOT}/data/
   pretraining_fasta_file: ${.data_path}/hg38/hg38.ml.fa
   pretraining_fasta_output_dir: ${.data_path}/parsed/
+  sequence_ontology_file: ${.data_path}/so.obo
 
   # Downstream tasks canonicalization config
   partial_downstream_canonicalization: False
@@ -40,23 +41,27 @@ canonicalization:
   hg38:
     index_file: ${..data_path}/hg38_index.mmi
     gff_file: ${..data_path}/hg38/gencode.v50.primary_assembly.annotation.gff3
-    rename_gff_using_seq_report: False
     sequence_report_file: ${..data_path}/hg38/ncbi_dataset/data/GCF_000001405.26/sequene_report.jsonl
+    is_gff_from_ncbi: False # For the column names
+    rename_gff_using_seq_report: False
 
   mouse:
     index_file: ${..data_path}/mouse_index.mmi
     gff_file: ${..data_path}/mouse/gencode.vM39.primary_assembly.annotation.gff3
-    rename_gff_using_seq_report: False
     sequence_report_file: ${..data_path}/mouse/ncbi_dataset/data/GCF_000001635.27/sequence_report.jsonl
+    is_gff_from_ncbi: False
+    rename_gff_using_seq_report: False
   
   drosophila:
     index_file: ${..data_path}/drosophila_index.mmi
     gff_file: ${..data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/genomic.gff
-    rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
     sequence_report_file: ${..data_path}/drosophila/ncbi_dataset/data/GCF_000001215.4/sequence_report.jsonl
+    is_gff_from_ncbi: True
+    rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
   
   roundworm:
     index_file: ${..data_path}/roundworm_index.mmi
     gff_file: ${..data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/genomic.gff
-    rename_gff_using_seq_report: False # No need to rename because the index is done using NCBI's genome
     sequence_report_file: ${..data_path}/roundworm/ncbi_dataset/data/GCF_000002985.6/sequence_report.jsonl
+    is_gff_from_ncbi: True
+    rename_gff_using_seq_report: False

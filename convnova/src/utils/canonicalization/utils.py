@@ -1,5 +1,11 @@
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+import pronto
+from pathlib import Path
+import src.utils.train
+import io
+
+log = src.utils.train.get_logger(__name__)
 
 #########################
 # Genomic files parsing #

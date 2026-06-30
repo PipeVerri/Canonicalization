@@ -3,10 +3,16 @@ DATA := data
 include .env
 #export
 
-.PHONY: all pretrain bend deepsea gencode gencode-human gencode-mouse ncbi index \
+.PHONY: all pretrain bend deepsea gencode gencode-human gencode-mouse ncbi so index \
         index-hg38 index-mouse index-drosophila index-roundworm
 
 all: pretrain bend deepsea gencode ncbi index
+
+so: $(DATA)/so.obo
+
+$(DATA)/so.obo: | $(DATA)
+	curl -L https://github.com/The-Sequence-Ontology/SO-Ontologies/raw/refs/heads/master/Ontology_Files/so.obo \
+		-o $@
 
 # ─── ConvNova / hg38 training data ──────────────────────────────────────────
 

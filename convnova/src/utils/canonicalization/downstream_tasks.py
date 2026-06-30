@@ -15,7 +15,6 @@ import shutil
 from tqdm.auto import tqdm
 import multiprocessing as mp
 from multiprocessing.pool import Pool
-import resource
 
 log = src.utils.train.get_logger(__name__)
 
@@ -115,6 +114,9 @@ class CanonicalizedDownstreamTask:
 
     def _log_unaligned_tasks(self):
         for task_name in self.unaligned_tasks_counter:
+            if self.unaligned_tasks_counter[task_name]["total_tasks"] == 0:
+                continue
+
             unaligned_percentage = round(self.unaligned_tasks_counter[task_name]["unaligned"] * 100 / self.unaligned_tasks_counter[task_name]["total_tasks"], 2)
             aligned_without_annotations_percentage = round(self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] * 100 / self.unaligned_tasks_counter[task_name]["total_tasks"], 2)
             if unaligned_percentage > 0 or aligned_without_annotations_percentage > 0:
@@ -300,7 +302,7 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         self.has_downstream_task_been_processed[task] = True
 
     @staticmethod
-    def _init_worker(task_name, canonicalizer, reference_genome, x):
+    def _init_worker(task_name, canonicalizer, reference_genome, x, x_canonicalized, control_signals):
         # Is passed through CoW, so when writing it, it gets copied for itself 
         DeepseaCanonicalizer._worker_state_dict.update({
             "task_name": task_name,
@@ -308,6 +310,8 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
             "reference_genome": reference_genome,
             "x": x
         })
+        x_canonicalized.flush()
+        control_signals.flush()
 
     @staticmethod
     def _canonicalize_sequence(idx):
