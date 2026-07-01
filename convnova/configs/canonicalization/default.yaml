@@ -8,6 +8,7 @@ canonicalization:
   orient_all_segments: False
   partial_canonicalization_works: False
   transformation: "rc"  # reverse, complement, rc
+  num_workers: 16
   
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/

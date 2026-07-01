@@ -100,7 +100,7 @@ def main(config: DictConfig):
     drosophila.cleanup()
 
     log.info("Loading worm reference genome...")
-    worm = ParsedGenome("worm", c_cfg, c_cfg.worm)
+    worm = ParsedGenome("roundworm", c_cfg, c_cfg.roundworm)
     log.info("Canonicalizing downstream tasks using worm...")
     for task in downstream_tasks:
         task.canonicalize_available_tasks(worm)

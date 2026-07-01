@@ -68,6 +68,7 @@ class CanonicalizedDownstreamTask:
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
         raise RuntimeError("unimplemented")
 
+    # TODO: Fix counter bug for multiprocessor
     def align_and_canonicalize_record(self, seq, task_name, reference_genome: ParsedGenome):
         alignment, status = reference_genome.find_annotated_alignment(str(seq))
         self.unaligned_tasks_counter[task_name]["total_tasks"] += 1
@@ -175,12 +176,11 @@ class NTBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         return record_id, seq_canon, control_signal
 
 class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
-    PROMOTER_TASKS = ("human_nontata_promoters")
     tasks_list = (
         DownstreamTask(task_name="dummy_mouse_enhancers_ensembl", reference_genome_name="mouse"),
         DownstreamTask(task_name="demo_coding_vs_intergenomic_seqs", reference_genome_name="hg38"),
         DownstreamTask(task_name="demo_human_or_worm", reference_genome_name="hg38", folder_name="human"),
-        DownstreamTask(task_name="demo_human_or_worm", reference_genome_name="worm", folder_name="worm"),
+        DownstreamTask(task_name="demo_human_or_worm", reference_genome_name="roundworm", folder_name="worm"),
         DownstreamTask(task_name="drosophila_enhancers_stark", reference_genome_name="drosophila"),
         DownstreamTask(task_name="human_enhancers_cohn", reference_genome_name="hg38"),
         DownstreamTask(task_name="human_enhancers_ensembl", reference_genome_name="hg38"),
@@ -188,6 +188,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         DownstreamTask(task_name="human_nontata_promoters", reference_genome_name="hg38"),
         DownstreamTask(task_name="human_ocr_ensembl", reference_genome_name="hg38"),
     )
+    _worker_state_dict = {}
 
     def process_task(self, task, reference_genome: ParsedGenome):
         # Each task has the structure of split/label/seq.txt
@@ -209,24 +210,52 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                     )
         self.has_downstream_task_been_processed[task] = True
 
+    @staticmethod
+    def _process_single_file(filename):
+        state = GenomicBenchmarkCanonicalizer._worker_state_dict
+        c = state["canonicalizer"]
+
+        with open(state["seqs_dir_input"] / filename, "r") as f:
+            seq = f.read().strip()
+
+        if state["task_name"] in c.task_config.skip_tasks:
+            seq_canon = seq
+            control_signal = np.zeros(len(seq))
+        else:
+            seq_canon, control_signal = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"])
+
+        with open(state["seqs_dir_output"] / filename, "w") as f:
+            f.write(str(seq_canon))
+
+        return control_signal, c.unaligned_tasks_counter[state["task_name"]]
+
+    @staticmethod
+    def _init_worker(task_name, canonicalizer, reference_genome, seqs_dir_input, seqs_dir_output):
+        GenomicBenchmarkCanonicalizer._worker_state_dict.update({
+            "task_name": task_name,
+            "canonicalizer": canonicalizer,
+            "reference_genome": reference_genome,
+            "seqs_dir_input": seqs_dir_input,
+            "seqs_dir_output": seqs_dir_output
+        })
+
     def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output, reference_genome: ParsedGenome):
         seqs_dir_output.mkdir(parents=True, exist_ok=True)
         control_signals = {}
+        input_files = os.listdir(seqs_dir_input)
 
-        for filename in os.listdir(seqs_dir_input):
-            with open(seqs_dir_input / filename, "r") as f:
-                seq = f.read().strip()
-            
-            if task_name in self.task_config.skip_tasks:
-                seq_canon = seq
-                control_signal = np.zeros(len(seq))
-            else:
-                seq_canon, control_signal = self.align_and_canonicalize_record(seq, task_name, reference_genome)
-            
-            with open(seqs_dir_output / filename, "w") as f:
-                f.write(str(seq_canon))
-            
-            control_signals[filename] = control_signal
+        with Pool(
+            context=mp.get_context("fork"),
+            processes=self.config.num_workers,
+            initializer=self._init_worker,
+            initargs=(task_name, self, reference_genome, seqs_dir_input, seqs_dir_output)
+        ) as pool:
+            control_signals_iter = pool.imap(self._process_single_file, input_files, chunksize=64)
+            for filename, (control_signal, unaligned_tasks_counter) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
+                control_signals[filename] = control_signal
+                self.unaligned_tasks_counter[task_name]["total_tasks"] += unaligned_tasks_counter["total_tasks"]
+                self.unaligned_tasks_counter[task_name]["unaligned"] += unaligned_tasks_counter["unaligned"]
+                self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += unaligned_tasks_counter["aligned_without_annotations"]
         
         np.savez(str(seqs_dir_output / "control_signals.npz"), **control_signals)
 
@@ -324,7 +353,7 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         seq = "".join(DeepseaCanonicalizer.VOCAB[state["x"][idx]])
         seq_canon, control_signal = c.align_and_canonicalize_record(seq, task_name, reference_genome)
         seq_canon_arr = np.array([DeepseaCanonicalizer.CHAR_TO_IDX[c] for c in str(seq_canon)])
-        return seq_canon_arr, control_signal
+        return seq_canon_arr, control_signal, c.unaligned_tasks_counter[task_name]
 
 
     def _process_split(self, split, task_name, reference_genome: ParsedGenome):
@@ -336,16 +365,18 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
 
         with Pool(
             context=mp.get_context("fork"), # Fork doens't clone memory unless it's written into, uses CoW
-            processes=int(mp.cpu_count() * 0.7), # Using all cores crashes my system
+            processes=self.config.num_workers, # Using all cores crashes my system
             initializer=DeepseaCanonicalizer._init_worker,
             initargs=(task_name, self, reference_genome, x, x_canonicalized, control_signals),
-            #maxtasksperchild=int(1e4) # Restart workers after 10k tasks or RAM gets bloated
         ) as pool:
             # Sends 64 tasks to each work to reduce the overhead of data transfer
             results_iter = pool.imap(DeepseaCanonicalizer._canonicalize_sequence, range(x.shape[0]), chunksize=64)
-            for idx, (seq_canon, control_signal) in tqdm(enumerate(results_iter), total=x.shape[0]):
+            for idx, (seq_canon, control_signal, unaligned_tasks_counter) in tqdm(enumerate(results_iter), total=x.shape[0]):
                 x_canonicalized[idx] = seq_canon
                 control_signals[idx] = control_signal
+                self.unaligned_tasks_counter[task_name]["total_tasks"] += unaligned_tasks_counter["total_tasks"]
+                self.unaligned_tasks_counter[task_name]["unaligned"] += unaligned_tasks_counter["unaligned"]
+                self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += unaligned_tasks_counter["aligned_without_annotations"]
         
         # Copy the y arr
         shutil.copy(self.input_dir / f"{split}-y.npy", self.output_dir / f"{split}-y.npy")

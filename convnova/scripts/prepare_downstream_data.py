@@ -58,21 +58,18 @@ def process_deepsea_data(deepsea_dir, chunk_size=10000):
             with h5py.File(file_dir) as data:
                 total = data["trainxdata"].shape[-1]
                 n_chunks = math.ceil(total / chunk_size)
+                x_all = np.lib.format.open_memmap(deepsea_dir / f"{f}-x.npy", dtype=np.int8, mode="w+", shape=(total, 1000))
+                y_all = np.lib.format.open_memmap(deepsea_dir / f"{f}-y.npy", dtype=np.int8, mode="w+", shape=(total, 919))
 
-                x_all, y_all = [], []
                 for i in tqdm(range(n_chunks), desc=f"  {f}", unit="chunk"):
                     start, end = i * chunk_size, min((i + 1) * chunk_size, total)
 
                     x_chunk = data["trainxdata"][..., start:end].transpose(2, 0, 1) # (N, 1000, 4) 
                     x_chunk = np.argmax(x_chunk, axis=2) # (N, 1000)
-                    x_all.append(x_chunk)
+                    x_all[start:end] = x_chunk
 
                     y_chunk = data["traindata"][..., start:end].T
-                    y_all.append(y_chunk)
-
-                x = np.concatenate(x_all, axis=0)
-                y = np.concatenate(y_all, axis=0)
-
+                    y_all[start:end] = y_chunk
         else:
             data = loadmat(file_dir)
             x_raw = data[f"{f}xdata"].reshape(-1, 4, 1000)
@@ -89,8 +86,8 @@ def process_deepsea_data(deepsea_dir, chunk_size=10000):
             x = np.concatenate(x_parts, axis=0)
             del x_raw
 
-        np.save(deepsea_dir / f"{f}-x.npy", x)
-        np.save(deepsea_dir / f"{f}-y.npy", y)
+            np.save(deepsea_dir / f"{f}-x.npy", x)
+            np.save(deepsea_dir / f"{f}-y.npy", y)
 
 if __name__ == "__main__":
     # Get the directory of the current script (convnova/scripts/)
@@ -119,6 +116,7 @@ if __name__ == "__main__":
         "dummy_mouse_enhancers_ensembl", 
         "demo_coding_vs_intergenomic_seqs", 
         "demo_human_or_worm",
+        "drosophila_enhancers_stark",
         "human_enhancers_cohn",
         "human_enhancers_ensembl",
         "human_ensembl_regulatory",
