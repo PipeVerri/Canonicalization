@@ -66,6 +66,11 @@ def process_deepsea_data(deepsea_dir, chunk_size=10000):
 
                     x_chunk = data["trainxdata"][..., start:end].transpose(2, 0, 1) # (N, 1000, 4) 
                     x_chunk = np.argmax(x_chunk, axis=2) # (N, 1000)
+                    # The dataset nucleotides are in the AGCT order, but the data is expected as ACGTN, so the indexes will be changed
+                    g_nucleotides = x_chunk == 1
+                    c_nucleotides = x_chunk == 2
+                    x_chunk[g_nucleotides] = 2
+                    x_chunk[c_nucleotides] = 1
                     x_all[start:end] = x_chunk
 
                     y_chunk = data["traindata"][..., start:end].T

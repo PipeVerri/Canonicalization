@@ -68,21 +68,28 @@ class CanonicalizedDownstreamTask:
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
         raise RuntimeError("unimplemented")
 
-    # TODO: Fix counter bug for multiprocessor
-    def align_and_canonicalize_record(self, seq, task_name, reference_genome: ParsedGenome):
+    def align_and_canonicalize_record(self, seq, task_name, reference_genome: ParsedGenome, update_counter=True):
         alignment, status = reference_genome.find_annotated_alignment(str(seq))
         self.unaligned_tasks_counter[task_name]["total_tasks"] += 1
 
+        if update_counter:
+            self._update_counter(task_name, status)
+
         if alignment is None:
-            if status == AlignmentError.PrimaryAlignmentNotFound:
-                self.unaligned_tasks_counter[task_name]["unaligned"] += 1
-            elif status == AlignmentError.AnnotatedAlignmentNotFound:
-                self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += 1
-            else:
-                raise RuntimeError(f"Unknown alignment error: {status}")
-            return seq, np.zeros(len(seq))
+            seq_canon = seq
+            control_signal = np.zeros(len(seq))
         else:
-            return self._canonicalize_record(seq, alignment, reference_genome)
+            seq_canon, control_signal = self._canonicalize_record(seq, alignment, reference_genome)
+        return seq_canon, control_signal, status
+
+    def _update_counter(self, task_name, status):
+        self.unaligned_tasks_counter[task_name]["total_tasks"] += 1
+        if status == AlignmentError.PrimaryAlignmentNotFound:
+            self.unaligned_tasks_counter[task_name]["unaligned"] += 1
+        elif status == AlignmentError.AnnotatedAlignmentNotFound:
+            self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += 1
+        elif status is not None:
+            raise RuntimeError(f"Unknown alignment error: {status}")
 
     def _canonicalize_record(self, seq, alignment, reference_genome: ParsedGenome):
         transcribed_segments_that_contain_seq = get_alignment_transcribed_segments(alignment, reference_genome)
@@ -172,7 +179,7 @@ class NTBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         # - Enhancers (seem like) they're mostly bidirectional, and even if they aren't, I can't know if taking a non-enhancer sequence's RC suddenly turns it into an enhancer
         # - The promoters aren't transcribed
         # - The splicing seqs are already on the coding strand
-        seq_canon, control_signal = self.align_and_canonicalize_record(seq, task_name, reference_genome)
+        seq_canon, control_signal, _ = self.align_and_canonicalize_record(seq, task_name, reference_genome)
         return record_id, seq_canon, control_signal
 
 class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
@@ -221,13 +228,14 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         if state["task_name"] in c.task_config.skip_tasks:
             seq_canon = seq
             control_signal = np.zeros(len(seq))
+            status = None
         else:
-            seq_canon, control_signal = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"])
+            seq_canon, control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
 
         with open(state["seqs_dir_output"] / filename, "w") as f:
             f.write(str(seq_canon))
 
-        return control_signal, c.unaligned_tasks_counter[state["task_name"]]
+        return control_signal, status
 
     @staticmethod
     def _init_worker(task_name, canonicalizer, reference_genome, seqs_dir_input, seqs_dir_output):
@@ -251,11 +259,9 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             initargs=(task_name, self, reference_genome, seqs_dir_input, seqs_dir_output)
         ) as pool:
             control_signals_iter = pool.imap(self._process_single_file, input_files, chunksize=64)
-            for filename, (control_signal, unaligned_tasks_counter) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
+            for filename, (control_signal, status) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
                 control_signals[filename] = control_signal
-                self.unaligned_tasks_counter[task_name]["total_tasks"] += unaligned_tasks_counter["total_tasks"]
-                self.unaligned_tasks_counter[task_name]["unaligned"] += unaligned_tasks_counter["unaligned"]
-                self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += unaligned_tasks_counter["aligned_without_annotations"]
+                self._update_counter(task_name, status)
         
         np.savez(str(seqs_dir_output / "control_signals.npz"), **control_signals)
 
@@ -351,9 +357,9 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         
         # Canonicalize each sequence, they get automatically saved to disk
         seq = "".join(DeepseaCanonicalizer.VOCAB[state["x"][idx]])
-        seq_canon, control_signal = c.align_and_canonicalize_record(seq, task_name, reference_genome)
+        seq_canon, control_signal, status = c.align_and_canonicalize_record(seq, task_name, reference_genome, update_counter=False)
         seq_canon_arr = np.array([DeepseaCanonicalizer.CHAR_TO_IDX[c] for c in str(seq_canon)])
-        return seq_canon_arr, control_signal, c.unaligned_tasks_counter[task_name]
+        return seq_canon_arr, control_signal, status
 
 
     def _process_split(self, split, task_name, reference_genome: ParsedGenome):
@@ -371,12 +377,10 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         ) as pool:
             # Sends 64 tasks to each work to reduce the overhead of data transfer
             results_iter = pool.imap(DeepseaCanonicalizer._canonicalize_sequence, range(x.shape[0]), chunksize=64)
-            for idx, (seq_canon, control_signal, unaligned_tasks_counter) in tqdm(enumerate(results_iter), total=x.shape[0]):
+            for idx, (seq_canon, control_signal, status) in tqdm(enumerate(results_iter), total=x.shape[0]):
                 x_canonicalized[idx] = seq_canon
                 control_signals[idx] = control_signal
-                self.unaligned_tasks_counter[task_name]["total_tasks"] += unaligned_tasks_counter["total_tasks"]
-                self.unaligned_tasks_counter[task_name]["unaligned"] += unaligned_tasks_counter["unaligned"]
-                self.unaligned_tasks_counter[task_name]["aligned_without_annotations"] += unaligned_tasks_counter["aligned_without_annotations"]
+                self._update_counter(task_name, status)
         
         # Copy the y arr
         shutil.copy(self.input_dir / f"{split}-y.npy", self.output_dir / f"{split}-y.npy")
