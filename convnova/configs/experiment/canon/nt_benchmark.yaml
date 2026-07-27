@@ -41,7 +41,7 @@ trainer:
   devices: 1
   num_nodes: 1
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
-  max_epochs: 1 # TODO: 20
+  max_epochs: 20 # TODO: 20
   precision: 32  # bf16 only a100
   gradient_clip_val: 1.0
   # strategy: null

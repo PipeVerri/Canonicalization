@@ -1,5 +1,10 @@
 import argparse
-from src.utils.hpo_runner import run_model_with_config_and_overrides
+import subprocess
+import sys
+import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 NT_BENCHMARK_TASKS = (
     "H2AFZ",
@@ -35,7 +40,7 @@ GENOMIC_BENCHMARK_TASKS = (
 
 BEND_BENCHMARK_TASKS = (
     "cpg_methylation",
-    "gene_finding" # Excluded variant_effects task on purpose. Can't do attention on a CNN
+    "gene_finding"
 )
 
 benchmark_tasks = {
@@ -44,26 +49,46 @@ benchmark_tasks = {
     "bend_benchmark": BEND_BENCHMARK_TASKS
 }
 
-def eval_model_on_tasks(experiment, tasks, call_overrides):
+def run_experiment(experiment, overrides, output_json=None):
+    """Run a single experiment via the hpo_runner CLI."""
+    cmd = [
+        sys.executable, "-m", "src.utils.hpo_runner",
+        experiment,
+        *overrides,
+    ]
+    if output_json:
+        cmd.extend(["--output-json", output_json])
+    
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(PROJECT_ROOT) + ":" + env.get("PYTHONPATH", "")
+    
+    print(f"Running: {' '.join(cmd)}", flush=True)
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Failed with code {result.returncode}")
+    return result.stdout
+
+def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None):
     outputs = {}
     for task in tasks:
         overrides = [
             f"dataset.dataset_name={task}",
             *call_overrides
         ]
-        outputs[task] = run_model_with_config_and_overrides(experiment, overrides)
-
+        run_experiment(experiment, overrides, output_json)
+        outputs[task] = {"status": "completed"}
     return outputs
 
 if __name__ == "__main__":
+    import os
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--experiment", required=True)
     parser.add_argument("-t", "--task", required=True)
+    parser.add_argument("--output-json", help="Path to JSON file to append results")
     args, overrides = parser.parse_known_args()
 
-    # Validate overrides
     for item in overrides:
-        if not "=" in item:
+        if "=" not in item:
             raise ValueError(f"Override arg {item} not recognized")
 
     if args.task in benchmark_tasks:
@@ -71,4 +96,4 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"{args.task} not recognized")
 
-    eval_model_on_tasks(args.experiment, task_list, overrides)
+    eval_model_on_tasks(args.experiment, task_list, overrides, args.output_json)
