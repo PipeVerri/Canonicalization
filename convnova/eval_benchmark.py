@@ -1,13 +1,16 @@
-#!/usr/bin/env python3
-"""
-Run train.py sequentially for each NT benchmark task.
-Replaces the Hydra multirun to ensure each task gets its own W&B run.
-"""
-
-import subprocess
-import sys
-from datetime import datetime
 import argparse
+from hydra import initialize_config_dir, compose
+from pathlib import Path
+from train import process_config_and_run
+from hydra.core.utils import run_job
+from hydra.core.global_hydra import GlobalHydra
+from hydra.types import HydraContext
+from hydra._internal.callbacks import Callbacks
+from omegaconf import OmegaConf
+
+# Resolve the project root from PROJECT_ROOT (set in train.py) so this script
+# works regardless of the directory it is launched from.
+PROJECT_ROOT = Path(__file__).resolve().parent
 
 NT_BENCHMARK_TASKS = (
     "H2AFZ",
@@ -41,57 +44,86 @@ GENOMIC_BENCHMARK_TASKS = (
     "human_ocr_ensembl"
 )
 
-def run_task(task: str, exp_name, extra_args: list[str] = []) -> bool:
-    cmd = [
-        sys.executable, "train.py",
-        f"experiment={exp_name}",
-        f"dataset.dataset_name={task}",
-        *extra_args,
-    ]
+BEND_BENCHMARK_TASKS = (
+    "cpg_methylation",
+    "gene_finding" # Excluded variant_effects task on purpose. Can't do attention on a CNN
+)
 
-    print(f"\n{'='*60}")
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Starting task: {task}")
-    print(f"CMD: {' '.join(cmd)}")
-    print('='*60)
+def eval_model_on_task(task_name, experiment, overrides):
+    if task_name == "nt-benchmark":
+        tasks_list = NT_BENCHMARK_TASKS
+    elif task_name == "genomic-benchmark":
+        tasks_list = GENOMIC_BENCHMARK_TASKS
+    elif task_name == "bend-benchmark":
+        tasks_list = BEND_BENCHMARK_TASKS
+    else:
+        raise ValueError("Task not recognized")
 
-    result = subprocess.run(cmd)
+    outputs = {}
 
-    if result.returncode != 0:
-        print(f"[ERROR] Task '{task}' failed with exit code {result.returncode}")
-        return False
+    config_dir = (PROJECT_ROOT / "configs").absolute()
+    with initialize_config_dir(config_dir=str(config_dir), version_base=None):
+        config_loader = GlobalHydra.instance().hydra.config_loader
 
-    print(f"[OK] Task '{task}' completed successfully")
-    return True
+        for task in tasks_list:
+            config = compose(
+                "config",
+                overrides=[
+                    f"experiment={experiment}",
+                    *overrides,
+                    f"dataset.dataset_name={task}"
+                ],
+                return_hydra_config=True, # run_job needs config["hydra"]["run"]["dir"]
+            )
 
-def main(tasks, experiment):
-    failed = []
-    succeeded = []
+            if config.train.get("pretrained_model_path") is not None:
+                p = Path(config.train.pretrained_model_path)
+                if not p.is_absolute():
+                    config.train.pretrained_model_path = str((PROJECT_ROOT / p).resolve())
 
-    for task in tasks:
-        ok = run_task(task, experiment)
-        (succeeded if ok else failed).append(task)
+            # Anchor hydra.run.dir to the project root with version_base=None so
+            # it is independent of the launch directory, and force job.chdir=True
+            # so run_job chdir's into the per-task output dir before executing
+            # process_config_and_run (and restores the original cwd on exit).
+            # This matches the behavior of `python train.py ...` invoked from the
+            # project root, so config_tree.txt, checkpoints/, and the wandb
+            # save_dir="." all land inside the per-task hydra run dir instead of
+            # the launch directory.
+            OmegaConf.set_struct(config, False)
+            config.hydra.run.dir = str(
+                PROJECT_ROOT / "outputs" / config.wandb.job_type
+                / config.wandb.group
+                / "${now:%Y-%m-%d}" / "${now:%H-%M-%S}-${dataset.dataset_name}"
+            )
+            config.hydra.job.chdir = True
+            OmegaConf.set_struct(config, True)
 
-    # Summary
-    print(f"\n{'='*60}")
-    print(f"SUMMARY — {len(tasks)} tasks total")
-    print(f"  ✓ Succeeded ({len(succeeded)}): {', '.join(succeeded) or 'none'}")
-    print(f"  ✗ Failed    ({len(failed)}): {', '.join(failed) or 'none'}")
-    print('='*60)
+            hydra_context = HydraContext(
+                config_loader=config_loader,
+                callbacks=Callbacks(),
+            )
 
-    if failed:
-        sys.exit(1)
+            job_return = run_job(
+                task_function=process_config_and_run,
+                config=config,
+                job_dir_key="hydra.run.dir",
+                job_subdir_key=None,
+                hydra_context=hydra_context,
+            )
+
+            outputs[task] = job_return.return_value
+
+    return outputs
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--experiment", required=True)
     parser.add_argument("-t", "--task", required=True)
-    args = parser.parse_args()
+    args, overrides = parser.parse_known_args()
 
-    if args.task == "nt-benchmark":
-        to_eval = NT_BENCHMARK_TASKS
-    elif args.task == "genomic-benchmark":
-        to_eval = GENOMIC_BENCHMARK_TASKS
-    else:
-        raise ValueError("Task not recognized")
+    # Validate overrides
+    for item in overrides:
+        if not "=" in item:
+            raise ValueError(f"Override arg {item} not recognized")
 
-    main(to_eval, args.experiment)
+    eval_model_on_task(args.task, args.experiment, overrides)

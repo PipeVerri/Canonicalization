@@ -763,7 +763,15 @@ def train(config):
     else:
         trainer.fit(model)
     if config.train.test:
-        trainer.test(model)
+        return trainer.test(model)
+
+    return None
+
+def process_config_and_run(config):
+    config = utils.train.process_config(config)
+    # Pretty print config using Rich library
+    utils.train.print_config(config, resolve=True)
+    return train(config)
 
 @hydra.main(config_path="configs", config_name="config.yaml")
 def main(config: OmegaConf):
@@ -772,13 +780,7 @@ def main(config: OmegaConf):
     # - register evaluation resolver
     # - filter out keys used only for interpolation
     # - optional hooks, including disabling python warnings or debug friendly configuration
-    config = utils.train.process_config(config)
-
-    # Pretty print config using Rich library
-    utils.train.print_config(config, resolve=True)
-
-    train(config)
-
+    process_config_and_run(config)
 
 if __name__ == "__main__":
     main()
