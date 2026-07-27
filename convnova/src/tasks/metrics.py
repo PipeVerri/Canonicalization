@@ -195,7 +195,7 @@ def padded_cross_entropy(logits, y, pad_mask, pad_value=-1):
 
 
 def cross_entropy(logits, y, ignore_index=-100):
-    print(f"Logits shape {logits.shape} | y shape {y.shape}")
+    #print(f"Logits shape {logits.shape} | y shape {y.shape}")
     logits = logits.view(-1, logits.shape[-1])
     y = y.view(-1)
     return F.cross_entropy(logits, y, ignore_index=ignore_index)

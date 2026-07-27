@@ -40,13 +40,13 @@ def main(config: DictConfig):
 
     training_genome_to_canonicalize = {}
     def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
-        if ucsc_id in training_genome: # Add it to training_genome_to_canonicalize if it's in the training_genome            
-            segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
-                positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
-            )
-            training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
+        # I need this for the whole hg38 genome for the control signals for the BEND benchmark
+        segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
+            positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
+        )
+        training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
     
-    hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38)
+    hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation

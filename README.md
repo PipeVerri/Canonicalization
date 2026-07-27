@@ -35,16 +35,19 @@ Clone the repo.
 
 Prepare conda env.
 <pre>
-  conda create -n convnova python==3.10
+  conda create -n convnova -c conda-forge python=3.10 cpython
   conda activate convnova
+  conda install -n convnova pip
+  conda install -c conda-forge bioconda minimap2 ncbi-datasets-cli
   pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 
   pip install -r requirements.txt --no-deps
   pip install pytorch-lightning==1.8.6 --no-deps
   pip install packaging --no-deps
 <!--   pip install flash_attn --no-build-isolation --no-deps -->
   pip install lightning_utilities --no-deps
-  pip install torchmetrics
-  pip install tensorboardX
+  pip install torchmetrics tensorboardX mappy h5py
+  pip install "setuptools<81" --force-reinstall
+  # Install the flash attn prebuilt wheel (https://mjunya.com/flash-attention-prebuild-wheels/)
 </pre>
 
 Download the data.(Pretrain)

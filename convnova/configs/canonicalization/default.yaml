@@ -12,7 +12,7 @@ canonicalization:
   
   # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/
-  pretraining_fasta_file: ${.data_path}/hg38/hg38.ml.fa
+  pretraining_fasta_file: ${.data_path}/hg38/GRCh38.primary_assembly.genome.fa
   pretraining_fasta_output_dir: ${.data_path}/parsed/
   sequence_ontology_file: ${.data_path}/so.obo
 
