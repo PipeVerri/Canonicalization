@@ -771,7 +771,10 @@ def process_config_and_run(config):
     config = utils.train.process_config(config)
     # Pretty print config using Rich library
     utils.train.print_config(config, resolve=True)
-    return train(config)
+    result = train(config)
+    # Finish the wandb run so a subsqequent invocation in the same process
+    # (e.g. the next task in eval_benchmark.py) does not reuse it.
+    return result
 
 @hydra.main(config_path="configs", config_name="config.yaml")
 def main(config: OmegaConf):

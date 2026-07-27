@@ -13,7 +13,7 @@ model:
   for_representation: true
   alphabet_size: 5
   d_model: 64
-  kernel_size: 9
+  kernel_size: 5
   dilation: 4
   pretrain: False
   num_conv1d: 5
