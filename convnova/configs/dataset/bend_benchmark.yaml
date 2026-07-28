@@ -21,6 +21,7 @@ train_len: ${.${.dataset_name}.max_length}
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
+batch_size: ${.${.dataset_name}.batch_size}
 
 # Details taken from BEND's paper, table 1
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml
@@ -30,6 +31,7 @@ cpg_methylation:
   max_length: 512
   classes: 7
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
+  batch_size: 256
 
   decoder:
     _name_: sequence
@@ -47,12 +49,15 @@ gene_finding:
   max_length: 14_000
   classes: 9
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
+  batch_size: 32
 
   decoder:
     _name_: bend_linear
   task:
     _name_: lm
     loss: cross_entropy
+    metrics:
+      - mcc
 
 variant_effects_disease:
   bed_path: ${..dataset_dir}/variant_effects_disease.bed

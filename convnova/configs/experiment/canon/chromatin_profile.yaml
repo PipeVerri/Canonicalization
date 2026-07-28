@@ -5,7 +5,7 @@ defaults:
 
 wandb:
   job_type: chromatin_profile_prediction
-  group: baseline_big_untrained
+  group: baseline
   #mode: disabled
 
 model:

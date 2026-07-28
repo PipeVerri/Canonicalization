@@ -1,4 +1,10 @@
 import optuna
+from .random_seeds import run_all_tasks
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).parents[1]
+json_file = ROOT_DIR / "outputs/hpo/hpo_phase_1_outputs.json"
+json_file.parent.mkdir(exist_ok=True, parents=True)
 
 def objective(trial: optuna.Trial):
     overrides = {
@@ -14,5 +20,16 @@ def objective(trial: optuna.Trial):
             "use_control_signal": trial.suggest_categorical("suggest_control_signal", ["true", "false"])
         }
     }
-
     
+    overrides_list = []
+    for category in overrides.keys():
+        for key, val in overrides[category].items():
+            overrides_list.append(f"{category}.key=val")
+    
+    trial_name = str(trial.number)    
+    run_all_tasks(overrides_list, "hpo", trial_name, ROOT_DIR / "outputs", output_json=str(json_file.absolute()))
+
+    # Read the json and compute the scores
+
+    # TODO, add control signals to the rest of the datasets
+    # TODO, make the output_json be blocked by a run name

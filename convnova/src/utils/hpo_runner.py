@@ -1,17 +1,18 @@
-#!/usr/bin/env python
-"""CLI wrapper to run training with config overrides and capture results."""
 import os
 import sys
-import json
-import time
-import subprocess
 from pathlib import Path
+from hydra import compose, initialize_config_dir
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import open_dict
+import argparse
+import json
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+sys.path.insert(0, str(PROJECT_ROOT))
+from train import process_config_and_run
 
-def run_experiment(experiment, overrides, output_json=None):
-    """Run a single experiment via subprocess and return results."""
+def run_model_with_config_and_overrides(experiment, overrides, output_json=None, run_name=None):
     config_dir = PROJECT_ROOT / "configs"
     prev_cwd = os.getcwd()
 
@@ -22,71 +23,73 @@ def run_experiment(experiment, overrides, output_json=None):
             cktp_path = Path(prev_cwd) / split[1]
             overrides[idx] = f"train.pretrained_model_path={str(cktp_path.absolute())}"
 
-    # Ensure unique run dir per call
-    has_explicit_run_dir = any(o.startswith("hydra.run.dir=") for o in overrides)
-    if not has_explicit_run_dir:
-        timestamp = time.strftime("%Y-%m-%d/%H-%M-%S")
-        overrides = [*overrides, f"hydra.run.dir=outputs/{experiment.replace('/', '_')}/{timestamp}"]
-
-    cmd = [
-        sys.executable, "train.py",
-        f"experiment={experiment}",
-        *overrides,
-    ]
-
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(PROJECT_ROOT) + ":" + env.get("PYTHONPATH", "")
-
-    print(f"Running: {' '.join(cmd)}", flush=True)
-    
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=PROJECT_ROOT,
-            env=env,
-            text=True,
-            timeout=7200,
+    with initialize_config_dir(
+        config_dir=str(config_dir.resolve()),
+        version_base=None,
+        job_name="eval_benchmark",
+    ):
+        config = compose(
+            config_name="config",
+            overrides=[
+                f"experiment={experiment}",
+                *overrides,
+            ],
+            return_hydra_config=True,
         )
-        if result.returncode != 0:
-            raise RuntimeError(f"Training failed with code {result.returncode}")
-        
-        output = {"status": "success", "returncode": result.returncode}
-        
-    except subprocess.TimeoutExpired:
-        output = {"status": "timeout", "error": "Training timed out"}
-    except Exception as e:
-        output = {"status": "error", "error": str(e)}
 
-    if output_json:
-        output_path = Path(output_json)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        data = {}
-        if output_path.exists():
-            try:
-                with open(output_path) as f:
+        HydraConfig.instance().set_config(config)
+        run_dir = config.hydra.run.dir
+        run_dir = str((PROJECT_ROOT / run_dir).absolute())
+
+        with open_dict(config):
+            del config["hydra"]
+
+        os.makedirs(run_dir, exist_ok=True)
+        os.chdir(run_dir)
+
+        try:
+            # Reload train module fresh each call to reset wandb state
+            result = process_config_and_run(config)
+        except Exception as e:
+            os.chdir(prev_cwd)
+            raise e
+
+        os.chdir(prev_cwd)
+        if output_json is not None:
+            if output_json.exists():
+                with open(output_json, "r") as f:
                     data = json.load(f)
-            except json.JSONDecodeError:
+            else:
                 data = {}
-        
-        key = time.strftime("%Y%m%d_%H%M%S")
-        data[key] = output
-        
-        with open(output_path, "w") as f:
-            json.dump(data, f, indent=2)
 
-    return output
+            to_modify = data
+            keys = run_name.split(".")
 
+            for key in keys[:-1]:
+                if not key in to_modify:
+                    to_modify[key] = {}
+                to_modify = to_modify[key]
+            to_modify[keys[-1]] = result
+
+            with open(output_json, "w") as f:
+                json.dump(data, f)
 
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Run experiment with overrides")
-    parser.add_argument("experiment", help="Experiment name (e.g. canon/nt_benchmark)")
-    parser.add_argument("overrides", nargs="*", help="Config overrides as key=value")
-    parser.add_argument("--output-json", help="Path to JSON file to append results")
-    
-    args = parser.parse_args()
-    
-    result = run_experiment(args.experiment, args.overrides, args.output_json)
-    print(f"Result: {result}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--experiment", required=True)
+    parser.add_argument("-o", "--output-json")
+    parser.add_argument("-n", "--run-name")
+
+    args, overrides = parser.parse_known_args()
+
+    # Validate the overrides
+    for o in overrides:
+        if not "=" in o:
+            raise ValueError(f"Invalid override {o}")
+
+    output_json = None
+    if args.output_json is not None:
+        assert args.run_name is not None
+        output_json = Path(args.output_json).absolute()
+
+    run_model_with_config_and_overrides(args.experiment, overrides, output_json=output_json, run_name=args.run_name)

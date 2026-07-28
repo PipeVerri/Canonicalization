@@ -49,15 +49,16 @@ benchmark_tasks = {
     "bend_benchmark": BEND_BENCHMARK_TASKS
 }
 
-def run_experiment(experiment, overrides, output_json=None):
+def run_experiment(experiment, overrides, output_json=None, run_name=None):
     """Run a single experiment via the hpo_runner CLI."""
     cmd = [
         sys.executable, "-m", "src.utils.hpo_runner",
-        experiment,
+        "-e", experiment,
         *overrides,
     ]
     if output_json:
-        cmd.extend(["--output-json", output_json])
+        assert run_name is not None
+        cmd.extend(["--output-json", output_json, "--run-name", run_name])
     
     env = os.environ.copy()
     env["PYTHONPATH"] = str(PROJECT_ROOT) + ":" + env.get("PYTHONPATH", "")
@@ -68,14 +69,14 @@ def run_experiment(experiment, overrides, output_json=None):
         raise RuntimeError(f"Failed with code {result.returncode}")
     return result.stdout
 
-def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None):
+def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None, run_name=None):
     outputs = {}
     for task in tasks:
         overrides = [
             f"dataset.dataset_name={task}",
             *call_overrides
         ]
-        run_experiment(experiment, overrides, output_json)
+        run_experiment(experiment, overrides, output_json, run_name)
         outputs[task] = {"status": "completed"}
     return outputs
 

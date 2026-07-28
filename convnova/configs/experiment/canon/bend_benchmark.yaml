@@ -5,14 +5,14 @@ defaults:
 
 wandb:
   job_type: bend_benchmark
-  group: baseline_big
+  group: baseline
   #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 128
+  d_model: 64
   kernel_size: 5
   dilation: 4
   pretrain: False
@@ -21,7 +21,7 @@ model:
   final_conv: False
   ffn: false
   args:
-    hidden_dim: 128 # same as d_model
+    hidden_dim: 64 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -38,8 +38,7 @@ trainer:
 # cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
 dataset:
   dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/
-  dataset_name: "variant_effects_expression"
-  batch_size: 256
+  dataset_name: "gene_finding"
   use_padding: True
   padding_side: 'left'
   add_eos: False
@@ -59,12 +58,12 @@ optimizer:
 
 train:
   gpu_mem: ${eval:"round(float(__import__('subprocess').check_output('nvidia-smi -i 0 --query-gpu=memory.total --format=csv,noheader,nounits', shell=True).strip().decode()) / 1000)"}
-  seed: 43
+  seed: 2222
   global_batch_size: 256
   remove_test_loader_in_eval: true  # no test set in this benchmark
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline_big/2026-06-16/10-36-40/checkpoints/test/loss.ckpt
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline/random_seeds/2222/checkpoints/test/loss.ckpt
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

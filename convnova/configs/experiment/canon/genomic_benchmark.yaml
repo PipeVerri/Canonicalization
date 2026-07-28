@@ -5,7 +5,7 @@ defaults:
 
 wandb:
   job_type: genomic_benchmark
-  group: pretraining_baseline
+  group: baseline
   #mode: disabled
 
 model:
@@ -90,7 +90,7 @@ train:
   remove_test_loader_in_eval: true  # no test set in this benchmark
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining_baseline/2026-06-17/13-24-05/checkpoints/test/loss.ckpt 
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline/random_seeds/2222/checkpoints/test/loss.ckpt
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

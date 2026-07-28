@@ -18,4 +18,4 @@ encoder: id
 decoder:
   _name_: sequence
   mode: pool
-  use_padding: True
+  #use_padding: True
