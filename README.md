@@ -38,7 +38,7 @@ Prepare conda env.
   conda create -n convnova -c conda-forge python=3.10 cpython
   conda activate convnova
   conda install -n convnova pip
-  conda install -c conda-forge bioconda minimap2 ncbi-datasets-cli
+  conda install -c conda-forge bioconda minimap2 ncbi-datasets-cli optuna
   pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 
   pip install -r requirements.txt --no-deps
   pip install pytorch-lightning==1.8.6 --no-deps
