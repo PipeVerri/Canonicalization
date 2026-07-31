@@ -1,6 +1,6 @@
 _name_: chromatin_profile
 dataset_path: ${oc.env:PROJECT_ROOT}/data/deepsea/
-max_length: 1000
+max_length: 2048
 train_len: ${.max_length}
 d_output: 919
 use_padding: True

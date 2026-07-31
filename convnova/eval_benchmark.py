@@ -67,7 +67,6 @@ def run_experiment(experiment, overrides, output_json=None, run_name=None):
     result = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env, text=True)
     if result.returncode != 0:
         raise RuntimeError(f"Failed with code {result.returncode}")
-    return result.stdout
 
 def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None, run_name=None):
     outputs = {}

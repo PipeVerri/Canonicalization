@@ -5,15 +5,15 @@ defaults:
 
 wandb:
   job_type: chromatin_profile_prediction
-  group: baseline
+  group: baseline_paper
   #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 64
-  kernel_size: 5
+  d_model: 256
+  kernel_size: 9
   dilation: 4
   pretrain: False
   num_conv1d: 5
@@ -21,7 +21,7 @@ model:
   final_conv: False
   ffn: false
   args:
-    hidden_dim: 64 # same as d_model
+    hidden_dim: 256 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -35,10 +35,9 @@ trainer:
   gradient_clip_val: 1.0
   # strategy: null
 
-# cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
 dataset:
   dataset_dir: ${oc.env:PROJECT_ROOT}/data/deepsea/
-  batch_size: 256
+  batch_size: 128
   use_padding: True
   padding_side: 'left'
   add_eos: False

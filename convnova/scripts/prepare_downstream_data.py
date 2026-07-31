@@ -10,6 +10,7 @@ import math
 from tqdm import tqdm
 
 dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
+nt_dataset_old = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks")
 
 def write_split_into_fasta(output_file, filtered_dataset):
     assert len(filtered_dataset) != 0
@@ -22,8 +23,7 @@ def write_split_into_fasta(output_file, filtered_dataset):
             # Format: >seq_{index}_{label}
             f.write(f">seq_{i}_{label}\n{seq}\n")
 
-def export_to_fasta(task_name, output_dir):
-    global dataset
+def export_to_fasta(dataset, task_name, output_dir):
     """
     Downloads a split from Hugging Face and filters by task_name,
     then saves it in the FASTA format expected by ConvNova.
@@ -114,7 +114,11 @@ if __name__ == "__main__":
 
     print(f"Processing NT benchmark downstream tasks...")
     for task in tasks:
-        export_to_fasta(task, output_base)
+        export_to_fasta(dataset, task, output_base)
+
+    print("Processing NT benchmark old downstream tasks...")
+    for task in set(nt_dataset_old["train"]["task"]):
+        export_to_fasta(nt_dataset_old, task, output_base / "../nucleotide_transformer_old")
     
     print(f"Processing genomic benchmark downstream tasks...")
     tasks = (

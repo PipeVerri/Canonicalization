@@ -1,6 +1,7 @@
 import optuna
 from .random_seeds import run_all_tasks
 from pathlib import Path
+import sys
 
 ROOT_DIR = Path(__file__).parents[1]
 json_file = ROOT_DIR / "outputs/hpo/hpo_phase_1_outputs.json"
@@ -24,12 +25,16 @@ def objective(trial: optuna.Trial):
     overrides_list = []
     for category in overrides.keys():
         for key, val in overrides[category].items():
-            overrides_list.append(f"{category}.key=val")
+            overrides_list.append(f"{category}.{key}={val}")
     
-    trial_name = str(trial.number)    
+    trial_name = str(trial.number)
+    # Run the canonicalization script
+    cmd = []
+
     run_all_tasks(overrides_list, "hpo", trial_name, ROOT_DIR / "outputs", output_json=str(json_file.absolute()))
 
     # Read the json and compute the scores
 
     # TODO, add control signals to the rest of the datasets
-    # TODO, make the output_json be blocked by a run name
+    # TODO. When taking the RC of the reference chromosome at the end, is that correctly applied to the downstream tasks?
+    # TODO: Test that I'm getting the same baseline numbers as the original paper 
