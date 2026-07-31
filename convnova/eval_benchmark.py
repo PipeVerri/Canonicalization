@@ -27,6 +27,27 @@ NT_BENCHMARK_TASKS = (
     "enhancers_types"
 )
 
+OLD_NT_BENCHMARK_TASKS = (
+    "enhancers",
+    "enhancers_types",
+    "H3",
+    "H3K14ac",
+    "H3K36me3",
+    "H3K4me1",
+    "H3K4me2",
+    "H3K4me3",
+    "H3K79me3",
+    "H3K9ac",
+    "H4",
+    "H4ac",
+    "promoter_all",
+    "promoter_no_tata",
+    "promoter_tata",
+    "splice_sites_acceptors",
+    "splice_sites_all",
+    "splice_sites_donors",
+)
+
 GENOMIC_BENCHMARK_TASKS = (
     "dummy_mouse_enhancers_ensembl", 
     "demo_coding_vs_intergenomic_seqs", 
@@ -45,6 +66,7 @@ BEND_BENCHMARK_TASKS = (
 
 benchmark_tasks = {
     "nt_benchmark": NT_BENCHMARK_TASKS,
+    "nt_benchmark_old": OLD_NT_BENCHMARK_TASKS,
     "genomic_benchmark": GENOMIC_BENCHMARK_TASKS,
     "bend_benchmark": BEND_BENCHMARK_TASKS
 }

@@ -9,7 +9,7 @@ import numpy as np
 import math
 from tqdm import tqdm
 
-dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
+nt_dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 nt_dataset_old = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks")
 
 def write_split_into_fasta(output_file, filtered_dataset):
@@ -101,7 +101,6 @@ if __name__ == "__main__":
     project_root = script_dir.parent
     
     # List of tasks defined in convnova/configs/dataset/nucleotide_transformer.yaml
-    tasks = set(dataset["train"]["task"])
 
     # Target directory is always convnova/data/nucleotide_transformer
     output_base = project_root / "data" / "nucleotide_transformer"
@@ -113,12 +112,16 @@ if __name__ == "__main__":
     process_deepsea_data(project_root / "data/deepsea/")
 
     print(f"Processing NT benchmark downstream tasks...")
-    for task in tasks:
-        export_to_fasta(dataset, task, output_base)
+    for task in set(nt_dataset["train"]["task"]):
+        export_to_fasta(nt_dataset, task, output_base)
+        pass
 
     print("Processing NT benchmark old downstream tasks...")
+    old_output_dir = project_root / "data/nucleotide_transformer_old"
+    os.system(f"rm -r {str(old_output_dir)}/*")
+
     for task in set(nt_dataset_old["train"]["task"]):
-        export_to_fasta(nt_dataset_old, task, output_base / "../nucleotide_transformer_old")
+        export_to_fasta(nt_dataset_old, task, old_output_dir)
     
     print(f"Processing genomic benchmark downstream tasks...")
     tasks = (
