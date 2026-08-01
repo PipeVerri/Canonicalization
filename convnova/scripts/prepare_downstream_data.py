@@ -47,7 +47,15 @@ def download_genomic_benchmark_task(dataset_name, output_path):
         download_dataset(dataset_name, version=0, dest_path=output_path)
     else:
         print("already downloaded {}".format(dataset_name))
-        
+
+def fix_deepsea_nucleotides(x_chunk):
+    # The dataset nucleotides are in the AGCT order, but the data is expected as ACGTN, so the indexes will be changed
+    g_nucleotides = x_chunk == 1
+    c_nucleotides = x_chunk == 2
+    x_chunk[g_nucleotides] = 2
+    x_chunk[c_nucleotides] = 1
+    return x_chunk
+
 def process_deepsea_data(deepsea_dir, chunk_size=10000):
     for f in ("train", "test", "valid"):
         print(f"  Processing {f}...")
@@ -66,11 +74,7 @@ def process_deepsea_data(deepsea_dir, chunk_size=10000):
 
                     x_chunk = data["trainxdata"][..., start:end].transpose(2, 0, 1) # (N, 1000, 4) 
                     x_chunk = np.argmax(x_chunk, axis=2) # (N, 1000)
-                    # The dataset nucleotides are in the AGCT order, but the data is expected as ACGTN, so the indexes will be changed
-                    g_nucleotides = x_chunk == 1
-                    c_nucleotides = x_chunk == 2
-                    x_chunk[g_nucleotides] = 2
-                    x_chunk[c_nucleotides] = 1
+                    x_chunk = fix_deepsea_nucleotides(x_chunk)
                     x_all[start:end] = x_chunk
 
                     y_chunk = data["traindata"][..., start:end].T
@@ -86,7 +90,9 @@ def process_deepsea_data(deepsea_dir, chunk_size=10000):
 
             for i in tqdm(range(n_chunks), desc=f"  {f}", unit="chunk"):
                 start, end = i * chunk_size, min((i + 1) * chunk_size, total)
-                x_parts.append(np.argmax(x_raw[start:end], axis=1))
+                x_chunk = np.argmax(x_raw[start:end], axis=1)
+                x_chunk = fix_deepsea_nucleotides(x_chunk)
+                x_parts.append(x_chunk)
 
             x = np.concatenate(x_parts, axis=0)
             del x_raw

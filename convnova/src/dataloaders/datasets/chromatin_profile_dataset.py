@@ -20,6 +20,7 @@ class ChromatinProfileDataset(torch.utils.data.Dataset):
         seqs,
         labels,
         max_length,
+        split,
         d_output=919,
         tokenizer=None,
         tokenizer_name=None,
@@ -38,6 +39,7 @@ class ChromatinProfileDataset(torch.utils.data.Dataset):
         self.d_output = d_output  # needed for decoder to grab
         self.rc_aug = rc_aug
         self.use_tokenizer = use_tokenizer
+        self.split = split
 
     def __len__(self):
         return self.seqs.shape[0]

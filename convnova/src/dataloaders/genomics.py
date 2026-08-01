@@ -580,6 +580,7 @@ class ChromatinProfile(HG38):
                 self.datasets[split][0],
                 self.datasets[split][1],
                 self.max_length,
+                split,
                 d_output=self.d_output,
                 tokenizer=self.tokenizer,
                 tokenizer_name=self.tokenizer_name,
