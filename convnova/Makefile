@@ -32,8 +32,6 @@ $(DATA)/hg38/human-sequences.bed: | $(DATA)/hg38
 # ─── BEND benchmark ─────────────────────────────────────────────────────────
 
 BEND_URL := https://sid.erda.dk/share_redirect/aNQa0Oz2lY/data
-DEEPSEA_URL := https://deepsea.princeton.edu/media/code/deepsea_train_bundle.v0.9.tar.gz
-DEEPSEA_LABELS_URL := https://raw.githubusercontent.com/kipoi/models/master/DeepSEA/beluga/predictor_names.txt
 
 bend: \
 	$(DATA)/bend_benchmark/gene_finding.bed \
@@ -58,6 +56,9 @@ $(DATA)/bend_benchmark/variant_effects_expression.bed: | $(DATA)/bend_benchmark
 	curl -L $(BEND_URL)/variant_effects/variant_effects_expression.bed -o $@
 
 # ─── DeepSEA data download ─────────────────────────────────────────────────
+
+DEEPSEA_URL := https://deepsea.princeton.edu/media/code/deepsea_train_bundle.v0.9.tar.gz
+DEEPSEA_LABELS_URL := https://raw.githubusercontent.com/kipoi/models/refs/heads/master/DeepSEA/predictor.names
 
 deepsea: $(DATA)/deepsea/train.mat $(DATA)/deepsea/predictor_names.txt
 
