@@ -46,10 +46,10 @@ gene_finding:
   bed_path: ${..dataset_dir}/gene_finding.bed
   labels_path: ${..dataset_dir}/gene_finding.hdf5
   metric: mcc
-  max_length: 14_000
+  max_length: 16_384 # Taken from ConvNova paper
   classes: 9
   fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
-  batch_size: 32
+  batch_size: 8
 
   decoder:
     _name_: bend_linear

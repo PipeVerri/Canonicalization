@@ -116,13 +116,14 @@ class CNNModel(nn.Module):
             self.out_linear = nn.Linear(args.hidden_dim, self.alphabet_size)
         self.dropout = nn.Dropout(args.dropout)
 
-    def forward(self, seq, t=None, cls = None, return_embedding=False, state=None):
+    def forward(self, seq, t=None, cls = None, return_embedding=False, state=None, mask=None):
         # Mask can either be (seq, mask, labels) or (seq, mask, labels, control_signal)
-        
+        # `mask` (if passed) is a padding mask: True for real tokens, False for padding
+
         if self.pretrain:
-            mask = seq[1]
+            lm_mask = seq[1]
             seq = seq[0]
-        
+
         control_signal = None
         if seq.shape[1] == 2: # Check if seq comes with a control signal
             seq, control_signal = seq.unbind(dim=1) # Separate the (batch, 2, L) into 2 tensors of shape (batch, L)
@@ -136,6 +137,14 @@ class CNNModel(nn.Module):
         rc_seq = torch.nn.functional.one_hot(rc_seq, num_classes=self.alphabet_size).type(torch.float32)
         seq = torch.nn.functional.one_hot(seq, num_classes=self.alphabet_size).type(torch.float32)
 
+        if mask is not None:
+            # zero out padded positions so they don't get encoded as a real base (e.g. 'N')
+            pad = (~mask).unsqueeze(-1)
+            seq = seq.masked_fill(pad, 0.0)
+            rc_seq = rc_seq.masked_fill(pad, 0.0)
+            # channel-first version, for re-masking feat/rc_feat between conv layers below
+            pad_cl = (~mask).unsqueeze(1)
+
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal = control_signal.unsqueeze(-1)
             control_signal_rc = 1 - control_signal
@@ -146,6 +155,12 @@ class CNNModel(nn.Module):
         rc_feat = rc_seq.permute(0,2,1)
         feat = F.gelu(self.linear(feat))
         rc_feat = F.gelu(self.rc_linear(rc_feat))
+        if mask is not None:
+            # LayerNorm/bias terms can turn zeroed padding non-zero again, which would then
+            # leak into real positions through the next conv's receptive field, so re-zero
+            # after every position-mixing op (kernel_size > 1), not just once at the input.
+            feat = feat.masked_fill(pad_cl, 0.0)
+            rc_feat = rc_feat.masked_fill(pad_cl, 0.0)
 
         for i in range(self.num_layers):
             h = self.dropout(feat.clone())
@@ -158,7 +173,10 @@ class CNNModel(nn.Module):
             rc_feat = g + rc_feat
             if self.ffn:
                 feat = self.mlpgroup2[i](feat.permute(0,2,1)).permute(0,2,1) + feat
-        
+            if mask is not None:
+                feat = feat.masked_fill(pad_cl, 0.0)
+                rc_feat = rc_feat.masked_fill(pad_cl, 0.0)
+
         feat = self.milinear(feat.permute(0,2,1)).permute(0,2,1)+feat
         if self.use_final_conv:
             feat = self.final_conv(feat)
@@ -174,7 +192,7 @@ class CNNModel(nn.Module):
             lm_logits = self.out_linear(feat)
             
             CausalLMOutput = namedtuple("CausalLMOutput", ["logits"])
-            return CausalLMOutput(logits=(lm_logits,mask)), None
+            return CausalLMOutput(logits=(lm_logits,lm_mask)), None
     @property
     def d_output(self):
         """Model /embedding dimension, used for decoder mapping.

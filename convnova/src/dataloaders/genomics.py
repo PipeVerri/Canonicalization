@@ -374,6 +374,7 @@ class GenomicBenchmark(HG38):
                 characters=['A', 'C', 'G', 'T', 'N'],
                 model_max_length=self.max_length + 2,  # add 2 since default adds eos/eos tokens, crop later
                 add_special_tokens=False,
+                padding_side=self.padding_side,
             )
         elif self.tokenizer_name == 'bpe':
             print("**using pretrained AIRI tokenizer**")
@@ -381,7 +382,7 @@ class GenomicBenchmark(HG38):
         elif self.tokenizer_name == "ntv2-kmer":
             print("**using pretrained InstaDeepAI tokenizer**")
             self.tokenizer = AutoTokenizer.from_pretrained("InstaDeepAI/nucleotide-transformer-v2-500m-multi-species", trust_remote_code=True)
-        
+
         # Create all splits: torch datasets (only train/test in this benchmark)
         self.dataset_train, self.dataset_val = [
             GenomicBenchmarkDataset(split=split,

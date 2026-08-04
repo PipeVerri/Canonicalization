@@ -1,16 +1,16 @@
 _name_: genomic_benchmark
-dataset_name: dummy_mouse_enhancers_ensembl
 dest_path: null
 
 d_output: ${.${.dataset_name}.classes}
 max_length: ${.${.dataset_name}.max_length}
 train_len: ${.${.dataset_name}.train_len}
+__l_max: ${.max_length}
 
 use_padding: True
-padding_side: 'left'
+padding_side: 'right'
+return_mask: True
 add_eos: False
 batch_size: 32
-__l_max: ${.max_length}
 shuffle: true  # set this as default!
 
 # these are used to find the right attributes automatically for each dataset
@@ -24,6 +24,7 @@ demo_coding_vs_intergenomic_seqs:
   classes: 2
 demo_human_or_worm:
   train_len: 100_000
+  max_length: 200
   classes: 2
 human_enhancers_cohn:
   train_len: 27791
@@ -31,13 +32,15 @@ human_enhancers_cohn:
   classes: 2
 human_enhancers_ensembl:
   train_len: 154842
+  max_length: 573
   classes: 2
 human_ensembl_regulatory:
   train_len: 289061
-  max_length: 805
+  max_length: 425 # For some reason this works...
   classes: 3
 human_nontata_promoters:
   train_len: 36131
+  max_length: 251
   classes: 2
 human_ocr_ensembl:
   train_len: 174756
@@ -45,5 +48,5 @@ human_ocr_ensembl:
   classes: 2
 drosophila_enhancers_stark:
   train_len: 6914
-  max_length: 3300
+  max_length: 3250
   classes: 2

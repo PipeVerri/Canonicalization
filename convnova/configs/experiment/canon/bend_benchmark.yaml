@@ -5,23 +5,23 @@ defaults:
 
 wandb:
   job_type: bend_benchmark
-  group: baseline
+  group: baseline_paper
   #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 64
-  kernel_size: 5
+  d_model: 196
+  kernel_size: 9
   dilation: 4
   pretrain: False
-  num_conv1d: 5
+  num_conv1d: 10
   d_inner: 2
   final_conv: False
   ffn: false
   args:
-    hidden_dim: 64 # same as d_model
+    hidden_dim: 196 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 
@@ -63,7 +63,7 @@ train:
   remove_test_loader_in_eval: true  # no test set in this benchmark
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline/random_seeds/2222/checkpoints/test/loss.ckpt
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline_massive/17-34-28/checkpoints/test/loss.ckpt 
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)
