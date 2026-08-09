@@ -4,9 +4,9 @@ defaults:
   - override /scheduler: cosine_warmup_timm
 
 wandb:
-  group: baseline_paper
+  group: baseline
   job_type: genomic_benchmark
-  mode: disabled
+  #mode: disabled
 
 model:
   _name_: convnova
@@ -17,7 +17,7 @@ model:
   dilation: 4
   pretrain: False
   num_conv1d: 5
-  d_inner: 4
+  d_inner: 2
   final_conv: False
   ffn: false
   args:
@@ -61,7 +61,6 @@ dataset:
   batch_size: 64
   dataset_name: 'human_ensembl_regulatory'
   dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark/
-  use_padding: True
   add_eos: False
   __l_max: ${.max_length}
   tokenizer_name: char

@@ -1,10 +1,13 @@
-from eval_benchmark import benchmark_tasks, eval_model_on_tasks, run_experiment
 from pathlib import Path
 import random
+import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+from eval_benchmark import benchmark_tasks, eval_model_on_tasks, run_experiment
 
-RANDOM_SEEDS = 2
+
+RANDOM_SEEDS = 1
 
 def run_all_tasks(call_overrides, runs_dir, run_name, output_json=None):
     # Pretrain
@@ -38,6 +41,9 @@ def run_all_tasks(call_overrides, runs_dir, run_name, output_json=None):
 
 for _ in range(RANDOM_SEEDS):
     seed = random.randint(0, 10_000)
+    while seed == 2222 or seed == 2805:
+        seed = random.randint(0, 10_000)
+
     run_all_tasks(
         [f"train.seed={seed}"], 
         "pretraining/baseline/random_seeds",

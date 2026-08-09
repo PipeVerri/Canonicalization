@@ -2,19 +2,18 @@
 defaults:
   - /pipeline: nucleotide_transformer
   - override /scheduler: cosine_warmup_timm
-  - override /dataset: nucleotide_transformer_old
 
 wandb:
-  job_type: nt_benchmark_old
-  group: baseline_paper
+  job_type: nt_benchmark
+  group: baseline
   #mode: disabled
 
 model:
   _name_: convnova
   for_representation: true
   alphabet_size: 5
-  d_model: 128
-  kernel_size: 9
+  d_model: 64
+  kernel_size: 5
   dilation: 4
   pretrain: False
   num_conv1d: 5
@@ -22,7 +21,7 @@ model:
   d_inner: 2
   ffn: false
   args:
-    hidden_dim: 128 # same as d_model
+    hidden_dim: 64 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
 

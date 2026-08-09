@@ -28,6 +28,7 @@ class ChromatinProfileDataset(torch.utils.data.Dataset):
         add_eos=False,
         rc_aug=False,
         use_tokenizer=True,
+        control_signal=None,
     ):
         self.seqs = seqs
         self.labels = labels
@@ -40,6 +41,7 @@ class ChromatinProfileDataset(torch.utils.data.Dataset):
         self.rc_aug = rc_aug
         self.use_tokenizer = use_tokenizer
         self.split = split
+        self.control_signal = control_signal
 
     def __len__(self):
         return self.seqs.shape[0]
@@ -47,5 +49,9 @@ class ChromatinProfileDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         x = torch.LongTensor(self.seqs[idx][:])
         y = torch.LongTensor(self.labels[idx][:])
+        if self.control_signal is not None:
+            control = torch.LongTensor(self.control_signal[idx][:])
+            x = torch.stack((x, control), dim=0)
+
         #print(f"X shape is {x.shape} | y shape is {y.shape}")
         return x, y

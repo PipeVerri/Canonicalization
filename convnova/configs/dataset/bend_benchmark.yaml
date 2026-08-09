@@ -14,14 +14,20 @@ task: ${.${.dataset_name}.task}
 
 max_length: ${.${.dataset_name}.max_length}
 d_output: ${.${.dataset_name}.classes}
+
 use_padding: True
-padding_side: left
+padding_side: right
+return_mask: True
+
 add_eos: False
 train_len: ${.${.dataset_name}.max_length}
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
 batch_size: ${.${.dataset_name}.batch_size}
+
+use_control_signal: False
+control_signals_dir: ${oc.env:PROJECT_ROOT}/data/parsed/control_signals
 
 # Details taken from BEND's paper, table 1
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml

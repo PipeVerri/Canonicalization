@@ -11,6 +11,7 @@ import torch
 from random import randrange, random
 import numpy as np
 from pathlib import Path
+from utils.control_signal import trim_and_right_pad_to_torch
 
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
@@ -140,7 +141,9 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         rc_aug=False,
         return_augs=False,
         return_mask=False,
-        use_tokenizer=True 
+        use_tokenizer=True,
+        use_control_signal=False,
+        padding_side="left"
     ):
 
         self.max_length = max_length
@@ -153,6 +156,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self.rc_aug = rc_aug
         self.return_mask = return_mask
         self.use_tokenizer = use_tokenizer
+        self.padding_side = padding_side
 
         if not is_downloaded(dataset_name, cache_path=dest_path):
             print("downloading {} to {}".format(dataset_name, dest_path))
@@ -169,18 +173,23 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
 
         self.all_seqs = []
         self.all_labels = []
+        self.control_signals = [] if use_control_signal else None
         label_mapper = {}
 
         for i, x in enumerate(base_path.iterdir()):
             label_mapper[x.stem] = i
-
+        
         for label_type in label_mapper.keys():
+            if use_control_signal:
+                control_signals_dict = np.load(base_path / label_type / "control_signals.npz")
+
             for path in (base_path / label_type).iterdir():
                 with open(path, "r") as f:
                     content = f.read()
                 self.all_seqs.append(content)
                 self.all_labels.append(label_mapper[label_type])
-
+                if use_control_signal:
+                    self.control_signals.append(control_signals_dict[path.name])
                 
     def __len__(self):
         return len(self.all_labels)
@@ -209,6 +218,11 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
 
         # need to wrap in list
         target = torch.LongTensor([y])  # offset by 1, includes eos
+
+        if self.control_signals is not None:
+            control_signal = self.control_signals[idx]
+            control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
+            seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 
         if self.return_mask:
             return seq_ids, target, {'mask': torch.BoolTensor(seq['attention_mask'])}

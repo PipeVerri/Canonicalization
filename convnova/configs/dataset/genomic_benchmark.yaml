@@ -6,6 +6,8 @@ max_length: ${.${.dataset_name}.max_length}
 train_len: ${.${.dataset_name}.train_len}
 __l_max: ${.max_length}
 
+use_control_signal: False
+
 use_padding: True
 padding_side: 'right'
 return_mask: True

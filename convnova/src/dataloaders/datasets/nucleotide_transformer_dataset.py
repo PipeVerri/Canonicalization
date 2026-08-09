@@ -4,6 +4,7 @@ import torch
 import random
 from pathlib import Path
 import numpy as np
+from utils.control_signal import trim_and_right_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 
@@ -109,6 +110,8 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             max_length=self.max_length,
             truncation=True,
         )
+        if self.control_signal is not None:
+            assert len(seq) == len(x)
 
         seq_ids = seq["input_ids"] # get input_ids
         assert type(seq_ids)==list
@@ -126,10 +129,9 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
 
         # Add the control_signal to the seq_ids tensor
         if self.control_signal is not None:
-            if self.add_eos:
-                raise RuntimeError("Control signal unimplemented for EOS token")
-
             seq_control_signal = self.control_signal[seq_id]
+            if self.use_padding:
+                seq_control_signal = trim_and_right_pad_to_torch(seq_control_signal, self.max_length)
             seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)
 
         if self.return_mask:

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import h5py
 import pandas as pd
+from utils.control_signal import trim_and_right_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 import src.tasks.decoders as _decoders
@@ -55,7 +56,8 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         use_tokenizer=True,
         bed_path=None,
         labels_path=None,
-        fasta_path=None
+        fasta_path=None,
+        control_signals=None
     ):
 
         self.max_length = max_length
@@ -70,6 +72,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         self.use_tokenizer = use_tokenizer
         self.dataset_name = dataset_name
         self.labels_h5 = None
+        self.control_signals = control_signals
 
         if split == "val":
             split = "valid"
@@ -138,6 +141,11 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             seq_ids = seq_ids-7 # Each character id starts at 7(CharacterTokenizer). The rest are special tokens
             mask = (seq_ids >= 4) | (seq_ids < 0)
             seq_ids[mask] = 4
+
+        if self.control_signals is not None:
+            control_signal = self.control_signals[df_seq["chromosome"]][df_seq["start"]:df_seq["end"]][:]
+            control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
+            seq_ids = torch.stack([seq_ids], dim=0)
 
         # Get the target
         if self.dataset_name == "cpg_methylation":

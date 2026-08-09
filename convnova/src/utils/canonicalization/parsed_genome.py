@@ -74,9 +74,8 @@ class ParsedGenome:
 
         if verbose:
             self._log(f"Parsing {genome_name}")
-        # Load the index
-        if verbose:
             self._log("  Loading genome index...")
+        
         self.aligner = mp.Aligner(genome_config.index_file)
         # Load the GFF
         if verbose:

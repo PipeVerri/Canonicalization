@@ -233,7 +233,7 @@ class BendBenchmark(HG38):
                 detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                 shuffle=True, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                 fast_forward_epochs=None, fast_forward_batches=None, bed_path=None, labels_path=None,
-                fasta_path=None, *args, **kwargs):
+                fasta_path=None, use_control_signal=False, control_signals_dir=None, *args, **kwargs):
 
         self.dataset_name = dataset_name
         self.tokenizer_name = tokenizer_name
@@ -257,6 +257,10 @@ class BendBenchmark(HG38):
         self.bed_path = bed_path
         self.labels_path = labels_path
         self.fasta_path = fasta_path
+        self.use_control_signal = use_control_signal
+        self.control_signals_dir = Path(control_signals_dir)
+        assert self.control_signals_dir.exists()
+        self.control_signals = None
 
         if "use_tokenizer" in kwargs:
             self.use_tokenizer = kwargs["use_tokenizer"]
@@ -274,6 +278,9 @@ class BendBenchmark(HG38):
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
 
+        if use_padding and padding_side != "right":
+            raise ValueError("Control signals only supported with right padding")
+
     def setup(self, stage=None):
         # TODO instantiate with registry
 
@@ -290,7 +297,12 @@ class BendBenchmark(HG38):
         elif self.tokenizer_name == "ntv2-kmer":
             print("**using pretrained InstaDeepAI tokenizer**")
             self.tokenizer = AutoTokenizer.from_pretrained("InstaDeepAI/nucleotide-transformer-v2-500m-multi-species", trust_remote_code=True)
-        
+
+        if self.use_control_signal:
+            self.control_signals = {}
+            for chr_file in self.control_signals_dir.iterdir():
+                self.control_signals[chr_file.stem] = np.load(chr_file, mmap_mode="r")
+
         # Create all splits: torch datasets (only train/test in this benchmark)
         self.dataset_train, self.dataset_val, self.dataset_test = [
             BendBenchmarkDataset(
@@ -308,7 +320,8 @@ class BendBenchmark(HG38):
                 use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True,
                 bed_path=self.bed_path,
                 labels_path=self.labels_path,
-                fasta_path=self.fasta_path
+                fasta_path=self.fasta_path,
+                control_signals=self.control_signals
             )
             for split in ['train', 'val', "test"]
         ]
@@ -364,6 +377,9 @@ class GenomicBenchmark(HG38):
         self.fast_forward_batches = fast_forward_batches
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
+
+        if use_padding and padding_side != "right":
+            raise ValueError("Control signals only supported with right padding")
 
     def setup(self, stage=None):
         # TODO instantiate with registry
@@ -461,6 +477,9 @@ class NucleotideTransformer(HG38):
         self.fast_forward_batches = fast_forward_batches
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
+
+        if use_padding and padding_side != "right":
+            raise ValueError("Control signals only supported with right padding")
 
     def setup(self, stage=None):
         # TODO instantiate with registry

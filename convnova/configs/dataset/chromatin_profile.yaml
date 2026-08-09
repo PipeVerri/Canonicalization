@@ -1,13 +1,16 @@
 _name_: chromatin_profile
 dataset_path: ${oc.env:PROJECT_ROOT}/data/deepsea/
-max_length: 2048
+max_length: 1000
 train_len: ${.max_length}
 d_output: 919
+use_control_signal: False
+
 use_padding: True
-padding_side: 'left'
+padding_side: 'right'
+return_mask: True
+
 add_eos: False
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
 num_workers: 0  # data is fully in RAM; more workers hurts via IPC overhead
 pin_memory: true
-train_len: 4400000 # ??
