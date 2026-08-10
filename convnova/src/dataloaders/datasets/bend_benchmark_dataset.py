@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import h5py
 import pandas as pd
-from utils.control_signal import trim_and_right_pad_to_torch
+from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 import src.tasks.decoders as _decoders

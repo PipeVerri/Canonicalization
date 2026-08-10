@@ -1,10 +1,29 @@
 import pytest
 import pandas as pd
-from Bio.Seq import Seq, MutableSeq
+from types import SimpleNamespace
+from Bio.Seq import Seq
 from src.utils.canonicalization import (
-    parse_transcribed_features_from_gff,
+    ParsedGenome,
     canonicalize_genome
 )
+
+# `parse_transcribed_features_from_gff` used to be a single free function that both
+# filtered the annotations (by level/feature/pseudogene/cdjv) and split them into
+# positive/negative segments. It's now split across two ParsedGenome instance methods:
+# `_filter_gencode_transcribed_features` (filtering) and `_parse_transcribed_features_from_gff`
+# (splitting). Neither needs a fully constructed ParsedGenome (which requires a genome index,
+# a GFF file and an ontology on disk), so we bind them to a lightweight stand-in object instead.
+def parse_transcribed_features_from_gff(df, ucsc_id, annotations_level, include_cdjv_segments, include_pseudogenes):
+    fake_self = SimpleNamespace(
+        canonicalization_config=SimpleNamespace(
+            annotations_level=annotations_level,
+            include_cdjv_segments=include_cdjv_segments,
+            include_pseudogenes=include_pseudogenes
+        )
+    )
+    filtered_df = ParsedGenome._filter_gencode_transcribed_features(fake_self, df)
+    return ParsedGenome._parse_transcribed_features_from_gff(fake_self, filtered_df, ucsc_id)
+
 
 def test_parse_transcribed_features_from_gff():
     data = {
@@ -17,7 +36,7 @@ def test_parse_transcribed_features_from_gff():
         "transcript_type": ["mRNA", "mRNA", "pseudogene", "mRNA", "mRNA", "mRNA"]
     }
     df = pd.DataFrame(data)
-    
+
     # Test basic filtering (chr1, level 3, all included)
     # Pos: 0-10 (mRNA, lvl 1), 40-50 (pseudogene, lvl 3)
     # Neg: 20-30 (mRNA, lvl 2), 80-90 (mRNA, lvl 1)
@@ -27,7 +46,7 @@ def test_parse_transcribed_features_from_gff():
     )
     assert pos == [(0, 10), (40, 50)]
     assert neg == [(20, 30), (80, 90)]
-    
+
     # Test level filtering (level 2)
     # 40-50 is level 3 -> excluded
     pos, neg = parse_transcribed_features_from_gff(
@@ -35,7 +54,7 @@ def test_parse_transcribed_features_from_gff():
     )
     assert pos == [(0, 10)]
     assert neg == [(20, 30), (80, 90)]
-    
+
     # Test pseudogene exclusion
     # 40-50 is pseudogene -> excluded
     pos, neg = parse_transcribed_features_from_gff(
@@ -58,7 +77,7 @@ def test_parse_transcribed_features_from_gff():
 def test_canonicalize_genome():
     # This is a basic test to check if the function runs without errors and produces expected results.
     training_genome = {"genome1": Seq("ACGTACGTAC" + "TTTTTTTTTT" + "ACGTACGTAC")}
-    
+
     canonicalization = {
         "genome1": {
             "segments": [(0, 10), (20, 30)],
@@ -67,17 +86,17 @@ def test_canonicalize_genome():
     }
 
     reverse = canonicalize_genome(
-        training_genome, 
+        training_genome,
         canonicalization,
         "reverse"
     )["genome1"]
     complement = canonicalize_genome(
-        training_genome, 
+        training_genome,
         canonicalization,
         "complement"
     )["genome1"]
     rc = canonicalize_genome(
-        training_genome, 
+        training_genome,
         canonicalization,
         "rc"
     )["genome1"]

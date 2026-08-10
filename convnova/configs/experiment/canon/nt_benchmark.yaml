@@ -6,7 +6,7 @@ defaults:
 wandb:
   job_type: nt_benchmark
   group: baseline
-  #mode: disabled
+  mode: disabled
 
 model:
   _name_: convnova
@@ -74,8 +74,8 @@ dataset:
   use_tokenizer: False
   add_eos: false
   rc_aug: false  # reverse complement augmentation
-  return_mask: false
-  padding_side: left
+  return_mask: true
+  padding_side: right
   # num_workers: 1
   # rc_aug: true  # reverse complement augmentation.  Didn't seem to help for human_nontata_promoters, but could be wrong
 
@@ -105,7 +105,7 @@ train:
   # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below
-  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline_big/2026-06-16/10-36-40/checkpoints/test/loss.ckpt
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline/random_seeds/2222/checkpoints/test/loss.ckpt
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

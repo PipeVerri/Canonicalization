@@ -57,6 +57,7 @@ GENOMIC_BENCHMARK_TASKS = (
     "human_ensembl_regulatory",
     "human_nontata_promoters",
     "human_ocr_ensembl"
+    "drosophila_enhancers_stark"
 )
 
 BEND_BENCHMARK_TASKS = (
@@ -97,6 +98,8 @@ def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None, run
             f"dataset.dataset_name={task}",
             *call_overrides
         ]
+
+        run_name += f".{task}"
         run_experiment(experiment, overrides, output_json, run_name)
         outputs[task] = {"status": "completed"}
     return outputs

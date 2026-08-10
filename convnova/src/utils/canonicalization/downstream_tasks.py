@@ -92,13 +92,18 @@ class CanonicalizedDownstreamTask:
             raise RuntimeError(f"Unknown alignment error: {status}")
 
     def _canonicalize_record(self, seq, alignment, reference_genome: ParsedGenome):
+        # The model should always view the transcribed features in the + orientattion. The RC-at-end doesn't change that, everything always ends up in the + orientation
+        # If seq is on the positive branch, but it's on top of a negative transcribed feature, the model should see the RC of seq
+        # If seq is on the negative branch, but it's on top of a positive transcribed feature, the model should see the RC of seq
+        # If seq is on the negative branch, even though the model has never seen it, I won't take the RC to test generalization
+
         transcribed_segments_that_contain_seq = get_alignment_transcribed_segments(alignment, reference_genome)
         seq_canon = MutableSeq(seq)
         control_signal = np.zeros(len(seq))
         oriented_nucleotides_count = 0
 
         for segment in transcribed_segments_that_contain_seq:
-            start, end = reference_genome.align_transcript_position_with_seq(alignment, segment)
+            start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
             oriented_nucleotides_count += end - start
             if self.config.partial_downstream_canonicalization:
                 transform_sequence(seq_canon, start, end, self.config.transformation)

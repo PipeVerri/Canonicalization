@@ -11,7 +11,7 @@ import torch
 from random import randrange, random
 import numpy as np
 from pathlib import Path
-from utils.control_signal import trim_and_right_pad_to_torch
+from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
 
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer

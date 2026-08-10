@@ -163,14 +163,21 @@ def binary_cross_entropy(logits, y):
 
 def auroc(logits, y):
     # multilabel: logits (batch, n_classes), y (batch, n_classes) binary integers
-    # Returns None if no class has both labels present (batch is unevaluable).
     scores = torch.sigmoid(logits).detach().cpu().numpy()
     y_np = y.cpu().numpy()
+    if y_np.ndim == 1:
+        y_np = y_np[:, None]
+        scores = scores.reshape(y_np.shape)
     aucs = [
         roc_auc_score(y_np[:, i], scores[:, i])
         for i in range(y_np.shape[1])
         if len(np.unique(y_np[:, i])) > 1
     ]
+    # If no column has both classes present in this batch, AUROC is undefined here.
+    # Return None (not NaN) so train.py's `if v is not None` filter drops this step from
+    # Lightning's on_epoch average, instead of poisoning the whole epoch with a NaN.
+    if not aucs:
+        return None
     return float(np.mean(aucs))
 
 

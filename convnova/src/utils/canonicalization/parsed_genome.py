@@ -227,10 +227,9 @@ class ParsedGenome:
                 return hit
         return None
 
-    def align_transcript_position_with_seq(self, alignment, segment):
-        chromosome_length = len(self.genome_transcribed_segments[alignment.ctg])
+    def align_transcript_position_with_seq(self, alignment, segment, seq_length):
         segment_start = max(0, segment[0] - alignment.r_st)
-        segment_end = min(chromosome_length, segment[1] - alignment.r_st)
+        segment_end = min(seq_length, segment[1] - alignment.r_st)
         return segment_start, segment_end
 
     def _log(self, message):

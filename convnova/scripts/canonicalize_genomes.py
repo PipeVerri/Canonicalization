@@ -33,13 +33,14 @@ OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
 def main(config: DictConfig):    
     # Process config
     config = utils.train.process_config(config)
-    c_cfg = config.canonicalization
+    c_cfg = config.canonicWzation
     
     log.info("Loading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.pretraining_fasta_file))
 
     training_genome_to_canonicalize = {}
     def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
+        nonlocal training_genome_to_canonicalize
         # I need this for the whole hg38 genome for the control signals for the BEND benchmark
         segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
             positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
@@ -47,6 +48,7 @@ def main(config: DictConfig):
         training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
     
     hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)
+    assert len(training_genome_to_canonicalize.keys()) > 0
 
     # Apply the canonicalization to the training genome
     transformation = c_cfg.transformation

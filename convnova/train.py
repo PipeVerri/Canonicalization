@@ -765,7 +765,7 @@ def train(config):
     if config.train.test:
         return trainer.test(model)
 
-    return None
+    return trainer.validate(model)
 
 def process_config_and_run(config):
     config = utils.train.process_config(config)

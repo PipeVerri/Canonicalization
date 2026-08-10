@@ -535,7 +535,7 @@ class ChromatinProfile(HG38):
                  max_length=1000, d_output=919, rc_aug=False, add_eos=True, val_only=False,
                  batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
-                 fast_forward_epochs=None, fast_forward_batches=None,
+                 fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=True,
                  *args, **kwargs):
         
         self.tokenizer_name = tokenizer_name
@@ -552,6 +552,8 @@ class ChromatinProfile(HG38):
         self.shuffle = shuffle
         self.pin_memory = pin_memory
         self.drop_last = drop_last
+        self.use_control_signal = use_control_signal
+        self.control_signals = None
 
         if fault_tolerant:
             assert self.shuffle
@@ -589,6 +591,13 @@ class ChromatinProfile(HG38):
                 "test": (np.load(self.dataset_path / "test-x.npy"), np.load(self.dataset_path / "test-y.npy")),
                 "valid": (np.load(self.dataset_path / "valid-x.npy"), np.load(self.dataset_path / "valid-y.npy"))
             }
+
+        if self.use_control_signal and self.control_signals is None:
+            self.control_signals = {
+                "train": np.load(self.dataset_path / "train-control-signal.npy", mmap_mode="r"),
+                "test": np.load(self.dataset_path / "test-control-signal.npy", mmap_mode="r"),
+                "valid": np.load(self.dataset_path / "valid-control-signal.npy", mmap_mode="r")
+            }
         
         # Create all splits: torch datasets
         if self.val_only:
@@ -607,7 +616,8 @@ class ChromatinProfile(HG38):
                 use_padding=None,
                 add_eos=self.add_eos,
                 rc_aug=self.rc_aug,
-                use_tokenizer=False
+                use_tokenizer=False,
+                control_signal=self.control_signals[split] if self.use_control_signal else None
             )
             for split in splits
         ]

@@ -1,6 +1,6 @@
 _name_: nucleotide_transformer  # this links to the overall SequenceDataset of all nucleotide transformer datasets
 dataset_name: enhancers  # this specifies which dataset in nuc trx
-dest_path: null  # path to overall nuc trx datasets
+dest_path: null  # path to the nt datasets folder
 max_length: ${.${.dataset_name}.max_length}
 d_output: ${.${.dataset_name}.classes} 
 use_padding: True
