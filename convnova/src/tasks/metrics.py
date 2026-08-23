@@ -163,8 +163,8 @@ def binary_cross_entropy(logits, y):
 
 def auroc(logits, y):
     # multilabel: logits (batch, n_classes), y (batch, n_classes) binary integers
-    scores = torch.sigmoid(logits).detach().cpu().numpy()
-    y_np = y.cpu().numpy()
+    scores = torch.sigmoid(logits).detach().float().cpu().numpy()
+    y_np = y.float().cpu().numpy()
     if y_np.ndim == 1:
         y_np = y_np[:, None]
         scores = scores.reshape(y_np.shape)

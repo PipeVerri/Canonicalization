@@ -5,8 +5,8 @@ defaults:
   - _self_
 
 wandb:
-  group: pretraining_control_signal
-  #mode: disabled
+  group: control_signal
+  mode: disabled
 
 dataset:
   use_control_signal: True

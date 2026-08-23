@@ -46,7 +46,7 @@ for name, metrics in dataset_results.items():
     metrics_mean = sum(metrics) / len(metrics)
     dataset_metrics[name] = {
         "mean": metrics_mean,
-        "std": math.sqrt(sum((m - metrics_mean) ** 2 for m in metrics) / len(metrics)),
+        "std": math.sqrt(sum((m - metrics_mean) ** 2 for m in metrics) / (len(metrics) - 1)), # BESSEL CORRECTION
         "metric": metric_names[name]
     }
 

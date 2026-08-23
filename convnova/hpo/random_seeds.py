@@ -9,9 +9,9 @@ from eval_benchmark import benchmark_tasks, eval_model_on_tasks, run_experiment
 
 RANDOM_SEEDS = 3
 
-def run_all_tasks(call_overrides, runs_dir: Path, run_name: str, output_json=None | str, task_specific_overrides={}):
+def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json=None | str, task_specific_overrides={}, skip_tasks=set(), failed_checkpoint_id=None):
     # Pretrain
-    checkpoint_dir = PROJECT_ROOT / "outputs" / runs_dir / run_name
+    checkpoint_dir = PROJECT_ROOT / "outputs" / runs_dir_name / (run_name if failed_checkpoint_id is None else failed_checkpoint_id)
     pretraining_overrides = [
         f"hydra.run.dir={str(checkpoint_dir.absolute())}",
         *call_overrides
@@ -19,7 +19,8 @@ def run_all_tasks(call_overrides, runs_dir: Path, run_name: str, output_json=Non
     if task_specific_overrides.get("pretraining"):
         pretraining_overrides += task_specific_overrides["pretraining"]
 
-    run_experiment("canon/pretrain", pretraining_overrides, str(output_json), f"{run_name}.pretraining")
+    if not "pretraining" in skip_tasks:
+        run_experiment("canon/pretrain", pretraining_overrides, str(output_json), f"{run_name}.pretraining")
     checkpoint_file_str = str((checkpoint_dir / "checkpoints/test/loss.ckpt").absolute())
 
     base_downstream_task_overrides = ( # Make it a tuple so I don't accidentally edit it
@@ -28,21 +29,21 @@ def run_all_tasks(call_overrides, runs_dir: Path, run_name: str, output_json=Non
     )
 
     # NT benchmark
-    nt_benchmark_tasks = benchmark_tasks["nt_benchmark"]
+    nt_benchmark_tasks = list(set(benchmark_tasks["nt_benchmark"]) - skip_tasks)
     nt_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("nt_benchmark"):
         nt_benchmark_overrides += task_specific_overrides["nt_benchmark"]
     eval_model_on_tasks("canon/nt_benchmark", nt_benchmark_tasks, nt_benchmark_overrides, str(output_json), f"{run_name}.nt_benchmark")
 
     # Genomic benchmark
-    genomic_benchmark_tasks = benchmark_tasks["genomic_benchmark"]
+    genomic_benchmark_tasks = list(set(benchmark_tasks["genomic_benchmark"]) - skip_tasks)
     genomic_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("genomic_benchmark"):
         genomic_benchmark_overrides += task_specific_overrides["genomic_benchmark"]
     eval_model_on_tasks("canon/genomic_benchmark", genomic_benchmark_tasks, genomic_benchmark_overrides, str(output_json), f"{run_name}.genomic_benchmark")
 
     # BEND benchmark
-    bend_benchmark_tasks = benchmark_tasks["bend_benchmark"]
+    bend_benchmark_tasks = list(set(benchmark_tasks["bend_benchmark"]) - skip_tasks)
     bend_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("bend_benchmark"):
         bend_benchmark_overrides += task_specific_overrides["bend_benchmark"]
@@ -52,16 +53,18 @@ def run_all_tasks(call_overrides, runs_dir: Path, run_name: str, output_json=Non
     deepsea_overrides = call_overrides.copy()
     if task_specific_overrides.get("chromatin_profile"):
         deepsea_overrides += task_specific_overrides["chromatin_profile"]
-    run_experiment("canon/chromatin_profile", deepsea_overrides, str(output_json), f"{run_name}.chromatin_profile_prediction")
+    if not "chromatin_profile_prediction" in skip_tasks:
+        run_experiment("canon/chromatin_profile", deepsea_overrides, str(output_json), f"{run_name}.chromatin_profile_prediction")
 
-for _ in range(RANDOM_SEEDS):
-    seed = random.randint(0, 10_000)
-    while seed == 2222 or seed == 2805:
+if __name__ == "__main__":
+    for _ in range(RANDOM_SEEDS):
         seed = random.randint(0, 10_000)
+        while seed == 2222 or seed == 2805:
+            seed = random.randint(0, 10_000)
 
-    run_all_tasks(
-        [f"train.seed={seed}"], 
-        "pretraining/baseline/random_seeds",
-        str(seed),
-        output_json="./random_seeds.json"
-    )
+        run_all_tasks(
+            [f"train.seed={seed}"], 
+            "pretraining/baseline/random_seeds",
+            str(seed),
+            output_json="./random_seeds.json"
+        )

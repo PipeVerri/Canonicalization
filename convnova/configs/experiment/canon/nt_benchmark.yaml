@@ -6,7 +6,7 @@ defaults:
 wandb:
   job_type: nt_benchmark
   group: baseline
-  mode: disabled
+  #mode: disabled
 
 model:
   _name_: convnova

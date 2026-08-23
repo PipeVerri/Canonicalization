@@ -56,7 +56,7 @@ GENOMIC_BENCHMARK_TASKS = (
     "human_enhancers_ensembl",
     "human_ensembl_regulatory",
     "human_nontata_promoters",
-    "human_ocr_ensembl"
+    "human_ocr_ensembl",
     "drosophila_enhancers_stark"
 )
 
@@ -99,8 +99,7 @@ def eval_model_on_tasks(experiment, tasks, call_overrides, output_json=None, run
             *call_overrides
         ]
 
-        run_name += f".{task}"
-        run_experiment(experiment, overrides, output_json, run_name)
+        run_experiment(experiment, overrides, output_json, f"{run_name}.{task}")
         outputs[task] = {"status": "completed"}
     return outputs
 

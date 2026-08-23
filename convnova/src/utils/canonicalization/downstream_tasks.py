@@ -312,7 +312,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                 # Flip the labels according to the control signal
                 # The labels are {Ef, Df, If, Af, Er, Dr, Ir, Ar, NC} (exon, donor, acceptor, intron) and the strand they're on (A.1)
                 mask = control_signal.astype(bool)
-                mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3]) # Ef -> Er, Df -> Dr...
+                mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3, 8]) # Ef -> Er, Df -> Dr..., NC stays NC
                 canonicalized_label = label.copy().astype(np.int8)
                 canonicalized_label[mask] = mapping[canonicalized_label[mask]]
                 canonicalized_labels.append(canonicalized_label)

@@ -2,9 +2,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 import os
-from intervaltree import IntervalTree
-import mappy as mp
-import pyranges as pr
 
 # Standard imports as the project is installed with pip -e .
 import src.utils as utils
@@ -29,11 +26,11 @@ log = src.utils.train.get_logger(__name__)
 OmegaConf.register_new_resolver('eval', eval)
 OmegaConf.register_new_resolver('div_up', lambda x, y: (x + y - 1) // y)
 
-@hydra.main(config_path="../configs", config_name="config.yaml")
+@hydra.main(config_path="../configs", config_name="config.yaml", version_base=None)
 def main(config: DictConfig):    
     # Process config
     config = utils.train.process_config(config)
-    c_cfg = config.canonicWzation
+    c_cfg = config.canonicalization
     
     log.info("Loading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.pretraining_fasta_file))

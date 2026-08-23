@@ -718,6 +718,7 @@ def create_trainer(config, **kwargs):
         # we need to instantiate manually instead of with hydra, since it expects a dict instead of a hydra config for the accumulate_grad_batches
         # so we convert everything to dicts (from hydra configs)
         trainer_config_dict = dict(config.trainer)
+
         epochs_cume = 0  # track cumulative epochs
         accumulate_grad_schedule = {}  # contains the accumulate_grad_batches schedule to init the trainer
 
@@ -739,6 +740,10 @@ def create_trainer(config, **kwargs):
 
 
 def train(config):
+    torch.backends.cudnn.benchmark = config.get("torch", {}).get("cudnn_benchmark", False)
+    if torch.backends.cudnn.benchmark:
+        print("CUDNN Benchmark enabled")
+
     if config.train.seed is not None:
         pl.seed_everything(config.train.seed, workers=True)
     trainer = create_trainer(config)

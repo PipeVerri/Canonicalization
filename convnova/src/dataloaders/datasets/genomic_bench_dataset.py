@@ -184,6 +184,9 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
                 control_signals_dict = np.load(base_path / label_type / "control_signals.npz")
 
             for path in (base_path / label_type).iterdir():
+                if path.suffix != ".txt":
+                    continue
+
                 with open(path, "r") as f:
                     content = f.read()
                 self.all_seqs.append(content)
