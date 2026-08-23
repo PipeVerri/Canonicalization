@@ -28,6 +28,14 @@ def get_alignment_transcribed_segments(alignment, reference_genome: ParsedGenome
 
     return intervaltree_to_tuples(segments_to_check.overlap(alignment.r_st, alignment.r_en))
 
+def get_all_alignment_segments(alignment, reference_genome: ParsedGenome):
+    get_strand_features = lambda strand: intervaltree_to_tuples(reference_genome.genome_transcribed_segments[alignment.ctg][strand].overlap(alignment.r_st, alignment.r_en))
+    return {
+        "positive": get_strand_features("positive"),
+        "negative": get_strand_features("negative")
+    }
+
+
 @dataclass(frozen=True)
 class DownstreamTask:
     task_name: str
@@ -77,10 +85,10 @@ class CanonicalizedDownstreamTask:
 
         if alignment is None:
             seq_canon = seq
-            control_signal = np.zeros(len(seq))
+            control_signal = raw_control_signal = np.zeros(len(seq))
         else:
-            seq_canon, control_signal = self._canonicalize_record(seq, alignment, reference_genome)
-        return seq_canon, control_signal, status
+            seq_canon, control_signal, raw_control_signal = self._canonicalize_record(seq, alignment, reference_genome)
+        return seq_canon, control_signal, raw_control_signal, status
 
     def _update_counter(self, task_name, status):
         self.unaligned_tasks_counter[task_name]["total_tasks"] += 1
@@ -100,8 +108,10 @@ class CanonicalizedDownstreamTask:
         transcribed_segments_that_contain_seq = get_alignment_transcribed_segments(alignment, reference_genome)
         seq_canon = MutableSeq(seq)
         control_signal = np.zeros(len(seq))
+        raw_control_signal = np.zeros(len(seq))
         oriented_nucleotides_count = 0
 
+        # Canonicalize and create control signal
         for segment in transcribed_segments_that_contain_seq:
             start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
             oriented_nucleotides_count += end - start
@@ -109,12 +119,22 @@ class CanonicalizedDownstreamTask:
                 transform_sequence(seq_canon, start, end, self.config.transformation)
                 control_signal[start:end] = 1
 
+        # Full or partial orientation
         more_than_half_of_seq_oriented = oriented_nucleotides_count > len(seq) / 2
         if not self.config.partial_downstream_canonicalization and more_than_half_of_seq_oriented:
             transform_sequence(seq_canon, 0, len(seq), self.config.transformation)
             control_signal[0:len(seq)] = 1
 
-        return seq_canon, control_signal
+        # Code the raw control signal
+        all_segments_that_overlap = get_all_alignment_segments(alignment, reference_genome)
+        for segment in all_segments_that_overlap["positive"]:
+            start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
+            raw_control_signal[start:end] = 1
+        for segment in all_segments_that_overlap["negative"]:
+            start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
+            raw_control_signal[start:end] = -1
+
+        return seq_canon, control_signal, raw_control_signal
 
     def _verify_all_tasks_were_canonicalized(self):
         unprocessed_tasks = []
@@ -167,25 +187,29 @@ class NTBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         records = read_fasta_into_records_dict(fasta_path)
         parsed_records = {}
         control_signals = {}
+        raw_control_signals = {}
         for record_id, seq in records.items():
-            parsed_id, parsed_seq, control_signal = self._process_record(task_name, record_id, seq, reference_genome)
+            parsed_id, parsed_seq, control_signal, raw_control_signal = self._process_record(task_name, record_id, seq, reference_genome)
             parsed_records[parsed_id] = parsed_seq
             control_signals[parsed_id] = control_signal
+            raw_control_signals[parsed_id] = raw_control_signal
 
         save_records_into_fasta(parsed_records, output_path)
         np.savez(str(output_path).replace(".fasta", ".npz"), **control_signals)
+        np.savez(output_dir / f"{task_name}_{split}_raw_signals.npz", **raw_control_signals)
 
     def _process_record(self, task_name, record_id, seq, reference_genome: ParsedGenome):
         if task_name in self.task_config.skip_tasks:
-            return record_id, seq, np.zeros(len(seq)) # 0s for the control signal
+            empty_control_signal = np.zeros(len(seq))
+            return record_id, seq, empty_control_signal, empty_control_signal # 0s for the control signal
 
         # There's no need for canonicalizing the labels because:
         # - On histone tasks, histones interact with double stranded DNA, the label is the same for the RC
         # - Enhancers (seem like) they're mostly bidirectional, and even if they aren't, I can't know if taking a non-enhancer sequence's RC suddenly turns it into an enhancer
         # - The promoters aren't transcribed
         # - The splicing seqs are already on the coding strand
-        seq_canon, control_signal, _ = self.align_and_canonicalize_record(seq, task_name, reference_genome)
-        return record_id, seq_canon, control_signal
+        seq_canon, control_signal, raw_control_signal, _ = self.align_and_canonicalize_record(seq, task_name, reference_genome)
+        return record_id, seq_canon, control_signal, raw_control_signal
 
 class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     tasks_list = (
@@ -232,15 +256,15 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 
         if state["task_name"] in c.task_config.skip_tasks:
             seq_canon = seq
-            control_signal = np.zeros(len(seq))
+            control_signal = raw_control_signal = np.zeros(len(seq))
             status = None
         else:
-            seq_canon, control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
+            seq_canon, control_signal, raw_control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
 
         with open(state["seqs_dir_output"] / filename, "w") as f:
             f.write(str(seq_canon))
 
-        return control_signal, status
+        return control_signal, raw_control_signal, status
 
     @staticmethod
     def _init_worker(task_name, canonicalizer, reference_genome, seqs_dir_input, seqs_dir_output):
@@ -255,6 +279,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output, reference_genome: ParsedGenome):
         seqs_dir_output.mkdir(parents=True, exist_ok=True)
         control_signals = {}
+        raw_control_signals = {}
         input_files = os.listdir(seqs_dir_input)
 
         with Pool(
@@ -264,11 +289,13 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             initargs=(task_name, self, reference_genome, seqs_dir_input, seqs_dir_output)
         ) as pool:
             control_signals_iter = pool.imap(self._process_single_file, input_files, chunksize=64)
-            for filename, (control_signal, status) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
+            for filename, (control_signal, raw_control_signal, status) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
                 control_signals[filename] = control_signal
+                raw_control_signals[filename] = raw_control_signal
                 self._update_counter(task_name, status)
         
         np.savez(str(seqs_dir_output / "control_signals.npz"), **control_signals)
+        np.savez(str(seqs_dir_output / "raw_control_signals.npz"), **raw_control_signals)
 
 class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     gene_finding_bed_columns = ("chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split")
@@ -307,7 +334,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 
                 alignment = Alignment(df_row["start"], df_row["end"], df_row["chromosome"], strand)
                 mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
-                _, control_signal = self._canonicalize_record(mock_seq, alignment, reference_genome)
+                _, control_signal, _ = self._canonicalize_record(mock_seq, alignment, reference_genome)
             
                 # Flip the labels according to the control signal
                 # The labels are {Ef, Df, If, Af, Er, Dr, Ir, Ar, NC} (exon, donor, acceptor, intron) and the strand they're on (A.1)
@@ -362,9 +389,9 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         
         # Canonicalize each sequence, they get automatically saved to disk
         seq = "".join(DeepseaCanonicalizer.VOCAB[state["x"][idx]])
-        seq_canon, control_signal, status = c.align_and_canonicalize_record(seq, task_name, reference_genome, update_counter=False)
+        seq_canon, control_signal, raw_control_signal, status = c.align_and_canonicalize_record(seq, task_name, reference_genome, update_counter=False)
         seq_canon_arr = np.array([DeepseaCanonicalizer.CHAR_TO_IDX[c] for c in str(seq_canon)])
-        return seq_canon_arr, control_signal, status
+        return seq_canon_arr, control_signal, raw_control_signal, status
 
 
     def _process_split(self, split, task_name, reference_genome: ParsedGenome):
@@ -373,6 +400,7 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
 
         x_canonicalized = np.lib.format.open_memmap(str(self.output_dir / f"{split}-x.npy"), mode="w+", dtype=x.dtype, shape=x.shape)
         control_signals = np.lib.format.open_memmap(str(self.output_dir / f"{split}-control-signal.npy"), mode="w+", dtype=np.int8, shape=x.shape)
+        raw_control_signals = np.lib.format.open_memmap(str(self.output_dir / f"{split}-raw-control-signal.npy"), mode="w+", dtype=np.int8, shape=x.shape)
 
         with Pool(
             context=mp.get_context("fork"), # Fork doens't clone memory unless it's written into, uses CoW
@@ -382,10 +410,11 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
         ) as pool:
             # Sends 64 tasks to each work to reduce the overhead of data transfer
             results_iter = pool.imap(DeepseaCanonicalizer._canonicalize_sequence, range(x.shape[0]), chunksize=64)
-            for idx, (seq_canon, control_signal, status) in tqdm(enumerate(results_iter), total=x.shape[0]):
+            for idx, (seq_canon, control_signal, raw_control_signal, status) in tqdm(enumerate(results_iter), total=x.shape[0]):
                 x_canonicalized[idx] = seq_canon
                 control_signals[idx] = control_signal
+                raw_control_signals[idx] = raw_control_signal
                 self._update_counter(task_name, status)
         
-        # Copy the y arr
+        # Copy the y arr, no modification to the labels
         shutil.copy(self.input_dir / f"{split}-y.npy", self.output_dir / f"{split}-y.npy")

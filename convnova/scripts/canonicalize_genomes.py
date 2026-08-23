@@ -12,6 +12,7 @@ from src.utils.canonicalization import (
     save_records_into_fasta,
     canonicalize_genome,
     save_canonicalization_control_signal,
+    save_raw_control_signal,
     ParsedGenome,
     NTBenchmarkCanonicalizer,
     GenomicBenchmarkCanonicalizer,
@@ -36,6 +37,7 @@ def main(config: DictConfig):
     training_genome = read_fasta_into_records_dict(Path(c_cfg.pretraining_fasta_file))
 
     training_genome_to_canonicalize = {}
+
     def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
         nonlocal training_genome_to_canonicalize
         # I need this for the whole hg38 genome for the control signals for the BEND benchmark
@@ -65,10 +67,14 @@ def main(config: DictConfig):
     log.info(f"Saved {transformation} to {save_path}")
     
     # Save the control signal
-    log.info("Saving control signal...")
+    log.info("Saving control signals...")
     control_signal_dir = out_path / "control_signals"
     control_signal_dir.mkdir(parents=True, exist_ok=True)
     save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
+
+    raw_control_signal_dir = out_path / "raw_control_signals"
+    raw_control_signal_dir.mkdir(parents=True, exist_ok=True)
+    save_raw_control_signal(training_genome, hg38, raw_control_signal_dir)
     
     # Canonicalize the downstream tasks
     # The reference genomes are too large to load them all at once, so the tasks are canonicalized partially loading one reference genome at a time

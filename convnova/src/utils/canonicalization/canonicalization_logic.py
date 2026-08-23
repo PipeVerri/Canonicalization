@@ -2,6 +2,7 @@ from intervaltree import IntervalTree
 from Bio.Seq import MutableSeq
 import numpy as np
 from .utils import intervaltree_to_tuples, transform_sequence
+from .parsed_genome import ParsedGenome
 
 ####################################
 # Decide canonicalization segments #
@@ -82,5 +83,17 @@ def save_canonicalization_control_signal(training_genome, training_genome_to_can
         
         for (start, end) in training_genome_to_canonicalize[ucsc_id]["segments"]:
             control_signal[start:end] = segment_value
+
+        np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)
+
+def save_raw_control_signal(training_genome, annotations: ParsedGenome, out_dir):
+    for ucsc_id in annotations.genome_transcribed_segments:
+        control_signal = np.zeros(len(training_genome[ucsc_id]))
+
+        # I know it isn't right to do this with overlapping segments, but it's for a simple ablation
+        for segment in annotations.genome_transcribed_segments[ucsc_id]["positive"]:
+            control_signal[segment[0]:segment[1]] = 1
+        for segment in annotations.genome_transcribed_segments[ucsc_id]["negative"]:
+            control_signal[segment[0]:segment[1]] = -1
 
         np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)

@@ -592,12 +592,19 @@ class ChromatinProfile(HG38):
                 "valid": (np.load(self.dataset_path / "valid-x.npy"), np.load(self.dataset_path / "valid-y.npy"))
             }
 
-        if self.use_control_signal and self.control_signals is None:
-            self.control_signals = {
-                "train": np.load(self.dataset_path / "train-control-signal.npy", mmap_mode="r"),
-                "test": np.load(self.dataset_path / "test-control-signal.npy", mmap_mode="r"),
-                "valid": np.load(self.dataset_path / "valid-control-signal.npy", mmap_mode="r")
-            }
+        if self.use_control_signal != False and self.control_signals is None:
+            if self.use_control_signal == True:
+                self.control_signals = {
+                    "train": np.load(self.dataset_path / "train-control-signal.npy", mmap_mode="r"),
+                    "test": np.load(self.dataset_path / "test-control-signal.npy", mmap_mode="r"),
+                    "valid": np.load(self.dataset_path / "valid-control-signal.npy", mmap_mode="r")
+                }
+            elif self.use_control_signal == "raw":
+                self.control_signals = {
+                    "train": np.load(self.dataset_path / "train-raw-control-signal.npy", mmap_mode="r"),
+                    "test": np.load(self.dataset_path / "test-raw-control-signal.npy", mmap_mode="r"),
+                    "valid": np.load(self.dataset_path / "valid-raw-control-signal.npy", mmap_mode="r")
+                }
         
         # Create all splits: torch datasets
         if self.val_only:

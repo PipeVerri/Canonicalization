@@ -114,8 +114,9 @@ def objective(trial: optuna.Trial):
     for category in overrides.keys():
         for key, val in overrides[category].items():
             overrides_list.append(f"{category}.{key}={val}")
-    
-    if not trial.user_attrs.get("resuming_failed", False):
+
+    failed_trial = trial.user_attrs.get("resuming_failed", False)
+    if not failed_trial:
         # Run the canonicalization script
         cmd = [sys.executable, ROOT_DIR / "scripts/canonicalize_genomes.py", "experiment='canon/pretrain'", *overrides_list]
         env = os.environ.copy()
@@ -140,7 +141,7 @@ def objective(trial: optuna.Trial):
         "chromatin_profile": {
             "dataset.dataset_path='{}'".format(to_absolute(ROOT_DIR / "data/deepsea_parsed/"))
         }
-    }, skip_tasks=skip_tasks, failed_checkpoint_id=str(trial.number - 1))
+    }, skip_tasks=skip_tasks, failed_checkpoint_id=str(trial.number - 1) if failed_trial else None)
 
     # Read the json and compute the scores
     with open(json_file, "r") as f:

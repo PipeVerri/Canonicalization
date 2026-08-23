@@ -180,8 +180,8 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
             label_mapper[x.stem] = i
         
         for label_type in label_mapper.keys():
-            if use_control_signal:
-                control_signals_dict = np.load(base_path / label_type / "control_signals.npz")
+            if use_control_signal != False:
+                control_signals_dict = np.load(base_path / label_type / ("raw_control_signals.npz" if use_control_signal == "raw" else "control_signals.npz"))
 
             for path in (base_path / label_type).iterdir():
                 if path.suffix != ".txt":
