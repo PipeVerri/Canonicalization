@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - canon/pretrain
+  - /canonicalization: default
+  - _self_
+
+wandb:
+  group: pretraining_canonicalized
+
+dataset:
+  fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta

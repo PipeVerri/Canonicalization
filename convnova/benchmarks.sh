@@ -1,0 +1,4 @@
+python eval_benchmark.py -e 'canonicalized/nt_benchmark' -t nt_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-24/08-27-03/checkpoints/test/loss.ckpt'
+python eval_benchmark.py -e 'canonicalized/genomic_benchmark' -t genomic_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-24/08-27-03/checkpoints/test/loss.ckpt'
+python eval_benchmark.py -e 'canonicalized/bend_benchmark' -t bend_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-24/08-27-03/checkpoints/test/loss.ckpt'
+python train.py experiment='canonicalized/chromatin_profile' wandb.group='canonicalized'

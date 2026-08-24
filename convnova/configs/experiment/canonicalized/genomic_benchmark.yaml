@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - canon/genomic_benchmark
+  - /canonicalization: default
+  - _self_
+
+dataset:
+  dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark_parsed

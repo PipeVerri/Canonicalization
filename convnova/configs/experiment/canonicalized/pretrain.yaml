@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - canon/pretrain
+  - /canonicalization: default
+  - _self_
+
+dataset:
+  use_control_signal: False
+  control_signal_dir: ${oc.env:PROJECT_ROOT}/data/parsed/control_signals/
+  load_control_signal_using_memmap: False
+  bed_file: ${oc.env:PROJECT_ROOT}/data/hg38/human-sequences.bed # Same bed file
+  fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
