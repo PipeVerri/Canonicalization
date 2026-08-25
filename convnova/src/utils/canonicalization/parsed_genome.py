@@ -131,7 +131,7 @@ class ParsedGenome:
         assert type(annotations_level) == int and annotations_level <= 3 and annotations_level >= 1
 
         df = df[df["level"].astype(int) <= annotations_level]  # Filter the annotations for the desired level
-        df = df[df["Feature"] == "transcript"]  # Filter all the non-transcript features
+        df = df[(df["Feature"] == "transcript") | (df["Feature"] == "exon")]  # Filter out all the non-transcript features
 
         # ~ inverts the index, that's why the na is inverted
         # If the user wants to exclude na transcript_types, it's taken care of when dropping the na columns in the beggining

@@ -10,3 +10,6 @@ dataset:
   load_control_signal_using_memmap: False
   bed_file: ${oc.env:PROJECT_ROOT}/data/hg38/human-sequences.bed # Same bed file
   fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
+
+train:
+  seed: 4567
