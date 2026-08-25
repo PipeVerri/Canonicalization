@@ -8,7 +8,7 @@ import src.utils as utils
 import src.utils.train
 from src.utils.canonicalization import (
     read_fasta_into_records_dict,
-    generate_to_canonicalize_and_should_rc_at_end,
+    generate_canonicalization_segments_and_overlap_windows,
     save_records_into_fasta,
     canonicalize_genome,
     save_canonicalization_control_signal,
@@ -41,10 +41,10 @@ def main(config: DictConfig):
     def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
         nonlocal training_genome_to_canonicalize
         # I need this for the whole hg38 genome for the control signals for the BEND benchmark
-        segments_to_canonicalize, should_rc_at_end = generate_to_canonicalize_and_should_rc_at_end(
-            positive_coding_segments, negative_coding_segments, c_cfg.orient_all_segments, c_cfg.partial_canonicalization_works
+        segments_to_canonicalize, overlap_windows_to_canonicalize = generate_canonicalization_segments_and_overlap_windows(
+            positive_coding_segments, negative_coding_segments, c_cfg.overlapped_segments_break_entirely, c_cfg.partial_canonicalization_works
         )
-        training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "should_rc_at_end": should_rc_at_end}
+        training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "overlap_windows": overlap_windows_to_canonicalize}
     
     hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)
     assert len(training_genome_to_canonicalize.keys()) > 0

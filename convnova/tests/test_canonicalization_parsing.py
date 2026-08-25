@@ -81,7 +81,7 @@ def test_canonicalize_genome():
     canonicalization = {
         "genome1": {
             "segments": [(0, 10), (20, 30)],
-            "should_rc_at_end": False
+            "overlap_windows": []
         }
     }
 
@@ -108,10 +108,10 @@ def test_canonicalize_genome():
     canonicalization = {
         "genome1": {
             "segments": [],
-            "should_rc_at_end": True
+            "overlap_windows": [(0, len(training_genome["genome1"]))]
         }
     }
     canon = canonicalize_genome(training_genome, canonicalization, "rc")
     #print(str(canon))
-    #print(str(training_genome["genome1"].reverse_complement()))
+    #print(str(training_genome["genome1"].reverse_complemshould_rc_at_endent()))
     assert str(canon["genome1"]) == str(training_genome["genome1"].reverse_complement())
