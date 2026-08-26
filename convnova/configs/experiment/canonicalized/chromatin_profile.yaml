@@ -5,4 +5,9 @@ defaults:
   - _self_
 
 dataset:
-  dataset_dir: ${oc.env:PROJECT_ROOT}/data/deepsea_parsed
+  #dataset_dir: ${oc.env:PROJECT_ROOT}/data/deepsea_parsed
+  use_control_signal: "raw"
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/deepsea_parsed
+
+model:
+  use_control_signal: true

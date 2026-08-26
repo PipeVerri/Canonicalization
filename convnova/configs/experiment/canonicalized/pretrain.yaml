@@ -5,11 +5,14 @@ defaults:
   - _self_
 
 dataset:
-  use_control_signal: False
-  control_signal_dir: ${oc.env:PROJECT_ROOT}/data/parsed/control_signals/
+  use_control_signal: True
+  control_signal_dir: ${oc.env:PROJECT_ROOT}/data/parsed/raw_control_signals/
   load_control_signal_using_memmap: False
-  bed_file: ${oc.env:PROJECT_ROOT}/data/hg38/human-sequences.bed # Same bed file
-  fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
+  #bed_file: ${oc.env:PROJECT_ROOT}/data/hg38/human-sequences.bed # Same bed file
+  #fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
 
 train:
   seed: 4567
+
+model:
+  use_control_signal: true

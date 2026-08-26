@@ -335,7 +335,8 @@ class GenomicBenchmark(HG38):
                 padding_side='left', return_mask=False, val_ratio=0.0005, val_split_seed=2357, add_eos=False, 
                 detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                 shuffle=True, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
-                fast_forward_epochs=None, fast_forward_batches=None, *args, **kwargs):
+                fast_forward_epochs=None, fast_forward_batches=None, control_signals_dir=None, use_control_signal=False,
+                *args, **kwargs):
 
         self.dataset_name = dataset_name
         self.dest_path = dest_path
@@ -359,6 +360,8 @@ class GenomicBenchmark(HG38):
         self.shuffle = shuffle
         self.pin_memory = pin_memory
         self.drop_last = drop_last
+        self.use_control_signal = use_control_signal
+
         if "use_tokenizer" in kwargs:
             self.use_tokenizer = kwargs["use_tokenizer"]
         else:
@@ -377,6 +380,7 @@ class GenomicBenchmark(HG38):
         self.fast_forward_batches = fast_forward_batches
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
+        self.control_signals_dir = control_signals_dir
 
         if use_padding and padding_side != "right":
             raise ValueError("Control signals only supported with right padding")
@@ -413,7 +417,9 @@ class GenomicBenchmark(HG38):
                                 rc_aug=self.rc_aug,
                                 return_augs=False,
                                 return_mask=self.return_mask,
-                                use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True
+                                use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True,
+                                control_signals_dir=self.control_signals_dir,
+                                use_control_signal=self.use_control_signal
             )
             for split, max_len in zip(['train', 'val'], [self.max_length, self.max_length_val])
         ]
@@ -432,7 +438,7 @@ class NucleotideTransformer(HG38):
                 padding_side='left', return_mask=False, val_ratio=0.0005, val_split_seed=2357, add_eos=False, 
                 detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                 shuffle=True, shuffle_eval=None, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
-                fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=False, *args, **kwargs):
+                fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=False, control_signals_dir=None, *args, **kwargs):
 
         self.dataset_name = dataset_name
         self.dest_path = dest_path
@@ -458,6 +464,7 @@ class NucleotideTransformer(HG38):
         self.pin_memory = pin_memory
         self.drop_last = drop_last
         self.use_control_signal = use_control_signal
+        self.control_signals_dir = control_signals_dir
 
         if "use_tokenizer" in kwargs:
             self.use_tokenizer = kwargs["use_tokenizer"]
@@ -513,7 +520,8 @@ class NucleotideTransformer(HG38):
                                 return_augs=False,
                                 return_mask=self.return_mask,
                                 use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True,
-                                use_control_signal=self.use_control_signal
+                                use_control_signal=self.use_control_signal,
+                                control_signals_dir=self.control_signals_dir
             )
             for split, max_len in zip(['train', 'val'], [self.max_length, self.max_length_val])
         ]
@@ -535,7 +543,7 @@ class ChromatinProfile(HG38):
                  max_length=1000, d_output=919, rc_aug=False, add_eos=True, val_only=False,
                  batch_size=32, batch_size_eval=None, num_workers=1,
                  shuffle=False, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
-                 fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=True,
+                 fast_forward_epochs=None, fast_forward_batches=None, use_control_signal=True, control_signals_dir=None,
                  *args, **kwargs):
         
         self.tokenizer_name = tokenizer_name
@@ -554,6 +562,11 @@ class ChromatinProfile(HG38):
         self.drop_last = drop_last
         self.use_control_signal = use_control_signal
         self.control_signals = None
+        if control_signals_dir is None:
+            self.control_signals_dir = self.dataset_path
+        else:
+            self.control_signals_dir = Path(control_signals_dir)
+            assert self.control_signals_dir.exists()
 
         if fault_tolerant:
             assert self.shuffle
@@ -595,15 +608,15 @@ class ChromatinProfile(HG38):
         if self.use_control_signal != False and self.control_signals is None:
             if self.use_control_signal == True:
                 self.control_signals = {
-                    "train": np.load(self.dataset_path / "train-control-signal.npy", mmap_mode="r"),
-                    "test": np.load(self.dataset_path / "test-control-signal.npy", mmap_mode="r"),
-                    "valid": np.load(self.dataset_path / "valid-control-signal.npy", mmap_mode="r")
+                    "train": np.load(self.control_signals_dir / "train-control-signal.npy", mmap_mode="r"),
+                    "test": np.load(self.control_signals_dir / "test-control-signal.npy", mmap_mode="r"),
+                    "valid": np.load(self.control_signals_dir / "valid-control-signal.npy", mmap_mode="r")
                 }
             elif self.use_control_signal == "raw":
                 self.control_signals = {
-                    "train": np.load(self.dataset_path / "train-raw-control-signal.npy", mmap_mode="r"),
-                    "test": np.load(self.dataset_path / "test-raw-control-signal.npy", mmap_mode="r"),
-                    "valid": np.load(self.dataset_path / "valid-raw-control-signal.npy", mmap_mode="r")
+                    "train": np.load(self.control_signals_dir / "train-raw-control-signal.npy", mmap_mode="r"),
+                    "test": np.load(self.control_signals_dir / "test-raw-control-signal.npy", mmap_mode="r"),
+                    "valid": np.load(self.control_signals_dir / "valid-raw-control-signal.npy", mmap_mode="r")
                 }
         
         # Create all splits: torch datasets

@@ -5,4 +5,9 @@ defaults:
   - _self_
 
 dataset:
-  dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed
+  #dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed
+  use_control_signal: True
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/parsed/raw_control_signals/
+
+model:
+  use_control_signal: True

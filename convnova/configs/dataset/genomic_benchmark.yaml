@@ -1,5 +1,6 @@
 _name_: genomic_benchmark
 dest_path: null
+control_signals_dir: null
 
 d_output: ${.${.dataset_name}.classes}
 max_length: ${.${.dataset_name}.max_length}

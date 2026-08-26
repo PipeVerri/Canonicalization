@@ -1,4 +1,4 @@
-python eval_benchmark.py -e 'canonicalized/nt_benchmark' -t nt_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-25/08-36-06/checkpoints/test/loss.ckpt' train.seed=4567
-python eval_benchmark.py -e 'canonicalized/genomic_benchmark' -t genomic_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-25/08-36-06/checkpoints/test/loss.ckpt' train.seed=4567
-python eval_benchmark.py -e 'canonicalized/bend_benchmark' -t bend_benchmark wandb.group='canonicalized' train.pretrained_model_path='outputs/pretraining/canonicalized/2026-08-25/08-36-06/checkpoints/test/loss.ckpt' train.seed=4567
-python train.py experiment='canonicalized/chromatin_profile' wandb.group='canonicalized' train.seed=4567
+python eval_benchmark.py -e 'canonicalized/nt_benchmark' -t nt_benchmark wandb.group='raw_control_signal' train.pretrained_model_path='outputs/pretraining/raw_control_signal/2026-08-26/08-14-25/checkpoints/test/loss.ckpt' train.seed=4567
+python eval_benchmark.py -e 'canonicalized/genomic_benchmark' -t genomic_benchmark wandb.group='raw_control_signal' train.pretrained_model_path='outputs/pretraining/raw_control_signal/2026-08-26/08-14-25/checkpoints/test/loss.ckpt' train.seed=4567
+python eval_benchmark.py -e 'canonicalized/bend_benchmark' -t bend_benchmark wandb.group='raw_control_signal' train.pretrained_model_path='outputs/pretraining/raw_control_signal/2026-08-26/08-14-25/checkpoints/test/loss.ckpt' train.seed=4567
+python train.py experiment='canonicalized/chromatin_profile' wandb.group='raw_control_signal' train.seed=4567

@@ -5,4 +5,9 @@ defaults:
   - _self_
 
 dataset:
-  dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed
+  #dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed
+  use_control_signal: "raw"
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed
+
+model:
+  use_control_signal: true

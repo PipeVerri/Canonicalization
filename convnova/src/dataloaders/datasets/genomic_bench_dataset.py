@@ -143,7 +143,8 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         return_mask=False,
         use_tokenizer=True,
         use_control_signal=False,
-        padding_side="left"
+        padding_side="left",
+        control_signals_dir=None
     ):
 
         self.max_length = max_length
@@ -171,17 +172,24 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         # use Path object
         base_path = Path(dest_path) / dataset_name / split
 
+        if control_signals_dir is None and use_control_signal:
+            control_signals_dir = base_path
+        else:
+            control_signals_dir = Path(control_signals_dir) / dataset_name / split
+        assert control_signals_dir.exists()
+
         self.all_seqs = []
         self.all_labels = []
-        self.control_signals = [] if use_control_signal else None
+        self.control_signals_dict = {} if use_control_signal != False else None
         label_mapper = {}
+        self.path_names = []
 
         for i, x in enumerate(base_path.iterdir()):
             label_mapper[x.stem] = i
         
         for label_type in label_mapper.keys():
             if use_control_signal != False:
-                control_signals_dict = np.load(base_path / label_type / ("raw_control_signals.npz" if use_control_signal == "raw" else "control_signals.npz"))
+                self.control_signals_dict[label_mapper[label_type]] = np.load(control_signals_dir / label_type / ("raw_control_signals.npz" if use_control_signal == "raw" else "control_signals.npz"))
 
             for path in (base_path / label_type).iterdir():
                 if path.suffix != ".txt":
@@ -191,9 +199,9 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
                     content = f.read()
                 self.all_seqs.append(content)
                 self.all_labels.append(label_mapper[label_type])
-                if use_control_signal:
-                    self.control_signals.append(control_signals_dict[path.name])
-                
+                self.path_names.append(path.name)
+                    
+        
     def __len__(self):
         return len(self.all_labels)
 
@@ -222,8 +230,8 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         # need to wrap in list
         target = torch.LongTensor([y])  # offset by 1, includes eos
 
-        if self.control_signals is not None:
-            control_signal = self.control_signals[idx]
+        if self.control_signals_dict is not None:
+            control_signal = self.control_signals_dict[y][self.path_names[idx]]
             control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
             seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 

@@ -49,7 +49,8 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         return_augs=False,
         return_mask=False,
         use_tokenizer=True,
-        use_control_signal=False
+        use_control_signal=False,
+        control_signals_dir=None
     ):
 
         self.max_length = max_length
@@ -70,6 +71,13 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         if split == "val":
             split = "test"
 
+        if control_signals_dir is None and use_control_signal:
+            control_signals_dir = Path(dest_path)
+        else:
+            control_signals_dir = Path(control_signals_dir)
+        assert control_signals_dir.exists()
+        
+
         # use Path object
         base_path = Path(dest_path) / dataset_name 
         #print(f"Using {base_path}")
@@ -84,7 +92,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
                     print("**USING CONTROL SIGNAL**")
                     self.control_signal = {}
                     # I can add memmap_mode="r" to check that I'm not writing into it
-                    control_signals_npz = np.load(base_path / (f"{file.stem}_raw_signals.npz" if use_control_signal == "raw" else f"{file.stem}.npz"))
+                    control_signals_npz = np.load(control_signals_dir / dataset_name / (f"{file.stem}_raw_signals.npz" if use_control_signal == "raw" else f"{file.stem}.npz"))
                     for seq_key in control_signals_npz:
                         self.control_signal[seq_key] = torch.from_numpy(control_signals_npz[seq_key])
 
@@ -110,8 +118,6 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             max_length=self.max_length,
             truncation=True,
         )
-        if self.control_signal is not None:
-            assert len(seq) == len(x)
 
         seq_ids = seq["input_ids"] # get input_ids
         assert type(seq_ids)==list
@@ -132,6 +138,8 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             seq_control_signal = self.control_signal[seq_id]
             if self.use_padding:
                 seq_control_signal = trim_and_right_pad_to_torch(seq_control_signal, self.max_length)
+
+            assert len(seq_control_signal) == len(seq_ids)
             seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)
 
         if self.return_mask:

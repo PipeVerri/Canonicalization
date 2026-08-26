@@ -12,6 +12,7 @@ __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
 use_control_signal: False
+control_signals_dir: null # Separate from dest_path so I can use the original data with the control signals
 # these are used to find the right attributes automatically for each dataset
 
 # name maxlen classes samples metric

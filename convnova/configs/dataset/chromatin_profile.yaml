@@ -4,6 +4,7 @@ max_length: 1000
 train_len: ${.max_length}
 d_output: 919
 use_control_signal: False
+control_signals_dir: null
 
 use_padding: True
 padding_side: 'right'
