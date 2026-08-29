@@ -172,11 +172,12 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         # use Path object
         base_path = Path(dest_path) / dataset_name / split
 
-        if control_signals_dir is None and use_control_signal:
-            control_signals_dir = base_path
-        else:
-            control_signals_dir = Path(control_signals_dir) / dataset_name / split
-        assert control_signals_dir.exists()
+        if use_control_signal != False:
+            if control_signals_dir is None:
+                control_signals_dir = base_path
+            else:
+                control_signals_dir = Path(control_signals_dir) / dataset_name / split
+            assert control_signals_dir.exists()
 
         self.all_seqs = []
         self.all_labels = []

@@ -199,16 +199,19 @@ class NTBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         np.savez(output_dir / f"{task_name}_{split}_raw_signals.npz", **raw_control_signals)
 
     def _process_record(self, task_name, record_id, seq, reference_genome: ParsedGenome):
-        if task_name in self.task_config.skip_tasks:
-            empty_control_signal = np.zeros(len(seq))
-            return record_id, seq, empty_control_signal, empty_control_signal # 0s for the control signal
-
         # There's no need for canonicalizing the labels because:
         # - On histone tasks, histones interact with double stranded DNA, the label is the same for the RC
         # - Enhancers (seem like) they're mostly bidirectional, and even if they aren't, I can't know if taking a non-enhancer sequence's RC suddenly turns it into an enhancer
         # - The promoters aren't transcribed
         # - The splicing seqs are already on the coding strand
+
         seq_canon, control_signal, raw_control_signal, _ = self.align_and_canonicalize_record(seq, task_name, reference_genome)
+
+        # This is done after processing to get the raw_control_signal
+        if task_name in self.task_config.skip_tasks:
+            empty_control_signal = np.zeros(len(seq))
+            return record_id, seq, empty_control_signal, raw_control_signal # 0s for the control signal
+
         return record_id, seq_canon, control_signal, raw_control_signal
 
 class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
@@ -242,24 +245,28 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                         task.task_name,
                         self.input_dir / task.task_name / split / label,
                         self.output_dir / task.task_name / split / label,
-                        reference_genome
+                        reference_genome,
+                        skip_task=task.task_name == "human_ensembl_regulatory" and label == "promoter"
                     )
         self.has_downstream_task_been_processed[task] = True
 
     @staticmethod
-    def _process_single_file(filename):
+    def _process_single_file(args):
+        filename, skip_task = args
+
         state = GenomicBenchmarkCanonicalizer._worker_state_dict
         c = state["canonicalizer"]
 
         with open(state["seqs_dir_input"] / filename, "r") as f:
             seq = f.read().strip()
 
-        if state["task_name"] in c.task_config.skip_tasks:
+        
+        seq_canon, control_signal, raw_control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
+        # Do it after to get the raw control signal
+        if (state["task_name"] in c.task_config.skip_tasks) or skip_task:
             seq_canon = seq
-            control_signal = raw_control_signal = np.zeros(len(seq))
+            control_signal = np.zeros(len(seq))
             status = None
-        else:
-            seq_canon, control_signal, raw_control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
 
         with open(state["seqs_dir_output"] / filename, "w") as f:
             f.write(str(seq_canon))
@@ -276,7 +283,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             "seqs_dir_output": seqs_dir_output
         })
 
-    def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output, reference_genome: ParsedGenome):
+    def _process_seqs_dir(self, task_name, seqs_dir_input, seqs_dir_output, reference_genome: ParsedGenome, skip_task):
         seqs_dir_output.mkdir(parents=True, exist_ok=True)
         control_signals = {}
         raw_control_signals = {}
@@ -288,7 +295,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             initializer=self._init_worker,
             initargs=(task_name, self, reference_genome, seqs_dir_input, seqs_dir_output)
         ) as pool:
-            control_signals_iter = pool.imap(self._process_single_file, input_files, chunksize=64)
+            control_signals_iter = pool.imap(self._process_single_file, zip(input_files, [skip_task] * len(input_files)), chunksize=64)
             for filename, (control_signal, raw_control_signal, status) in tqdm(zip(input_files, control_signals_iter), total=len(input_files)):
                 control_signals[filename] = control_signal
                 raw_control_signals[filename] = raw_control_signal
@@ -302,12 +309,26 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     tasks_list = [DownstreamTask(task_name=t, reference_genome_name="hg38") for t in (
         "gene_finding", "cpg_methylation", "variant_effects_disease", "variant_effects_expression"
     )]
-    
+
+    @staticmethod
+    def _reverse_label(label):
+        return reversed(label)
+
+    @staticmethod
+    def _complement_label(label, control_signal):
+        # Flip the labels according to the control signal
+        # The labels are {Ef, Df, If, Af, Er, Dr, Ir, Ar, NC} (exon, donor, acceptor, intron) and the strand they're on (A.1)
+        mask = control_signal.astype(bool)
+        mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3, 8]) # Ef -> Er, Df -> Dr..., NC stays NC
+        label[mask] = mapping[label[mask]]
+        return label
+        
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
         bed_name = task.task_name + ".bed"
         shutil.copy(self.input_dir / bed_name, self.output_dir / bed_name) # The bed file stays the same for all
 
-        # The only thing that needs to be canonicalized are the gene_finding labels
+        # The only thing that needs to be canonicalized are the gene_finding labels.
+        # The tasks are just coords of hg38(which has already been canonicalized), so I just leave the coords intact
         if task.task_name != "gene_finding":
             self.has_downstream_task_been_processed[task] = True
             return
@@ -335,13 +356,18 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                 alignment = Alignment(df_row["start"], df_row["end"], df_row["chromosome"], strand)
                 mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
                 _, control_signal, _ = self._canonicalize_record(mock_seq, alignment, reference_genome)
-            
-                # Flip the labels according to the control signal
-                # The labels are {Ef, Df, If, Af, Er, Dr, Ir, Ar, NC} (exon, donor, acceptor, intron) and the strand they're on (A.1)
-                mask = control_signal.astype(bool)
-                mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3, 8]) # Ef -> Er, Df -> Dr..., NC stays NC
+
                 canonicalized_label = label.copy().astype(np.int8)
-                canonicalized_label[mask] = mapping[canonicalized_label[mask]]
+                if self.config.transformation == "reversed":
+                    canonicalized_label = self._reverse_label(canonicalized_label)
+                elif self.config.transformation == "complement":
+                    canonicalized_label = self._complement_label(canonicalized_label, control_signal)
+                elif self.config.transformation == "rc":
+                    canonicalized_label = self._reverse_label(canonicalized_label)
+                    canonicalized_label = self._complement_label(canonicalized_label, control_signal)
+                else:
+                    raise ValueError(f"Transformation {self.config.transformation} not recognized")
+                
                 canonicalized_labels.append(canonicalized_label)
             
         # Save the canonicalized labels

@@ -7,7 +7,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from eval_benchmark import benchmark_tasks, eval_model_on_tasks, run_experiment
 
 
-RANDOM_SEEDS = 3
+RANDOM_SEEDS = 1
 
 def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json=None | str, task_specific_overrides={}, skip_tasks=set(), failed_checkpoint_id=None):
     # Pretrain
@@ -59,12 +59,11 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json
 if __name__ == "__main__":
     for _ in range(RANDOM_SEEDS):
         seed = random.randint(0, 10_000)
-        while seed == 2222 or seed == 2805:
+        while seed == 2222 or seed == 2805 or seed == 7275 or seed == 5947:
             seed = random.randint(0, 10_000)
 
         run_all_tasks(
             [f"train.seed={seed}"], 
             "pretraining/baseline/random_seeds",
             str(seed),
-            output_json="./random_seeds.json"
         )

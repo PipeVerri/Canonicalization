@@ -60,7 +60,7 @@ trainer:
 dataset:
   batch_size: 64
   dataset_name: 'human_ensembl_regulatory'
-  dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark_parsed/
+  dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark/
   add_eos: False
   __l_max: ${.max_length}
   tokenizer_name: char

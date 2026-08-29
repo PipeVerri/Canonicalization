@@ -71,16 +71,15 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         if split == "val":
             split = "test"
 
-        if control_signals_dir is None and use_control_signal:
-            control_signals_dir = Path(dest_path)
-        else:
-            control_signals_dir = Path(control_signals_dir)
-        assert control_signals_dir.exists()
-        
+        if use_control_signal != False:
+            if control_signals_dir is None:
+                control_signals_dir = Path(dest_path)
+            else:
+                control_signals_dir = Path(control_signals_dir)
+            assert control_signals_dir.exists()
 
         # use Path object
         base_path = Path(dest_path) / dataset_name 
-        #print(f"Using {base_path}")
         assert base_path.exists(), 'path to fasta file must exist'
 
         for file in (base_path.iterdir()):
