@@ -77,6 +77,33 @@ TASKS_GROUPS = {
     "chromatin_profile_prediction": ["chromatin_profile_prediction"]
 }
 
+def compute_trial_grouped_z_score(trial_name):
+    with open(json_file, "r") as f:
+        runs_scores = json.load(f)[trial_name]
+
+    runs_z_scores = {}
+    for task_name, val in runs_scores.items():
+        if task_name == "pretraining":
+            continue
+
+        if type(val) == dict:
+            for dataset_name, summary in val.items():
+                runs_z_scores[dataset_name] = compute_z_score(dataset_name, summary)
+        else:
+            runs_z_scores[task_name] = compute_z_score(task_name, val)
+
+    # Because there are a lot of similar tasks in NT benchmark and genomic benchmark compared to the NT, I will do a grouped mean for each task type(enhancers, histones, etc)
+    groups_means = []
+    for group_tasks in TASKS_GROUPS.values():
+        mean = 0
+        for task in group_tasks:
+            mean += runs_z_scores[task]
+        groups_means.append(mean / len(group_tasks))
+
+    global_mean = sum(groups_means) / len(groups_means)
+    return global_mean
+
+
 def objective(trial: optuna.Trial):
     global ROOT_DIR, json_file
 
@@ -144,31 +171,7 @@ def objective(trial: optuna.Trial):
     }, skip_tasks=skip_tasks, failed_checkpoint_id=str(trial.number - 1) if failed_trial else None)
 
     # Read the json and compute the scores
-    with open(json_file, "r") as f:
-        runs_scores = json.load(f)[trial_name]
-
-    runs_z_scores = {}
-    for task_name, val in runs_scores.items():
-        if task_name == "pretraining":
-            continue
-
-        if type(val) == dict:
-            for dataset_name, summary in val.items():
-                runs_z_scores[dataset_name] = compute_z_score(dataset_name, summary)
-        else:
-            runs_z_scores[task_name] = compute_z_score(task_name, val)
-
-    # Because there are a lot of similar tasks in NT benchmark and genomic benchmark compared to the NT, I will do a grouped mean for each task type(enhancers, histones, etc)
-    groups_means = []
-    for group_tasks in TASKS_GROUPS.values():
-        mean = 0
-        for task in group_tasks:
-            mean += runs_z_scores[task]
-        groups_means.append(mean / len(group_tasks))
-
-    global_mean = sum(groups_means) / len(groups_means)
-    return global_mean
-
+    return compute_trial_grouped_z_score(trial_name)
 
 class FdTee:
     def __init__(self, log_path):

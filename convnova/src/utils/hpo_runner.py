@@ -19,7 +19,9 @@ def run_model_with_config_and_overrides(experiment, overrides, output_json=None,
     # Fix for the pretrained_model_path
     for idx, val in enumerate(overrides):
         split = val.split("=")
-        if split[0] == "train.pretrained_model_path":
+        print(f"SPLIT IS {split}")
+
+        if split[0] == "train.pretrained_model_path" and split[1].replace("'", "")[0] != "/":
             cktp_path = Path(prev_cwd) / split[1]
             overrides[idx] = f"train.pretrained_model_path={str(cktp_path.absolute())}"
 

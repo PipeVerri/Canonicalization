@@ -237,7 +237,8 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                     task.task_name,
                     self.input_dir / task.task_name / split / task.folder_name,
                     self.output_dir / task.task_name / split / task.folder_name,
-                    reference_genome
+                    reference_genome,
+                    skip_task=False
                 )
             else:
                 for label in os.listdir(self.input_dir / task.task_name / split):
@@ -312,7 +313,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 
     @staticmethod
     def _reverse_label(label):
-        return reversed(label)
+        return label[::-1]
 
     @staticmethod
     def _complement_label(label, control_signal):
@@ -358,7 +359,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                 _, control_signal, _ = self._canonicalize_record(mock_seq, alignment, reference_genome)
 
                 canonicalized_label = label.copy().astype(np.int8)
-                if self.config.transformation == "reversed":
+                if self.config.transformation == "reverse":
                     canonicalized_label = self._reverse_label(canonicalized_label)
                 elif self.config.transformation == "complement":
                     canonicalized_label = self._complement_label(canonicalized_label, control_signal)
