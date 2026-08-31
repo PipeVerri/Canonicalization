@@ -1,5 +1,5 @@
 from pathlib import Path
-from benchmarks import run_experiment, benchmark_tasks, eval_model_on_tasks
+from .benchmarks import run_experiment, benchmark_tasks, eval_model_on_tasks
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 

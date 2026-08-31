@@ -4,7 +4,7 @@ import sys
 import os
 import subprocess
 from pathlib import Path
-from full_eval import run_all_tasks
+from .full_eval import run_all_tasks
 import json
 
 ROOT_DIR = Path(__file__).parents[2]
