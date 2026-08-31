@@ -312,8 +312,22 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     )]
 
     @staticmethod
-    def _reverse_label(label):
-        return label[::-1]
+    def _reverse_label(label, control_signal):
+        segments = []
+        segment_start = None
+        for i in range(len(control_signal)):
+            if control_signal[i] == 1 and segment_start is None:
+                segment_start = i
+            elif control_signal[i] == 0 and segment_start is not None:
+                segments.append((segment_start, i))
+                segment_start = None
+        if segment_start is not None:
+            segments.append((segment_start, len(control_signal)))
+
+        for (start, end) in segments:
+            label[start:end] = label[start:end][::-1]
+
+        return label
 
     @staticmethod
     def _complement_label(label, control_signal):
@@ -360,11 +374,11 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 
                 canonicalized_label = label.copy().astype(np.int8)
                 if self.config.transformation == "reverse":
-                    canonicalized_label = self._reverse_label(canonicalized_label)
+                    canonicalized_label = self._reverse_label(canonicalized_label, control_signal)
                 elif self.config.transformation == "complement":
                     canonicalized_label = self._complement_label(canonicalized_label, control_signal)
                 elif self.config.transformation == "rc":
-                    canonicalized_label = self._reverse_label(canonicalized_label)
+                    canonicalized_label = self._reverse_label(canonicalized_label, control_signal)
                     canonicalized_label = self._complement_label(canonicalized_label, control_signal)
                 else:
                     raise ValueError(f"Transformation {self.config.transformation} not recognized")
