@@ -1,7 +1,7 @@
 from src.utils.canonicalization import (
     calculate_segment_set_destruction_cost,
     generate_canonicalization_segments_and_overlap_windows,
-    build_overlap_window_segments,
+    build_conflict_windows,
     canonicalize_genome,
 )
 from Bio.Seq import Seq
@@ -20,7 +20,7 @@ def test_build_overlap_window_segments_no_overlap():
 
     overlap_window_positive_segments = set()
     overlap_window_negative_segments = {(0, 10)}
-    build_overlap_window_segments(
+    build_conflict_windows(
         0, 10, "negative",
         overlap_window_positive_segments,
         overlap_window_negative_segments,
@@ -41,7 +41,7 @@ def test_build_overlap_window_segments_follows_chain_across_multiple_segments():
 
     overlap_window_positive_segments = set()
     overlap_window_negative_segments = {neg1}
-    build_overlap_window_segments(
+    build_conflict_windows(
         neg1[0], neg1[1], "negative",
         overlap_window_positive_segments,
         overlap_window_negative_segments,
@@ -62,7 +62,7 @@ def test_build_overlap_window_segments_does_not_revisit_segments():
 
     overlap_window_positive_segments = set()
     overlap_window_negative_segments = {neg1}
-    build_overlap_window_segments(
+    build_conflict_windows(
         neg1[0], neg1[1], "negative",
         overlap_window_positive_segments,
         overlap_window_negative_segments,

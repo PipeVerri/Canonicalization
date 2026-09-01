@@ -5,11 +5,15 @@ canonicalization:
   include_cdjv_segments: True
   include_pseudogenes: True
   include_na_transcript_type: false
-  overlapping_segments_canonicalization: "full" # partial, full, skip
   transformation: "rc"  # reverse, complement, rc
   num_workers: 16
+
+  # Check the discussion section for more details
+  overlap_transformation_behavior: "full_break" # partial_break, full_break, both_break
+  full_break_config:
+    orient_all_segments: True
+    keep_segments_order: True # Inert when orient_all_segments is set to False
   
-  # Paths
   data_path: ${oc.env:PROJECT_ROOT}/data/
   pretraining_fasta_file: ${.data_path}/hg38/GRCh38.primary_assembly.genome.fa
   pretraining_fasta_output_dir: ${.data_path}/parsed/

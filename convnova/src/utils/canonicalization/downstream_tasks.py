@@ -103,7 +103,7 @@ class CanonicalizedDownstreamTask:
         # The model should always view the transcribed features in the + orientattion. The RC-at-end doesn't change that, everything always ends up in the + orientation
         # If seq is on the positive branch, but it's on top of a negative transcribed feature, the model should see the RC of seq
         # If seq is on the negative branch, but it's on top of a positive transcribed feature, the model should see the RC of seq
-        # If seq is on the negative branch, even though the model has never seen it, I won't take the RC to test generalization
+        # If seq is on the negative branch and isn't on top of a transcribed feature, even though the model has never seen it, I won't take the RC to test generalization
 
         transcribed_segments_that_contain_seq = get_alignment_transcribed_segments(alignment, reference_genome)
         seq_canon = MutableSeq(seq)

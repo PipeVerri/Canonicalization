@@ -8,7 +8,7 @@ import src.utils as utils
 import src.utils.train
 from src.utils.canonicalization import (
     read_fasta_into_records_dict,
-    generate_canonicalization_segments_and_overlap_windows,
+    generate_canonicalization_params,
     save_records_into_fasta,
     canonicalize_genome,
     save_canonicalization_control_signal,
@@ -18,7 +18,8 @@ from src.utils.canonicalization import (
     GenomicBenchmarkCanonicalizer,
     BendBenchmarkCanonicalizer,
     DeepseaCanonicalizer,
-    CanonicalizedDownstreamTask
+    CanonicalizedDownstreamTask,
+    CanonicalizationParams
 )
 
 log = src.utils.train.get_logger(__name__)
@@ -36,15 +37,18 @@ def main(config: DictConfig):
     log.info("Loading training genome...")
     training_genome = read_fasta_into_records_dict(Path(c_cfg.pretraining_fasta_file))
 
-    training_genome_to_canonicalize = {}
+    training_genome_to_canonicalize: dict[str, CanonicalizationParams] = {}
 
     def parse_hg38_segments(positive_coding_segments, negative_coding_segments, ucsc_id):
         nonlocal training_genome_to_canonicalize
         # I need this for the whole hg38 genome for the control signals for the BEND benchmark
-        segments_to_canonicalize, overlap_windows_to_canonicalize = generate_canonicalization_segments_and_overlap_windows(
-            positive_coding_segments, negative_coding_segments, c_cfg.overlapping_segments_canonicalization
+        canonicalization_params = generate_canonicalization_params(
+            positive_coding_segments, negative_coding_segments,
+            overlap_transformation_behavior=c_cfg.overlap_transformation_behavior,
+            orient_all_segments=c_cfg.full_break_config.orient_all_segments,
+            keep_segments_order=c_cfg.full_break_config.keep_segments_order
         )
-        training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "overlap_windows": overlap_windows_to_canonicalize}
+        training_genome_to_canonicalize[ucsc_id] = canonicalization_params
     
     hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)
     assert len(training_genome_to_canonicalize.keys()) > 0
