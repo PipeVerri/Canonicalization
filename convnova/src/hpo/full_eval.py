@@ -8,6 +8,7 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json
 
     # Pretrain
     checkpoint_dir = ROOT_DIR / "outputs" / runs_dir_name / (run_name if failed_checkpoint_id is None else failed_checkpoint_id)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
     pretraining_overrides = [
         f"hydra.run.dir={str(checkpoint_dir.absolute())}",
         *call_overrides

@@ -1,8 +1,8 @@
 import optuna
-from optuna_trial import objective
+from .optuna_trial import objective
 from pathlib import Path
 import json
-from optuna_db_cleanup import remove_two_failed_trials_in_a_row
+from .optuna_db_cleanup import remove_two_failed_trials_in_a_row
 
 def optimize_study(sampler: optuna.samplers.BaseSampler, study_name: str, hpo_dir: Path, checkpoints_dir_name: str, baseline_metrics_path: Path, overrides_dict_method, n_trials: int):
     # Load the baseline_metrics
@@ -11,15 +11,19 @@ def optimize_study(sampler: optuna.samplers.BaseSampler, study_name: str, hpo_di
         
     # Clean up the sqlite file
     optuna_db_path = hpo_dir / "optuna.db"
-    remove_two_failed_trials_in_a_row(study_name, hpo_dir / "optuna.db")
+    if not optuna_db_path.exists():
+        print("Warning!!!! optuna db path doesn't exist")
+        optuna_db_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        remove_two_failed_trials_in_a_row(study_name, optuna_db_path)
 
-    study = optuna.create_study(study_name="phase_1", storage=f"sqlite:///{optuna_db_path}", load_if_exists=True, direction="maximize", sampler=sampler)
+    study = optuna.create_study(study_name=study_name, storage=f"sqlite:///{optuna_db_path}", load_if_exists=True, direction="maximize", sampler=sampler)
 
     # Checks if it should restart a failed run
-    last_trial = study.trials[-1]
+    last_trial = study.trials[-1] if len(study.trials) >= 2 else None
     json_file = hpo_dir / "outputs.json"
 
-    if last_trial.state == optuna.trial.TrialState.FAIL:
+    if (last_trial is not None) and (last_trial.state == optuna.trial.TrialState.FAIL):
         # Rename the json so it uses the new trial number
         with open(json_file, "r") as f:
             runs_scores = json.load(f)

@@ -97,7 +97,7 @@ def compute_trial_grouped_z_score(json_file: Path, baseline_metrics: dict, trial
 
 def recursively_build_overrides_list(current_overrides_dict: dict, prefix: str) -> list:
     overrides = []
-    for key, val in current_overrides_dict:
+    for key, val in current_overrides_dict.items():
         if type(val) == dict:
             if prefix != "":
                 new_prefix = f"{prefix}.{key}"

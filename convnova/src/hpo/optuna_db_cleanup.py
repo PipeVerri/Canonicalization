@@ -6,9 +6,19 @@ def remove_two_failed_trials_in_a_row(study_name: str, optuna_db_path: Path):
     conn = sqlite3.connect(optuna_db_path)
     try:
         # Get the study id
-        cursor = conn.execute(f"SELECT * from studies where study_id = '{study_name}'")
+        cursor = conn.execute(f"SELECT * from studies where study_name = '{study_name}'")
         study = cursor.fetchone()
         if study is None:
+            # Check if it's because of a new study
+            cursor = conn.execute(f"SELECT * from studies")
+            studies = cursor.fetchall()
+            print("Studies are:")
+            pprint(studies)
+            print(f"DB path is {optuna_db_path}")
+            if len(studies) == 0:
+                print(f"Study {study_name} not found, but no studies exist in the database. This is likely a new study.")
+                return
+
             raise RuntimeError(f"Study {study_name} not found")
         else:
             study_id = study[0]
