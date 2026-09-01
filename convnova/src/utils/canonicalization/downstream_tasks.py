@@ -104,6 +104,9 @@ class CanonicalizedDownstreamTask:
         # If seq is on the positive branch, but it's on top of a negative transcribed feature, the model should see the RC of seq
         # If seq is on the negative branch, but it's on top of a positive transcribed feature, the model should see the RC of seq
         # If seq is on the negative branch and isn't on top of a transcribed feature, even though the model has never seen it, I won't take the RC to test generalization
+        
+        # Even if seq falls on a transcripted feature, the model may have never seen the + strand of seq because the canonicalization algorithm may had to take compromises and not orient the segment where seq is
+        # Still, seq will be passed on it's + transcribed orientation because is that the model learns the transcriptional assimetry, not the specific compromises of my canonicalization algorithm
 
         transcribed_segments_that_contain_seq = get_alignment_transcribed_segments(alignment, reference_genome)
         seq_canon = MutableSeq(seq)

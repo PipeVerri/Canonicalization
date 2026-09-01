@@ -228,9 +228,19 @@ class ParsedGenome:
         return None
 
     def align_transcript_position_with_seq(self, alignment, segment, seq_length):
-        segment_start = max(0, segment[0] - alignment.r_st)
-        segment_end = min(seq_length, segment[1] - alignment.r_st)
-        return segment_start, segment_end
+        # Mappy gives the coordinates as start < end ALWAYS no matter the orientation of the alignment
+        # That means that if I have an alignment of coords (0, 40) in the - strand that overlaps a transcribed segment of coords (30, 50), that means that
+        # the (0, 10) portion of the segment is transcribed(because the RC implies a REVERSE), not the (30, 40) portion of it
+        # Doing it naive way(saying that the overlapping segment is the 30, 40) affects the control signal always, and seq when partial_downstream_canonicalization is set to True
+
+        if alignment.strand == 1:
+            segment_start = segment[0] - alignment.r_st
+            segment_end = segment[1] - alignment.r_st
+        else: # strand == -1
+            # The interval (s, e) ends on (e - L, s - L) with L being the length of the reversed sequence
+            segment_start = alignment.r_en - segment[1]
+            segment_end = alignment.r_en - segment[0]
+        return max(0, segment_start), min(seq_length, segment_end)
 
     def _log(self, message):
         if self.hydra_logger:
