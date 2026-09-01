@@ -4,7 +4,8 @@ from types import SimpleNamespace
 from Bio.Seq import Seq
 from src.utils.canonicalization import (
     ParsedGenome,
-    canonicalize_genome
+    canonicalize_genome,
+    CanonicalizationParams
 )
 
 # `parse_transcribed_features_from_gff` used to be a single free function that both
@@ -79,10 +80,12 @@ def test_canonicalize_genome():
     training_genome = {"genome1": Seq("ACGTACGTAC" + "TTTTTTTTTT" + "ACGTACGTAC")}
 
     canonicalization = {
-        "genome1": {
-            "segments": [(0, 10), (20, 30)],
-            "overlap_windows": []
-        }
+        "genome1":
+            CanonicalizationParams(
+                segments=[(0, 10), (20, 30)],
+                conflict_windows=[],
+                should_rc_at_end=False
+            )
     }
 
     reverse = canonicalize_genome(
@@ -106,10 +109,11 @@ def test_canonicalize_genome():
     assert str(rc)         == "GTACGTACGT" + "TTTTTTTTTT" + "GTACGTACGT"
 
     canonicalization = {
-        "genome1": {
-            "segments": [],
-            "overlap_windows": [(0, len(training_genome["genome1"]))]
-        }
+        "genome1": CanonicalizationParams(
+            segments=[],
+            conflict_windows=[],
+            should_rc_at_end=True
+        )
     }
     canon = canonicalize_genome(training_genome, canonicalization, "rc")
     #print(str(canon))

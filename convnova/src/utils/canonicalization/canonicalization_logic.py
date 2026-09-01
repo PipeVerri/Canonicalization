@@ -89,7 +89,7 @@ def generate_canonicalization_params(
                 conflict_window_positive_segments = set()
                 conflict_window_negative_segments = {(start, end)}
                 build_conflict_windows(
-                    start, end, "-", 
+                    start, end, "negative", 
                     conflict_window_positive_segments=conflict_window_positive_segments, 
                     conflict_window_negative_segments=conflict_window_negative_segments,
                     positive_segments_intervaltree=positive_coding_intervaltree,
@@ -101,26 +101,27 @@ def generate_canonicalization_params(
                     already_handled_segments.add((conflict_segment[0], conflict_segment[1]))
                 
                 # The cost will be used for both logic paths
-                save_positive_segments_cost = calculate_segment_set_destruction_cost(conflict_window_negative_segments) # Saving the positive costs destroying the negative
-                save_negative_segments_cost = calculate_segment_set_destruction_cost(conflict_window_positive_segments)
+                destroy_positive_segments_cost = calculate_segment_set_destruction_cost(conflict_window_positive_segments)
+                destroy_negative_segments_cost = calculate_segment_set_destruction_cost(conflict_window_negative_segments) # Saving the positive costs destroying the negative
 
                 if not orient_all_segments:
                     # If I'm not forced to orient all segments, I have to choose wether to save A(and ignore B), or save B(flip it and destroy A)
                     # If there are more than two segments(A+, B-,C-), then maybe it's better to save B and C than to save A, I can't infer that by only looking at A and B.
                     # That's why I'm building the conflict window first
                     
-                    if save_negative_segments_cost < save_positive_segments_cost:
+                    if destroy_positive_segments_cost < destroy_negative_segments_cost: # If it's cheaper to destroy the positive, then transform the negative segments and destroy the positive ones
                         for negative_conflict_segment in conflict_window_negative_segments:
                             segments_to_flip.append((negative_conflict_segment[0], negative_conflict_segment[1]))
                     else:
-                        # If it's cheaper to save the positive segments, just ignore the negative ones
+                        # If it's cheaper to destroy the negative segments, just ignore them
                         pass
                 else:
                     if keep_segments_order:
                         raise RuntimeError("This case should have been handled above")
                     else:
+                        print(f"destroy_positive_segments_cost: {destroy_positive_segments_cost}, destroy_negative_segments_cost: {destroy_negative_segments_cost}")
                         # The same logic as the not_orient_all_segments case, but if it's cheaper to save the positives, then take their RC and then take the RC of the whole conflict window
-                        if save_negative_segments_cost < save_positive_segments_cost:
+                        if destroy_positive_segments_cost < destroy_negative_segments_cost:
                             for negative_conflict_segment in conflict_window_negative_segments:
                                 segments_to_flip.append((negative_conflict_segment[0], negative_conflict_segment[1]))
                         else:
@@ -131,7 +132,7 @@ def generate_canonicalization_params(
                             # Then, take the RC of the whole conflicts window
                             conflict_window_start = math.inf
                             conflict_window_end = 0
-                            for conflict_segment in conflict_window_negative_segments.union(conflict_window_negative_segments):
+                            for conflict_segment in conflict_window_positive_segments.union(conflict_window_negative_segments):
                                 conflict_window_start = min(conflict_window_start, conflict_segment[0])
                                 conflict_window_end = max(conflict_window_end, conflict_segment[1])
                             conflict_windows_to_flip.append((conflict_window_start, conflict_window_end))

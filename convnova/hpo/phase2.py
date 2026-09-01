@@ -7,7 +7,7 @@ ROOT_DIR = Path(__file__).parents[1]
 def build_overrides_dict(trial: optuna.Trial):
     return {
         "canonicalization": {
-            "overlapping_segments_canonicalization": trial.suggest_categorical("overlapping_segments_canonicalization", ["partial", "full", "skip"])
+            "overlap_transformation_behavior": trial.suggest_categorical("overlapping_segments_canonicalization", ["partial_break", "full_break", "both_break"])
         },
         "wandb": {
             "group": "overlapping_segments_ablation",
@@ -16,7 +16,9 @@ def build_overrides_dict(trial: optuna.Trial):
     }
 
 sampler = optuna.samplers.GridSampler({
-    "overlapping_segments_canonicalization": ["partial", "full", "skip"]
+    "overlapping_segments_canonicalization": ["partial_break", "full_break", "both_break"],
+    "orient_all_segments": [True, False],
+    "keep_segments_order": [True, False]
 })
 
 optimize_study(

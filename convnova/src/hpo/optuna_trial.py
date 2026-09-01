@@ -95,6 +95,23 @@ def compute_trial_grouped_z_score(json_file: Path, baseline_metrics: dict, trial
     global_mean = sum(groups_means) / len(groups_means)
     return global_mean
 
+def recursively_build_overrides_list(current_overrides_dict: dict, prefix: str) -> list:
+    overrides = []
+    for key, val in current_overrides_dict:
+        if type(val) == dict:
+            if prefix != "":
+                new_prefix = f"{prefix}.{key}"
+            else:
+                new_prefix = key
+            overrides.extend(recursively_build_overrides_list(val, new_prefix))
+        else:
+            if prefix != "":
+                new_prefix = f"{prefix}.{key}"
+            else:
+                new_prefix = key
+            overrides.append(f"{new_prefix}={val}")
+    return overrides
+
 def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpoints_dir_name: str, baseline_metrics: dict):
     global ROOT_DIR
 
@@ -113,9 +130,7 @@ def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpo
         #f"+model.use_control_signal={str(overrides['dataset']['use_control_signal']).lower()}",
         f"+wandb.tags=['trial_{trial_name}']"
     ]
-    for category in overrides_dict.keys():
-        for key, val in overrides_dict[category].items():
-            overrides_list.append(f"{category}.{key}={val}")
+    overrides_list.extend(recursively_build_overrides_list(overrides_dict, ""))
 
     failed_trial = trial.user_attrs.get("resuming_failed", False)
     if not failed_trial:
