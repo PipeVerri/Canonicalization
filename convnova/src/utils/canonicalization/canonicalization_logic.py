@@ -12,7 +12,9 @@ from .parsed_genome import ParsedGenome
 def calculate_segment_set_destruction_cost(segment_set: set):
     return sum(end - start for (start, end) in segment_set)
 
-def generate_canonicalization_segments_and_overlap_windows(positive_coding_segments, negative_coding_segments, overlapped_segments_break_entirely, partial_canonicalization_works):
+def generate_canonicalization_segments_and_overlap_windows(positive_coding_segments, negative_coding_segments, overlapping_segments_canonicalization):
+    if not overlapping_segments_canonicalization in ("partial", "full", "skip"):
+        raise ValueError(f"Overlap handle mode {overlapping_segments_canonicalization} not recognized")
     positive_coding_intervaltree = IntervalTree.from_tuples(positive_coding_segments)
     negative_coding_intervaltree = IntervalTree.from_tuples(negative_coding_segments)
 
@@ -27,12 +29,12 @@ def generate_canonicalization_segments_and_overlap_windows(positive_coding_segme
         already_handled_negative_segments.add((start, end))
 
         overlaps = positive_coding_intervaltree.overlap(start, end)
-        if len(overlaps) == 0 or partial_canonicalization_works:
+        if len(overlaps) == 0 or overlapping_segments_canonicalization == "partial":
             # The upper bound for the overlap length is the segment length
             # When doing partial canonicalization, it's always better or at least the same orienting the segment than not
             segments_to_flip.append((start, end))
         else:
-            if overlapped_segments_break_entirely:
+            if overlapping_segments_canonicalization == "skip":
                 # It's better to ignore(break) B than break A and B, so in this case, the segments that overlap are skipped
                 pass
             else:

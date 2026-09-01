@@ -4,9 +4,8 @@ canonicalization:
   annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
   include_cdjv_segments: True
   include_pseudogenes: True
-  include_na_transcript_type: False
-  overlapped_segments_break_entirely: false
-  partial_canonicalization_works: False
+  include_na_transcript_type: false
+  overlapping_segments_canonicalization: "full" # partial, full, skip
   transformation: "rc"  # reverse, complement, rc
   num_workers: 16
   

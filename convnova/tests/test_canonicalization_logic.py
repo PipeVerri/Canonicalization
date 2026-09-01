@@ -79,9 +79,7 @@ def test_generate_segments_no_overlap_flips_negative_directly():
     negative_segments = [(0, 10)]
 
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=False,
-        partial_canonicalization_works=False,
+        positive_segments, negative_segments, "full"
     )
 
     assert to_flip == [(0, 10)]
@@ -93,9 +91,7 @@ def test_generate_segments_partial_canonicalization_flips_despite_overlap():
     negative_segments = [(0, 10)]
 
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=False,
-        partial_canonicalization_works=True,
+        positive_segments, negative_segments, "partial"
     )
 
     assert to_flip == [(0, 10)]
@@ -107,9 +103,7 @@ def test_generate_segments_break_entirely_skips_overlapping_segment():
     negative_segments = [(0, 10)]
 
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=True,
-        partial_canonicalization_works=False,
+        positive_segments, negative_segments, "skip"
     )
 
     assert to_flip == []
@@ -121,9 +115,7 @@ def test_generate_segments_overlap_window_destroys_cheaper_negative_side():
     negative_segments = [(0, 5), (15, 18)]
     
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=False,
-        partial_canonicalization_works=False,
+        positive_segments, negative_segments, "full"
     )
 
     assert to_flip == [(3, 20)]
@@ -135,9 +127,7 @@ def test_generate_segments_overlap_window_destroys_cheaper_positive_side():
     negative_segments = [(0, 10), (18, 30)] # 22 nucleotides
 
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=False,
-        partial_canonicalization_works=False,
+        positive_segments, negative_segments, "partial"
     )
 
     assert sorted(to_flip) == [(0, 10), (18, 30)]
@@ -149,9 +139,7 @@ def test_generate_segments_multiple_independent_overlap_groups():
     negative_segments = [(0, 5), (15, 18), (200, 230)] # 8 nucleotides on the first window, 30 nucleotides on the second
 
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        positive_segments, negative_segments,
-        overlapped_segments_break_entirely=False,
-        partial_canonicalization_works=False,
+        positive_segments, negative_segments, "full"
     )
 
     assert sorted(to_flip) == [(3, 20), (200, 230)]
@@ -160,7 +148,7 @@ def test_generate_segments_multiple_independent_overlap_groups():
 
 def test_generate_segments_empty_inputs():
     to_flip, overlap_windows = generate_canonicalization_segments_and_overlap_windows(
-        [], [], overlapped_segments_break_entirely=False, partial_canonicalization_works=False
+        [], [], "partial"
     )
     assert to_flip == []
     assert overlap_windows == []

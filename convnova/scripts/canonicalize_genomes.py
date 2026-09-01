@@ -42,7 +42,7 @@ def main(config: DictConfig):
         nonlocal training_genome_to_canonicalize
         # I need this for the whole hg38 genome for the control signals for the BEND benchmark
         segments_to_canonicalize, overlap_windows_to_canonicalize = generate_canonicalization_segments_and_overlap_windows(
-            positive_coding_segments, negative_coding_segments, c_cfg.overlapped_segments_break_entirely, c_cfg.partial_canonicalization_works
+            positive_coding_segments, negative_coding_segments, c_cfg.overlapping_segments_canonicalization
         )
         training_genome_to_canonicalize[ucsc_id] = {"segments": segments_to_canonicalize, "overlap_windows": overlap_windows_to_canonicalize}
     
