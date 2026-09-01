@@ -45,9 +45,14 @@ for trial_tag in tags:
         break
 
 for trial, pretrained_path in zip(successful_trials, pretrained_model_paths):
+    if trial.params["transformation"] == "complement":
+        continue
+
     overrides = [
         "+canonicalization=default",
         f"train.pretrained_model_path='{pretrained_path}'",
+        "wandb.group=hpo_phase_1",
+        f"+wandb.tags=['{str(trial.number)}']"
     ]
     for param, value in trial.params.items():
         overrides.append(f"canonicalization.{param}={value}")
@@ -57,7 +62,7 @@ for trial, pretrained_path in zip(successful_trials, pretrained_model_paths):
     with open(ROOT_DIR / "outputs/hpo/phase_1/outputs.json", "r") as f:
         all_runs_json = json.load(f)
     all_runs_json[str(trial.number)]["bend_benchmark"].pop("gene_finding", None)
-    all_runs_json[str(trial.number)]["genomic_benchmark"].pop("human_ensembl_regulatory", None)
+    #all_runs_json[str(trial.number)]["genomic_benchmark"].pop("human_ensembl_regulatory", None)
     with open(ROOT_DIR / "outputs/hpo/phase_1/outputs.json", "w") as f:
         json.dump(all_runs_json, f)
 
@@ -73,7 +78,7 @@ for trial, pretrained_path in zip(successful_trials, pretrained_model_paths):
         sys.executable, "-m", "src.utils.hpo_runner", 
         "--experiment", "canon/bend_benchmark",
         "--output-json", str(to_absolute(ROOT_DIR / "outputs/hpo/phase_1/outputs.json")),
-        "--run-name", f"{str(trial.number)}.bend_benchmark.gene_finding"
+        "--run-name", f"{str(trial.number)}.bend_benchmark.gene_finding",
         "dataset.dataset_name=gene_finding",
         "dataset.dataset_dir='{}'".format(to_absolute(ROOT_DIR / "data/bend_benchmark_parsed/")), 
         *overrides
@@ -84,9 +89,9 @@ for trial, pretrained_path in zip(successful_trials, pretrained_model_paths):
         sys.executable, "-m", "src.utils.hpo_runner", 
         "--experiment", "canon/genomic_benchmark",
         "--output-json", str(to_absolute(ROOT_DIR / "outputs/hpo/phase_1/outputs.json")),
-        "--run-name", f"{str(trial.number)}.genomic_benchmark.human_ensembl_regulatory"
+        "--run-name", f"{str(trial.number)}.genomic_benchmark.human_ensembl_regulatory",
         "dataset.dataset_name=human_ensembl_regulatory",
         "dataset.dest_path='{}'".format(to_absolute(ROOT_DIR / "data/genomic_benchmark_parsed/")),
         *overrides
     ]
-    run_cmd(cmd)
+    #run_cmd(cmd)
