@@ -40,7 +40,7 @@ def remove_two_failed_trials_in_a_row(study_name: str, optuna_db_path: Path):
 
             if trials[0][3] == "FAIL" and trials[1][3] == "FAIL":
                 for t in tables_to_delete:
-                    conn.execute(f"DELETE FROM '{t}' WHERE trial_id = {trials[0][0]} AND study_id = {study_id};")
+                    conn.execute(f"DELETE FROM '{t}' WHERE trial_id = {trials[0][0]};")
 
         conn.commit()
                         

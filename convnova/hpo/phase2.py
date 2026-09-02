@@ -9,9 +9,18 @@ def build_overrides_dict(trial: optuna.Trial):
     if overlap_transformation_behavior == "partial_break":
         canon_dict = {"overlap_transformation_behavior": "partial_break"}
     elif overlap_transformation_behavior == "full_break":
-        canon_dict = {"overlap_transformation_behavior": "full_break", 
-                      "orient_all_segments": trial.suggest_categorical("orient_all_segments", [True, False]),
-                      "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False])}
+        orient_all_segments = trial.suggest_categorical("orient_all_segments", [True, False]),
+        if orient_all_segments:
+            canon_dict = {
+                "overlap_transformation_behavior": "full_break", 
+                "orient_all_segments": orient_all_segments,
+                "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False])
+            }
+        else:
+            canon_dict = {
+                "overlap_transformation_behavior": "full_break", 
+                "orient_all_segments": orient_all_segments
+            }
     else:
         canon_dict = {"overlap_transformation_behavior": "both_break"}
 
@@ -23,11 +32,8 @@ def build_overrides_dict(trial: optuna.Trial):
         }
     }
 
-sampler = optuna.samplers.GridSampler({
-    "overlapping_segments_canonicalization": ["partial_break", "full_break", "both_break"],
-    "orient_all_segments": [True, False],
-    "keep_segments_order": [True, False]
-})
+# Exhaustively search the hyperparameter space. Grid search doesn't take into account the conditional hyperparameter selection, and ends up doing repeats
+sampler = optuna.samplers.BruteForceSampler()
 
 optimize_study(
     sampler=sampler,
@@ -36,5 +42,5 @@ optimize_study(
     checkpoints_dir_name="hpo_overlapping_segments_ablation",
     baseline_metrics_path=Path(__file__).parent / "baseline_metrics.json",
     overrides_dict_method=build_overrides_dict,
-    n_trials=3
+    n_trials=6 # 1 for partial break + 4 for full break + 1 for both break = 6
 )
