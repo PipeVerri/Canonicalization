@@ -20,7 +20,7 @@ def optimize_study(sampler: optuna.samplers.BaseSampler, study_name: str, hpo_di
     study = optuna.create_study(study_name=study_name, storage=f"sqlite:///{optuna_db_path}", load_if_exists=True, direction="maximize", sampler=sampler)
 
     # Checks if it should restart a failed run
-    last_trial = study.trials[-1] if len(study.trials) >= 2 else None
+    last_trial = study.trials[-1] if study.trials else None
     json_file = hpo_dir / "outputs.json"
 
     if (last_trial is not None) and (last_trial.state == optuna.trial.TrialState.FAIL):

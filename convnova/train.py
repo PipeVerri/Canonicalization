@@ -767,10 +767,12 @@ def train(config):
         trainer.fit(model, ckpt_path=config.train.ckpt)
     else:
         trainer.fit(model)
-    if config.train.test:
-        return trainer.test(model)
 
-    return trainer.validate(model)
+    # The ckpt_path=best fails only when instantiating a new trainer
+    if config.train.test:
+        return trainer.test(model, ckpt_path="best")
+
+    return trainer.validate(model, ckpt_path="best")
 
 def process_config_and_run(config):
     config = utils.train.process_config(config)

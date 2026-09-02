@@ -7,25 +7,31 @@ ROOT_DIR = Path(__file__).parents[1]
 def build_overrides_dict(trial: optuna.Trial):
     overlap_transformation_behavior = trial.suggest_categorical("overlapping_segments_canonicalization", ["partial_break", "full_break", "both_break"])
     if overlap_transformation_behavior == "partial_break":
-        canon_dict = {"overlap_transformation_behavior": "partial_break"}
+        canon_dict = {
+            "overlap_transformation_behavior": "partial_break",
+        }
     elif overlap_transformation_behavior == "full_break":
         orient_all_segments = trial.suggest_categorical("orient_all_segments", [True, False]),
         if orient_all_segments:
             canon_dict = {
                 "overlap_transformation_behavior": "full_break", 
                 "orient_all_segments": orient_all_segments,
-                "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False])
+                "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False]),
             }
         else:
             canon_dict = {
                 "overlap_transformation_behavior": "full_break", 
-                "orient_all_segments": orient_all_segments
+                "orient_all_segments": orient_all_segments,
             }
     else:
-        canon_dict = {"overlap_transformation_behavior": "both_break"}
+        canon_dict = {
+            "overlap_transformation_behavior": "both_break",
+        }
 
     return {
-        "canonicalization": canon_dict,
+        "canonicalization": canon_dict | {
+            "annotations_level"
+        },
         "wandb": {
             "group": "overlapping_segments_ablation",
             "mode": "online"

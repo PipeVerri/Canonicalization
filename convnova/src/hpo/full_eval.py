@@ -1,7 +1,7 @@
 from pathlib import Path
 from .benchmarks import run_experiment, benchmark_tasks, eval_model_on_tasks
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json: str | None = None, task_specific_overrides={}, skip_tasks=set(), failed_checkpoint_id=None):
     global ROOT_DIR
@@ -47,7 +47,7 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json
     eval_model_on_tasks("canon/bend_benchmark", bend_benchmark_tasks, bend_benchmark_overrides, str(output_json), f"{run_name}.bend_benchmark")
 
     # DeepSEA
-    deepsea_overrides = call_overrides.copy()
+    deepsea_overrides = list(base_downstream_task_overrides) # Uses the pretrained model
     if task_specific_overrides.get("chromatin_profile"):
         deepsea_overrides += task_specific_overrides["chromatin_profile"]
     if not "chromatin_profile_prediction" in skip_tasks:
