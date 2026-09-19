@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - canon/pretrain
+  - hpo/pretrain
   - /canonicalization: default
   - _self_
 

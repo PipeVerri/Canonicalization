@@ -1,6 +1,51 @@
 # @package _global_
-defaults:
-  - /pipeline: mnist
-  - /model: long-conv
+wandb:
+  job_type: pretraining
+  #mode: disabled
+  group: baseline
 
-# This file is a bare bones config for an experiment for illustration, consisting of a pipeline and model backbone
+model:
+  _name_: convnova
+  for_representation: true
+  pretrain: false
+  alphabet_size: 5
+  d_model: 64
+  kernel_size: 5 # Taken from section 3.2
+  final_conv: False
+  dilation: 4
+  num_conv1d: 5
+  d_inner: 2
+  ffn: false
+  args:
+    hidden_dim: 64 # same as d_model
+    num_cnn_stacks: 1
+    dropout: 0.0
+
+trainer:
+  accelerator: gpu
+  devices: 1
+  num_nodes: 1
+  accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
+  max_epochs: 200
+  precision: bf16  # bf16 only a100
+  gradient_clip_val: 1.0
+  # strategy: null
+
+torch:
+  cudnn_benchmark: True
+
+scheduler:
+  t_in_epochs: False
+  t_initial: ${eval:${div_up:${dataset.__train_len}, ${train.global_batch_size}} * ${trainer.max_epochs}}
+  warmup_lr_init: 1e-6
+  warmup_t: ${eval:${div_up:${dataset.__train_len}, ${train.global_batch_size}} * ${trainer.max_epochs} * 0.01}
+  lr_min: ${eval:0.1 * ${optimizer.lr}}
+
+optimizer:
+  lr: 1e-3
+  weight_decay: 0.1
+
+train:
+  gpu_mem: ${eval:"round(float(__import__('subprocess').check_output('nvidia-smi -i 0 --query-gpu=memory.total --format=csv,noheader,nounits', shell=True).strip().decode()) / 1000)"}
+  seed: 2222
+  global_batch_size: 512

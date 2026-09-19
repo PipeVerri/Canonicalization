@@ -145,7 +145,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         if self.control_signals is not None:
             control_signal = self.control_signals[df_seq["chromosome"]][df_seq["start"]:df_seq["end"]][:]
             control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
-            seq_ids = torch.stack([seq_ids], dim=0)
+            seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 
         # Get the target
         if self.dataset_name == "cpg_methylation":

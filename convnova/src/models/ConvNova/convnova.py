@@ -125,6 +125,7 @@ class CNNModel(nn.Module):
             seq = seq[0]
 
         control_signal = None
+        print(f"Input seq shape: {seq.shape}")
         if seq.shape[1] == 2: # Check if seq comes with a control signal
             seq, control_signal = seq.unbind(dim=1) # Separate the (batch, 2, L) into 2 tensors of shape (batch, L)
             seq = seq.long() # Convert to long to be able to apply one_hot

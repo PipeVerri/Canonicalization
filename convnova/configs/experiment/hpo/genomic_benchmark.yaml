@@ -1,0 +1,55 @@
+# @package _global_
+# NOTE: /pipeline must load before /experiment/hpo/hpo_base, so that base.yaml's
+# trainer/optimizer values (gradient_clip_val, weight_decay, num_nodes, precision,
+# accumulate_grad_batches formula) win over the pipeline's generic defaults instead
+# of being silently overwritten by them. Keep this order.
+defaults:
+  - /pipeline: genomic_benchmark
+  - /experiment/hpo/hpo_base
+  - override /scheduler: cosine_warmup_timm
+  - _self_
+
+wandb:
+  job_type: genomic_benchmark
+
+
+task:
+  # 2 options for soft_cross_entropy (for mixup)
+  loss:
+    # soft_cross_entropy for pytorch 1.10+, which takes in label_smoothing here
+    _name_: cross_entropy
+    # label_smoothing: 0.1
+  # pass in list of k's
+  # last_k_ppl: null
+
+trainer:
+  max_epochs: 10
+  accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
+
+dataset:
+  batch_size: 64
+  dataset_name: 'human_ensembl_regulatory'
+  dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark/
+  add_eos: False
+  __l_max: ${.max_length}
+  tokenizer_name: char
+  use_tokenizer: False
+  # rc_aug: true  # reverse complement augmentation.  Didn't seem to help for human_nontata_promoters, but could be wrong
+
+scheduler:
+  t_in_epochs: False
+  t_initial: ${eval:${div_up:${dataset.train_len}, ${train.global_batch_size}} * ${trainer.max_epochs}}
+  warmup_lr_init: 1e-6
+  warmup_t: ${eval:${div_up:${dataset.train_len}, ${train.global_batch_size}} * ${trainer.max_epochs} * 0.01}
+  lr_min: ${eval:0.1 * ${optimizer.lr}}
+
+train:
+  global_batch_size: 256 # The original config had 2 GPUs with 128 batches each
+  remove_test_loader_in_eval: true  # no test set in this benchmark
+  # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
+  pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
+  # for loading backbone and not head, requires both of these flags below
+  pretrained_model_path: ${oc.env:PROJECT_ROOT}/outputs/pretraining/baseline/random_seeds/2222/checkpoints/test/loss.ckpt
+  pretrained_model_state_hook:
+    _name_: load_backbone
+    freeze_backbone: false  # seems to work much better if false (ie finetune entire model)

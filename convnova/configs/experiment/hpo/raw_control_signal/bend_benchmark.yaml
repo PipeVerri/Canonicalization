@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - hpo/bend_benchmark
+  - _self_
+
+wandb:
+  group: raw_control_signal
+
+dataset:
+  use_control_signal: True
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/parsed/raw_control_signals/
+  load_control_signal_using_memmap: False
+
+model:
+  use_control_signal: True

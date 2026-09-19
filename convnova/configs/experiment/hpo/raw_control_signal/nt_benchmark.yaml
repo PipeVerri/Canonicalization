@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - hpo/nt_benchmark
+  - _self_
+
+wandb:
+  group: raw_control_signal
+
+dataset:
+  use_control_signal: "raw"
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+  load_control_signal_using_memmap: False
+
+model:
+  use_control_signal: True

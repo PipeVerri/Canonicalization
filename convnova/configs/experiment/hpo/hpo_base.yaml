@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /experiment/base
+  - _self_
+
+wandb:
+  group: baseline
+
+torch:
+  cudnn_benchmark: True
