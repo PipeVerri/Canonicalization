@@ -3,11 +3,11 @@ from .benchmarks import run_experiment, benchmark_tasks, eval_model_on_tasks
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
-def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json: str | None = None, task_specific_overrides={}, skip_tasks=set(), failed_checkpoint_id=None):
+def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json: str | None = None, task_specific_overrides={}, skip_tasks=set(), failed_checkpoint_id=None, checkpoint_path_override=None):
     global ROOT_DIR
 
-    # Pretrain
     checkpoint_dir = ROOT_DIR / "outputs" / runs_dir_name / (run_name if failed_checkpoint_id is None else failed_checkpoint_id)
+    
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     pretraining_overrides = [
         f"hydra.run.dir={str(checkpoint_dir.absolute())}",
@@ -18,7 +18,7 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, output_json
 
     if not "pretraining" in skip_tasks:
         run_experiment("canon/pretrain", pretraining_overrides, str(output_json), f"{run_name}.pretraining")
-    checkpoint_file_str = str((checkpoint_dir / "checkpoints/test/loss.ckpt").absolute())
+    checkpoint_file_str = str((checkpoint_dir / "checkpoints/test/loss.ckpt").absolute()) if checkpoint_path_override is None else checkpoint_path_override
 
     base_downstream_task_overrides = ( # Make it a tuple so I don't accidentally edit it
         f"train.pretrained_model_path={checkpoint_file_str}",

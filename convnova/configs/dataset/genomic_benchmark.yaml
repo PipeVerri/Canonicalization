@@ -39,7 +39,7 @@ human_enhancers_ensembl:
   classes: 2
 human_ensembl_regulatory:
   train_len: 289061
-  max_length: 425 # For some reason this works...
+  max_length: 802
   classes: 3
 human_nontata_promoters:
   train_len: 36131

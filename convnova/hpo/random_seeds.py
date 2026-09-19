@@ -1,14 +1,11 @@
 import random
 from src.hpo.full_eval import run_all_tasks
 
-RANDOM_SEEDS = 3
+#RANDOM_SEEDS = [1938, 205, 8262, 1480, 4436]
+RANDOM_SEEDS = [8262, 1480, 4436]
 
 if __name__ == "__main__":
-    for _ in range(RANDOM_SEEDS):
-        seed = random.randint(0, 10_000)
-        while seed == 2222 or seed == 2805 or seed == 7275 or seed == 5947:
-            seed = random.randint(0, 10_000)
-
+    for seed in RANDOM_SEEDS:
         run_all_tasks(
             [f"train.seed={seed}"], 
             "pretraining/baseline/random_seeds",

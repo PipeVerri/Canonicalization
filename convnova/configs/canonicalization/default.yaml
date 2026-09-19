@@ -2,14 +2,14 @@
 canonicalization:
   # Canonicalization config
   annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
-  include_cdjv_segments: True
+  include_cdjv_segments: false
   include_pseudogenes: True
   include_na_transcript_type: false
   transformation: "rc"  # reverse, complement, rc
   num_workers: 16
 
   # Check the discussion section for more details
-  overlap_transformation_behavior: "full_break" # partial_break, full_break, both_break
+  overlap_transformation_behavior: "both_break" # partial_break, full_break, both_break
   full_break_config:
     orient_all_segments: True
     keep_segments_order: True # Inert when orient_all_segments is set to False
@@ -20,7 +20,7 @@ canonicalization:
   sequence_ontology_file: ${.data_path}/so.obo
 
   # Downstream tasks canonicalization config
-  partial_downstream_canonicalization: False
+  partial_downstream_canonicalization: true
 
   nt_benchmark:
     input_dir: ${..data_path}/nucleotide_transformer

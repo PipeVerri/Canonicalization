@@ -29,7 +29,7 @@ def build_overrides_dict(trial: optuna.Trial):
         }
 
     return {
-        "canonicalization": canon_dict | {
+        "canonicalization": dict | {
             "annotations_level"
         },
         "wandb": {
