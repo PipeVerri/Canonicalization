@@ -32,7 +32,7 @@ for run in runs:
         dataset_results[dataset_name] = []
 
     try:
-        m = run.summary[metric]
+        m = run.summary["best_score"] # wandb's summary returns the last score, not the best one, so I just ran another script to add that best_score value to the summary
         assert not math.isnan(m)
         dataset_results[dataset_name].append(m)
     except Exception as e:
