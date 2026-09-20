@@ -20,7 +20,7 @@ canonicalization:
   sequence_ontology_file: ${.data_path}/so.obo
 
   # Downstream tasks canonicalization config
-  partial_downstream_canonicalization: true
+  partial_downstream_canonicalization: false
 
   nt_benchmark:
     input_dir: ${..data_path}/nucleotide_transformer

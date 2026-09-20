@@ -120,3 +120,12 @@ yarl==1.9.4
 pyranges==0.1.4
 pytest==9.1.1
 pronto==2.7.3
+packaging
+lightning_utilities
+torchmetrics
+tensorboardX
+mappy
+h5py
+intervaltree
+ipykernel
+fastobo
