@@ -142,23 +142,15 @@ def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpo
 
     # Eval the model on all tasks
     skip_tasks = set(trial.user_attrs.get("skip_tasks", []))
-    run_all_tasks(overrides_list, checkpoints_dir_name, trial_name, output_json=str(json_file.absolute()), task_specific_overrides={
-        "pretraining": {
-            "dataset.fasta_file='{}'".format(to_absolute(ROOT_DIR / "data/parsed/canonicalized.fasta"))
-        },
-        "nt_benchmark": {
-            "dataset.dest_path='{}'".format(to_absolute(ROOT_DIR / "data/nucleotide_transformer_parsed/"))
-        },
-        "genomic_benchmark": {
-            "dataset.dest_path='{}'".format(to_absolute(ROOT_DIR / "data/genomic_benchmark_parsed/"))
-        },
-        "bend_benchmark": {
-            "dataset.dataset_dir='{}'".format(to_absolute(ROOT_DIR / "data/bend_benchmark_parsed/"))
-        },
-        "chromatin_profile": {
-            "dataset.dataset_path='{}'".format(to_absolute(ROOT_DIR / "data/deepsea_parsed/"))
-        }
-    }, skip_tasks=skip_tasks, failed_checkpoint_id=str(trial.number - 1) if failed_trial else None)
+    run_all_tasks(
+        call_overrides=overrides_list, 
+        runs_dir_name=checkpoints_dir_name, 
+        run_name=trial_name, 
+        experiments_folder="hpo/canonicalized", 
+        output_json=str(json_file.absolute()), 
+        skip_tasks=skip_tasks, 
+        failed_checkpoint_id=str(trial.number - 1) if failed_trial else None
+    )
 
     # Read the json and compute the scores
     return compute_trial_grouped_z_score(json_file=json_file, baseline_metrics=baseline_metrics, trial_name=trial_name)

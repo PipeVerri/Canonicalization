@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - hpo/nt_benchmark
+  - /canonicalization: default
+  - _self_
+
+dataset:
+  dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed

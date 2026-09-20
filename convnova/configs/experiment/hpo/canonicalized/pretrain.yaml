@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - hpo/pretrain
+  - /canonicalization: default
+  - _self_
+
+dataset:
+  fasta_file: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta

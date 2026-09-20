@@ -6,7 +6,7 @@ dataset_name: ???
 
 bed_path: ${.${.dataset_name}.bed_path}
 labels_path: ${oc.select:.${.dataset_name}.labels_path,null} # If there isn't a labels_path, set it to null
-fasta_path: ${.${.dataset_name}.fasta_path}
+fasta_path: ???
 pool_mode: "snp" # Only applies to the zero shot tasks
 
 decoder: ${.${.dataset_name}.decoder}
@@ -36,7 +36,6 @@ cpg_methylation:
   metric: auroc
   max_length: 512
   classes: 7
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   batch_size: 256
 
   decoder:
@@ -54,7 +53,6 @@ gene_finding:
   metric: mcc
   max_length: 16_384 # Taken from ConvNova paper
   classes: 9
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   batch_size: 8
 
   decoder:
@@ -69,7 +67,6 @@ variant_effects_disease:
   bed_path: ${..dataset_dir}/variant_effects_disease.bed
   decoder_name: sequence
   max_length: 512
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   classes: 2
 
   metric: null
@@ -81,7 +78,6 @@ variant_effects_disease:
 variant_effects_expression:
   bed_path: ${..dataset_dir}/variant_effects_expression.bed
   max_length: 512
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   classes: 2
 
   metric: null

@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - hpo/bend_benchmark
+  - /canonicalization: default
+  - _self_
+
+dataset:
+  dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed
+  fasta_path: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta

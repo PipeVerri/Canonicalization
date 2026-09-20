@@ -19,6 +19,7 @@ trainer:
 # cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
 dataset:
   dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/
+  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   dataset_name: "cpg_methylation"
   add_eos: False
   tokenizer_name: char
