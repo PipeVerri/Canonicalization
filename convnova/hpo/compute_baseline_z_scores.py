@@ -2,6 +2,8 @@ import wandb
 import math
 import json
 from pathlib import Path
+import pandas as pd
+import numpy as np
 
 api = wandb.Api()
 runs = runs = api.runs("pipe-verri-gh/Canonicalization", filters={
@@ -53,3 +55,5 @@ for name, metrics in dataset_results.items():
 # Store
 with open(Path(__file__).parent / "baseline_metrics.json", "w") as f:
     json.dump(dataset_metrics, f)
+with open(Path(__file__).parent / "baseline_results.json", "w") as f:
+    json.dump(dataset_results, f)
