@@ -126,7 +126,6 @@ def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpo
     trial_name = str(trial.number)
     
     overrides_list = [
-        "+canonicalization=default", 
         #f"+model.use_control_signal={str(overrides['dataset']['use_control_signal']).lower()}",
         f"+wandb.tags=['trial_{trial_name}']"
     ]
@@ -135,7 +134,7 @@ def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpo
     failed_trial = trial.user_attrs.get("resuming_failed", False)
     if not failed_trial:
         # Run the canonicalization script
-        cmd = [sys.executable, ROOT_DIR / "scripts/canonicalize_genomes.py", "experiment='canon/pretrain'", *overrides_list]
+        cmd = [sys.executable, ROOT_DIR / "scripts/canonicalize_genomes.py", "experiment='hpo/canonicalized/pretrain'", *overrides_list]
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT_DIR) + ":" + env.get("PYTHONPATH", "")
         subprocess.run(cmd, cwd=ROOT_DIR, env=env, text=True)
