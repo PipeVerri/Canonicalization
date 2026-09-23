@@ -34,7 +34,7 @@ def run_cmd(cmd):
     env["PYTHONPATH"] = str(ROOT_DIR) + ":" + env.get("PYTHONPATH", "")
     subprocess.run(cmd, cwd=ROOT_DIR, env=env, text=True)
 
-for (trial, pretrained_path) in zip(successful_trials, pretrained_weights):
+for (trial, pretrained_path) in list(zip(successful_trials, pretrained_weights))[12:]:
     overrides = [
         f"train.pretrained_model_path='{pretrained_path}'",
         "wandb.group=hpo",
