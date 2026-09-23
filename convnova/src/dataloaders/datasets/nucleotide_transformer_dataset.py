@@ -64,6 +64,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         self.return_mask = return_mask
         self.use_tokenizer = use_tokenizer
         self.seqs = None
+        self.fasta_path = None
         self.control_signal = None
         self.dataset_name = dataset_name
 
@@ -86,6 +87,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             if str(file).endswith('.fasta') and split in str(file):
                 if self.seqs is not None:
                     raise ValueError("Overwitten self.seqs")
+                self.fasta_path = str(file)
                 self.seqs = Fasta(str(file), read_long_names=True)
                 if use_control_signal != False:
                     print("**USING CONTROL SIGNAL**")
@@ -98,6 +100,14 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         self.label_mapper = {}
         for i, key in enumerate(self.seqs.keys()):
             self.label_mapper[i] = (key, int(key.rstrip()[-1])) # seq_key, label(0 or 1 for binary classification)
+
+    def reopen_fasta(self):
+        # pyfaidx.Fasta holds a single OS file handle. DataLoader workers inherit it via
+        # fork() and share the same underlying file position, so concurrent reads from
+        # multiple workers race and can return truncated/empty sequences. Each worker
+        # process must get its own independently-opened handle.
+        if self.fasta_path is not None:
+            self.seqs = Fasta(self.fasta_path, read_long_names=True)
 
     def __len__(self):
         return len(self.seqs.keys())

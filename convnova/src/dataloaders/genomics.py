@@ -30,6 +30,16 @@ Dataloaders for genomics datasets, including pretraining and downstream tasks.  
 
 """
 
+def _worker_init_fn(worker_id):
+    # Reopen any pyfaidx-backed fasta handle inside the worker process. The handle
+    # inherited via fork() from the main process shares a single OS file descriptor
+    # across workers, so concurrent reads race and can return truncated/empty sequences.
+    dataset = torch.utils.data.get_worker_info().dataset
+    reopen_fasta = getattr(dataset, "reopen_fasta", None)
+    if reopen_fasta is not None:
+        reopen_fasta()
+
+
 def _safe_collate(batch):
     # Bypasses default_collate's shared-memory fast path (elem.new(storage).resize_(...)),
     # which raises "Trying to resize storage that is not resizable" under num_workers>0
@@ -228,7 +238,8 @@ class HG38(SequenceDataset):
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
             persistent_workers=self.num_workers > 0,
-            collate_fn=_safe_collate
+            collate_fn=_safe_collate,
+            worker_init_fn=_worker_init_fn if self.num_workers > 0 else None,
         )
 
     def load_state_dict(self, checkpoint):

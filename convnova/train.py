@@ -679,7 +679,7 @@ def create_trainer(config, **kwargs):
 
         logger = CustomWandbLogger(
             config=utils.to_dict(config, recursive=True),
-            settings=wandb.Settings(start_method="fork"),
+            settings=wandb.Settings(),
             **config.wandb,
         )
 
