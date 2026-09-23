@@ -30,6 +30,22 @@ Dataloaders for genomics datasets, including pretraining and downstream tasks.  
 
 """
 
+def _safe_collate(batch):
+    # Bypasses default_collate's shared-memory fast path (elem.new(storage).resize_(...)),
+    # which raises "Trying to resize storage that is not resizable" under num_workers>0
+    # whenever any tensor in the batch has an unexpected shape.
+    elem = batch[0]
+    if isinstance(elem, torch.Tensor):
+        return torch.stack(batch, dim=0)
+    elif isinstance(elem, dict):
+        return {k: _safe_collate([d[k] for d in batch]) for k in elem}
+    elif isinstance(elem, (tuple, list)):
+        transposed = zip(*batch)
+        return type(elem)(_safe_collate(list(samples)) for samples in transposed)
+    else:
+        return torch.utils.data.dataloader.default_collate(batch)
+
+
 class HG38(SequenceDataset):
     """
     Base class, other dataloaders can inherit from this class.
@@ -212,6 +228,7 @@ class HG38(SequenceDataset):
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
             persistent_workers=self.num_workers > 0,
+            collate_fn=_safe_collate
         )
 
     def load_state_dict(self, checkpoint):
