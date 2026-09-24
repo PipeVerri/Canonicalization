@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /experiment/paper/pretrain_genomic_benchmark
+  - _self_
+
+dataset:
+  use_control_signal: True
+  control_signal_dir: ${oc.env:PROJECT_ROOT}/data/parsed/raw_control_signals/
+  load_control_signal_using_memmap: False
+
+model:
+  use_control_signal: True

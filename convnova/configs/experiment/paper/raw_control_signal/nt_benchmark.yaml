@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /experiment/paper/nt_benchmark
+  - _self_
+
+dataset:
+  use_control_signal: "raw"
+  control_signals_dir: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer_parsed/
+  load_control_signal_using_memmap: False
+
+model:
+  use_control_signal: True

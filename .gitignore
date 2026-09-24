@@ -8,3 +8,5 @@ multirun/
 .agents/
 convnova.egg-info/
 .idea/
+to_compress/
+archive.tar.zst
