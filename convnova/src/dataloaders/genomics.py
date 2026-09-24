@@ -103,6 +103,8 @@ class HG38(SequenceDataset):
         self.use_fixed_len_val = use_fixed_len_val
         self.replace_N_token = replace_N_token
         self.pad_interval = pad_interval        
+        self._train_loader = None
+        self._val_loader = None
 
         # handle if file paths are None (default paths)
         if self.bed_file is None:
@@ -198,6 +200,8 @@ class HG38(SequenceDataset):
 
     def train_dataloader(self, *args: Any, **kwargs: Any) -> DataLoader:
         """ The train dataloader """
+        if self._train_loader is not None:
+            return self._train_loader
         if self.shuffle and self.fault_tolerant:
             shuffle = False
             # TD [2022-12-26]: We need the distributed_sampler_kwargs in case of model parallel:
@@ -216,12 +220,16 @@ class HG38(SequenceDataset):
         else:
             shuffle = self.shuffle
             sampler = None
-        return self._data_loader(self.dataset_train, batch_size=self.batch_size,
+        self._train_loader = self._data_loader(self.dataset_train, batch_size=self.batch_size,
                                  shuffle=shuffle, sampler=sampler)
+        return self._train_loader
 
     def val_dataloader(self, *args: Any, **kwargs: Any) -> Union[DataLoader, List[DataLoader]]:
         """ The val dataloader """
-        return self._data_loader(self.dataset_val, batch_size=self.batch_size_eval)
+        if self._val_loader is not None:
+            return self._val_loader
+        self._val_loader = self._data_loader(self.dataset_val, batch_size=self.batch_size_eval)
+        return self._val_loader
 
     def test_dataloader(self, *args: Any, **kwargs: Any) -> Union[DataLoader, List[DataLoader]]:
         """ The test dataloader """
