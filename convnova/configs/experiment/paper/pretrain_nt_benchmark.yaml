@@ -3,11 +3,17 @@ defaults:
   - /experiment/baseline/pretrain
   - _self_
 
+wandb:
+  job_type: pretrain_1.7m
+
 model:
   d_model: 128
   kernel_size: 9
   args:
     hidden_dim: 128
+
+dataset:
+  batch_size: 256
 
 trainer:
   max_epochs: 400

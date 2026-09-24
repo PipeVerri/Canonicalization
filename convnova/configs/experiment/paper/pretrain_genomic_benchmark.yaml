@@ -3,6 +3,9 @@ defaults:
   - /experiment/baseline/pretrain
   - _self_
 
+wandb:
+  job_type: pretrain_378k
+
 model:
   d_model: 64
   kernel_size: 5
