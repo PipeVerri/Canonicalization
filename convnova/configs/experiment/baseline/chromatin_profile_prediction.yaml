@@ -4,37 +4,24 @@
 # accumulate_grad_batches formula) win over the pipeline's generic defaults instead
 # of being silently overwritten by them. Keep this order.
 defaults:
-  - /pipeline: genomic_benchmark
-  - /experiment/hpo/hpo_base
+  - /pipeline: chromatin_profile
+  - /experiment/base
   - override /scheduler: cosine_warmup_timm
   - _self_
 
 wandb:
-  job_type: genomic_benchmark
-
-
-task:
-  # 2 options for soft_cross_entropy (for mixup)
-  loss:
-    # soft_cross_entropy for pytorch 1.10+, which takes in label_smoothing here
-    _name_: cross_entropy
-    # label_smoothing: 0.1
-  # pass in list of k's
-  # last_k_ppl: null
+  job_type: chromatin_profile_prediction
 
 trainer:
   max_epochs: 10
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
 
 dataset:
-  batch_size: 64
-  dataset_name: 'human_ensembl_regulatory'
-  dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark/
+  dataset_dir: ${oc.env:PROJECT_ROOT}/data/deepsea/
+  batch_size: 256
   add_eos: False
-  __l_max: ${.max_length}
   tokenizer_name: char
   use_tokenizer: False
-  # rc_aug: true  # reverse complement augmentation.  Didn't seem to help for human_nontata_promoters, but could be wrong
 
 scheduler:
   t_in_epochs: False

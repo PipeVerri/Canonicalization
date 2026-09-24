@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - hpo/bend_benchmark
+  - /experiment/baseline/bend_benchmark
   - _self_
 
 wandb:

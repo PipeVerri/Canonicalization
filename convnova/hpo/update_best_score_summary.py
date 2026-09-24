@@ -9,7 +9,7 @@ MAX_WORKERS = 8
 SKIP_EXISTING = True  # no recalcular si el run ya tiene best_score
 
 api = wandb.Api()
-runs = list(api.runs(PROJECT, filters={"group": "baseline_paper"}))
+runs = list(api.runs(PROJECT, filters={"group": "partial_downstream_canonicalization"}))
 
 
 def process(run):

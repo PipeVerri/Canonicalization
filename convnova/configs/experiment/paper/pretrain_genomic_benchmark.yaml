@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - /experiment/baseline/pretrain
+  - _self_
+
+model:
+  d_model: 64
+  kernel_size: 5
+  args:
+    hidden_dim: 64
+  d_inner: 4
+
+trainer:
+  max_epochs: 400
+  precision: 32

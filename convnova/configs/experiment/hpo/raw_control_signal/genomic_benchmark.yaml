@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - hpo/genomic_benchmark
+  - /experiment/baseline/genomic_benchmark
   - _self_
 
 wandb:

@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - /experiment/baseline/nt_benchmark
+  - _self_
+
+model:
+  d_model: 128
+  kernel_size: 9
+  args:
+    hidden_dim: 128
+
+trainer:
+  precision: 32

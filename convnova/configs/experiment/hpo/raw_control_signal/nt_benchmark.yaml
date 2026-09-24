@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - hpo/nt_benchmark
+  - /experiment/baseline/nt_benchmark
   - _self_
 
 wandb:

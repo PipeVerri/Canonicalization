@@ -1,31 +1,16 @@
 # @package _global_
+# NOTE: /pipeline must load before /experiment/hpo/hpo_base, so that base.yaml's
+# trainer/optimizer values (gradient_clip_val, weight_decay, num_nodes, precision,
+# accumulate_grad_batches formula) win over the pipeline's generic defaults instead
+# of being silently overwritten by them. Keep this order.
 defaults:
   - /pipeline: nucleotide_transformer
+  - /experiment/base
   - override /scheduler: cosine_warmup_timm
+  - _self_
 
 wandb:
   job_type: nt_benchmark
-  group: baseline
-  #mode: disabled
-
-model:
-  _name_: convnova
-  for_representation: true
-  alphabet_size: 5
-  d_model: 64
-  kernel_size: 5
-  dilation: 4
-  pretrain: False
-  num_conv1d: 5
-  final_conv: False
-  d_inner: 2
-  ffn: false
-  args:
-    hidden_dim: 64 # same as d_model
-    num_cnn_stacks: 1
-    dropout: 0.0
-
-# decoder: null # decoder in cnn
 
 task:
   # 2 options for soft_cross_entropy (for mixup)
@@ -37,35 +22,8 @@ task:
   torchmetrics: null
 
 trainer:
-  accelerator: gpu
-  devices: 1
-  num_nodes: 1
-  accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
   max_epochs: 20 # TODO: 20
-  precision: bf16  # bf16 only a100
-  gradient_clip_val: 1.0
-  # strategy: null
-
-# name maxlen classes samples metric
-
-# enhancer 200   2  14968 MCC
-# enhancer_types 200   3  14968 MCC
-# H3 500   2  13468 MCC
-# H3K4me1  500   2  28509 MCC
-# H3K4me2  500   2  27614 MCC
-# H3K4me3  500   2  33119 MCC
-# H3K9ac   500   2  25003 MCC
-# H3K14ac  500   2  29743 MCC
-# H3K36me3 500   2  31392 MCC
-# H3K79me3 500   2  25953 MCC
-# H4 500   2  13140 MCC
-# H4ac  500   2  30685 MCC
-# promoter_all   300   2  53276 F1
-# promoter_non_tata 300   2  47759 F1
-# promoter_tata  300   2  5517  F1
-# splice_sites_acceptor   600   2  19961 F1
-# splice_sites_donor   600   2  19775 F1
-
+  accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
 
 dataset:
   batch_size: 256
@@ -76,8 +34,7 @@ dataset:
   rc_aug: false  # reverse complement augmentation
   return_mask: true
   padding_side: right
-  # num_workers: 1
-  # rc_aug: true  # reverse complement augmentation.  Didn't seem to help for human_nontata_promoters, but could be wrong
+  dest_path: ${oc.env:PROJECT_ROOT}/data/nucleotide_transformer/
 
 scheduler:
   t_in_epochs: False
@@ -86,20 +43,7 @@ scheduler:
   warmup_t: ${eval:${div_up:${dataset.train_len}, ${train.global_batch_size}} * ${trainer.max_epochs} * 0.01}
   lr_min: ${eval:0.1 * ${optimizer.lr}}
 
-  # constant
-  # t_initial: ${eval:${div_up:${dataset.train_len}, ${train.global_batch_size}} * ${trainer.max_epochs}}
-  # warmup_t: 0
-  # lr_min: ${optimizer.lr}
-
-
-
-optimizer:
-  lr: 1e-3
-  weight_decay: 0.1
-
 train:
-  gpu_mem: ${eval:"round(float(__import__('subprocess').check_output('nvidia-smi -i 0 --query-gpu=memory.total --format=csv,noheader,nounits', shell=True).strip().decode()) / 1000)"}
-  seed: 48
   global_batch_size: 256 # The original config had 2 GPUs with 128 batches each
   remove_test_loader_in_eval: true  # no test set in this benchmark
   # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
@@ -109,4 +53,3 @@ train:
   pretrained_model_state_hook:
     _name_: load_backbone
     freeze_backbone: false  # seems to work much better if false (ie finetune entire model)
-

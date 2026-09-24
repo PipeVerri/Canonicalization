@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - hpo/pretrain
+  - /experiment/baseline/pretrain
   - _self_
 
 wandb:

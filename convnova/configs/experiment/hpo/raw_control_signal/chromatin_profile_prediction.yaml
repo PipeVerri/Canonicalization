@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - hpo/chromatin_profile_prediction
+  - /experiment/baseline/chromatin_profile_prediction
   - _self_
 
 wandb:
