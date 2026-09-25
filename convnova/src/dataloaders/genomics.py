@@ -246,6 +246,7 @@ class HG38(SequenceDataset):
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
             persistent_workers=self.num_workers > 0,
+            prefetch_factor=4,
             collate_fn=_safe_collate,
             worker_init_fn=_worker_init_fn if self.num_workers > 0 else None,
         )

@@ -14,7 +14,8 @@ metric: ${.${.dataset_name}.metric}
 use_control_signal: False
 control_signals_dir: null # Separate from dest_path so I can use the original data with the control signals
 # these are used to find the right attributes automatically for each dataset
-
+num_workers: 12
+pin_memory: true
 # name maxlen classes samples metric
 
 H2AFZ:
