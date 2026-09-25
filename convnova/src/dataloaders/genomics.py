@@ -317,6 +317,10 @@ class BendBenchmark(HG38):
         if use_padding and padding_side != "right":
             raise ValueError("Control signals only supported with right padding")
 
+        # Cache attributes used by parent HG38 train/val dataloaders
+        self._train_loader = None
+        self._val_loader = None
+
     def setup(self, stage=None):
         # TODO instantiate with registry
 
@@ -421,6 +425,10 @@ class GenomicBenchmark(HG38):
         if use_padding and padding_side != "right":
             raise ValueError("Control signals only supported with right padding")
 
+        # Cache attributes used by parent HG38 train/val dataloaders
+        self._train_loader = None
+        self._val_loader = None
+
     def setup(self, stage=None):
         # TODO instantiate with registry
 
@@ -524,6 +532,10 @@ class NucleotideTransformer(HG38):
         if use_padding and padding_side != "right":
             raise ValueError("Control signals only supported with right padding")
 
+        # Cache attributes used by parent HG38 train/val dataloaders
+        self._train_loader = None
+        self._val_loader = None
+
     def setup(self, stage=None):
         # TODO instantiate with registry
 
@@ -561,6 +573,11 @@ class NucleotideTransformer(HG38):
             )
             for split, max_len in zip(['train', 'val'], [self.max_length, self.max_length_val])
         ]
+
+        # Invalidate any DataLoader cached by the parent HG38 class so that a new
+        # task (different dataset_name) gets fresh loaders.
+        self._train_loader = None
+        self._val_loader = None
 
     def val_dataloader(self, *args: Any, **kwargs: Any) -> Union[DataLoader, List[DataLoader]]:
         """ The val dataloader """
@@ -614,6 +631,10 @@ class ChromatinProfile(HG38):
         self.fast_forward_batches = fast_forward_batches
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
+        
+        # Cache attributes used by parent HG38 train/val dataloaders
+        self._train_loader = None
+        self._val_loader = None
         
         self.datasets = None
 
