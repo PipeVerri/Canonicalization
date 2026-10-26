@@ -46,7 +46,7 @@ def main(config: DictConfig):
             positive_coding_segments, negative_coding_segments,
             overlap_transformation_behavior=c_cfg.overlap_transformation_behavior,
             orient_all_segments=c_cfg.full_break_config.orient_all_segments,
-            keep_segments_order=c_cfg.full_break_config.keep_segments_order
+            keep_segments_order=c_cfg.keep_segments_order
         )
 
         if c_cfg.should_rc_at_end: # Invert it here so I don't have to modify the canonicalization and control signals method

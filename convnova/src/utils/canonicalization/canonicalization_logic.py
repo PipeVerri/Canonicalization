@@ -28,6 +28,22 @@ def calculate_cost_of_bringing_everything_to_strand(origin_strand: list[tuple[in
             total_cost += overlap_segment[1] - overlap_segment[0]
     return total_cost
 
+def build_non_overlapping_segments(to_iterate_over: list[tuple[int, int]], to_check: IntervalTree):
+    non_overlapping_segments = []
+    for (start, end) in to_iterate_over:
+        overlaps = to_check.overlap(start, end)
+        if len(overlaps) == 0:
+            non_overlapping_segments.append((start, end))
+    return non_overlapping_segments
+
+def get_conflict_window_bounds(conflict_window) -> tuple[int, int]:
+    conflict_window_start = math.inf
+    conflict_window_end = 0
+    for conflict_segment in conflict_window:
+        conflict_window_start = min(conflict_window_start, conflict_segment[0])
+        conflict_window_end = max(conflict_window_end, conflict_segment[1])
+    return int(conflict_window_start), conflict_window_end
+
 def generate_canonicalization_params(
         positive_coding_segments: list[tuple[int, int]], 
         negative_coding_segments: list[tuple[int, int]],
@@ -45,7 +61,8 @@ def generate_canonicalization_params(
     conflict_windows_to_flip = []
     already_handled_segments = set()
 
-    # This is a special case that can't be processed in the way that the rest of the cases are
+    ### Special cases ###
+
     if overlap_transformation_behavior == "full_break" and orient_all_segments and keep_segments_order:
         # Forcing the segments order means having to do a compromise and put them all in the same strand
         # For each strand, check the cost of bringing everything into that strand
@@ -70,6 +87,74 @@ def generate_canonicalization_params(
                 should_rc_at_end=True
             )
 
+    if overlap_transformation_behavior == "both_break":
+        non_overlaping_positive_segments = build_non_overlapping_segments(positive_coding_segments, negative_coding_intervaltree)
+        non_overlapping_negative_segments = build_non_overlapping_segments(negative_coding_segments, positive_coding_intervaltree)
+        
+        if keep_segments_order:
+            # For the overlapping segments, the cost of canonicalization (len A + len B) is always larger than the cost of ignoring them (len A)
+            # I have to choose wether to bring everything to the positive strand, or bring everything to the negative strand and do an RC
+            # It's similar to the full_break, orient_all_segments and keep_segments order case specified above, but I'm only transforming the non-overlapping segments
+
+            # This method already counts the cost as the sum of all overlaping nucleotides. It's not the true cost, but it just counts the amount of overlaping nucleotides on the dest branch
+            bring_to_positive_strand_cost = calculate_cost_of_bringing_everything_to_strand(
+                origin_strand=negative_coding_segments,
+                dest_strand_intervaltree=positive_coding_intervaltree
+            )
+            bring_to_negative_strand_cost = calculate_cost_of_bringing_everything_to_strand(
+                origin_strand=positive_coding_segments,
+                dest_strand_intervaltree=negative_coding_intervaltree
+            )
+    
+            if bring_to_positive_strand_cost <= bring_to_negative_strand_cost:
+                return CanonicalizationParams(
+                    segments=non_overlapping_negative_segments,
+                    conflict_windows=[],
+                    should_rc_at_end=False
+                )
+            else:
+                return CanonicalizationParams(
+                    segments=non_overlaping_positive_segments,
+                    conflict_windows=[],
+                    should_rc_at_end=True
+                )
+        else:
+            # The same logic as keep_segments_order, but at the conflict window level instead of the chromosome level
+            # For each conflict window, decide if it's better to flip it or not
+            # I don't have to check if it's better to bring everything to the + or the - strand.
+            for (start, end) in negative_coding_segments:
+                if (start, end) in already_handled_segments:
+                    continue
+                already_handled_segments.add((start, end)) # This might me unnecesary because it's already present on already_handled_segments, but just in case...
+
+                overlaps = positive_coding_intervaltree.overlap(start, end)
+                if len(overlaps) > 0:
+                    conflict_window_positive_segments = set()
+                    conflict_window_negative_segments = {(start, end)}
+                    build_conflict_windows(
+                        start, end, "negative", 
+                        conflict_window_positive_segments=conflict_window_positive_segments, 
+                        conflict_window_negative_segments=conflict_window_negative_segments,
+                        positive_segments_intervaltree=positive_coding_intervaltree,
+                        negative_segments_intervaltree=negative_coding_intervaltree
+                    )
+
+                    ignore_window_cost = calculate_segment_set_destruction_cost(conflict_window_negative_segments)
+                    flip_window_cost = calculate_segment_set_destruction_cost(conflict_window_positive_segments)
+
+                    if flip_window_cost < ignore_window_cost:
+                        conflict_windows_to_flip.append(get_conflict_window_bounds(conflict_window_positive_segments.union(conflict_window_negative_segments)))
+
+                    # Add them to already_handled so I don't re-encounter the same conflict window
+                    already_handled_segments = already_handled_segments.union(conflict_window_negative_segments)
+
+            return CanonicalizationParams(
+                segments=non_overlapping_negative_segments,
+                conflict_windows=conflict_windows_to_flip,
+                should_rc_at_end=False
+            )
+
+
     # For the explanations, A is a positive segment that overlaps with B, a negative segment
     for (start, end) in negative_coding_segments:
         # Sometimes I handle multiple segments in one iteration, and this is done to not re-process them again
@@ -83,8 +168,7 @@ def generate_canonicalization_params(
                 # No matter the rest of the params, the cost of not orienting a segment is >= orienting it because it's overlap lenght <= segment length
                 segments_to_flip.append((start, end))
             elif overlap_transformation_behavior == "both_break":
-                # If both segments A and B break when being oriented, it's better to only break B instead of breaking A + B
-                continue
+                raise RuntimeError("both_break case should have been handled on a special case above")
             elif overlap_transformation_behavior == "full_break":
                 conflict_window_positive_segments = set()
                 conflict_window_negative_segments = {(start, end)}
@@ -130,12 +214,7 @@ def generate_canonicalization_params(
                                 segments_to_flip.append((positive_conflict_segment[0], positive_conflict_segment[1]))
                             
                             # Then, take the RC of the whole conflicts window
-                            conflict_window_start = math.inf
-                            conflict_window_end = 0
-                            for conflict_segment in conflict_window_positive_segments.union(conflict_window_negative_segments):
-                                conflict_window_start = min(conflict_window_start, conflict_segment[0])
-                                conflict_window_end = max(conflict_window_end, conflict_segment[1])
-                            conflict_windows_to_flip.append((conflict_window_start, conflict_window_end))
+                            conflict_windows_to_flip.append((get_conflict_window_bounds(conflict_window_positive_segments.union(conflict_window_negative_segments))))
         else:
             # If there aren't any overlaps, just bring it
             segments_to_flip.append((start, end))

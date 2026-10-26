@@ -11,9 +11,9 @@ canonicalization:
 
   # Check the discussion section for more details
   overlap_transformation_behavior: "both_break" # partial_break, full_break, both_break
+  keep_segments_order: True # Inert when overlap_break_behavior is set to partial_break
   full_break_config:
     orient_all_segments: True
-    keep_segments_order: True # Inert when orient_all_segments is set to False
   
   data_path: ${oc.env:PROJECT_ROOT}/data/
   pretraining_fasta_file: ${.data_path}/hg38/GRCh38.primary_assembly.genome.fa
