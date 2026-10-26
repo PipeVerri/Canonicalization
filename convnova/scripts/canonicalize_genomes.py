@@ -48,6 +48,10 @@ def main(config: DictConfig):
             orient_all_segments=c_cfg.full_break_config.orient_all_segments,
             keep_segments_order=c_cfg.full_break_config.keep_segments_order
         )
+
+        if c_cfg.should_rc_at_end: # Invert it here so I don't have to modify the canonicalization and control signals method
+            canonicalization_params.should_rc_at_end = not canonicalization_params.should_rc_at_end
+
         training_genome_to_canonicalize[ucsc_id] = canonicalization_params
     
     hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)

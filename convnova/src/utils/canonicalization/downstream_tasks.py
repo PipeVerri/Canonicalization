@@ -1,4 +1,5 @@
 import atexit
+from ctypes import c_char
 import os
 from .utils import read_fasta_into_records_dict, save_records_into_fasta, intervaltree_to_tuples, transform_sequence
 from .parsed_genome import ParsedGenome, AlignmentError
@@ -137,6 +138,14 @@ class CanonicalizedDownstreamTask:
             start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
             raw_control_signal[start:end] = -1
 
+        # Check if I should RC the whole sequence
+        if self.config.should_rc_at_end:
+            transform_sequence(seq_canon, 0, len(seq), self.config.transformation)
+            mask = control_signal == 1
+            control_signal[control_signal == 0] = 1
+            control_signal[mask] = 0
+            raw_control_signal *= -1
+
         return seq_canon, control_signal, raw_control_signal
 
     def _verify_all_tasks_were_canonicalized(self):
@@ -268,9 +277,13 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         seq_canon, control_signal, raw_control_signal, status = c.align_and_canonicalize_record(seq, state["task_name"], state["reference_genome"], update_counter=False)
         # Do it after to get the raw control signal
         if (state["task_name"] in c.task_config.skip_tasks) or skip_task:
-            seq_canon = seq
-            control_signal = np.zeros(len(seq))
             status = None
+            if state["canonicalizer"].config.should_rc_at_end:
+                seq_canon = transform_sequence(seq, 0, len(seq), c.config.transformation)
+                control_signal[0:len(seq)] = 1
+            else:
+                seq_canon = seq
+                control_signal = np.zeros(len(seq))
 
         with open(state["seqs_dir_output"] / filename, "w") as f:
             f.write(str(seq_canon))
@@ -375,6 +388,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                 mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
                 _, control_signal, _ = self._canonicalize_record(mock_seq, alignment, reference_genome)
 
+                # No need to check for should_rc_at_end. It's already being checked in the computation of the control signal
                 canonicalized_label = label.copy().astype(np.int8)
                 if self.config.transformation == "reverse":
                     canonicalized_label = self._reverse_label(canonicalized_label, control_signal)
