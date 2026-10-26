@@ -1,6 +1,7 @@
 import atexit
 from ctypes import c_char
 import os
+from unittest import skip
 from .utils import read_fasta_into_records_dict, save_records_into_fasta, intervaltree_to_tuples, transform_sequence
 from .parsed_genome import ParsedGenome, AlignmentError
 import numpy as np
@@ -63,6 +64,12 @@ class CanonicalizedDownstreamTask:
         atexit.register(self._verify_all_tasks_were_canonicalized)
         atexit.register(self._log_unaligned_tasks)
         self._clean_output_dir()
+        self._check()
+
+    def _check(self):
+        for skipped in self.task_config.skip_tasks:
+            if not any(task.task_name == skipped for task in self.tasks_list):
+                raise ValueError(f"Skipped task {skipped} not present in task_list")
 
     def _clean_output_dir(self):
         if self.output_dir.exists() and len(os.listdir(self.output_dir)) > 0:
@@ -419,6 +426,9 @@ class DeepseaCanonicalizer(CanonicalizedDownstreamTask):
     VOCAB = np.array(["A", "C", "G", "T", "N"]) # Taken from the definition of CharTokenizer in genomics.py
     CHAR_TO_IDX = {c: idx for idx, c in enumerate(VOCAB)}
     _worker_state_dict = {} # The permanent stuff for each worker
+
+    def _check(self):
+        pass # Skip tasks isn't declared
 
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
         self._process_split("train", task.task_name, reference_genome)

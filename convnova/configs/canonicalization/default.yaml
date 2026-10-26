@@ -26,7 +26,7 @@ canonicalization:
   nt_benchmark:
     input_dir: ${..data_path}/nucleotide_transformer
     output_dir: ${..data_path}/nucleotide_transformer_parsed/
-    skip_tasks: ["promoter_all", "promoter_tata", "promoter_no_tata"]
+    skip_tasks: ["promoter_all", "promoter_tata", "promoter_no_tata", "splice_sites_all", "splice_sites_donors", "splice_sites_acceptors"]
 
   genomic_benchmark:
     input_dir: ${..data_path}/genomic_benchmark/
