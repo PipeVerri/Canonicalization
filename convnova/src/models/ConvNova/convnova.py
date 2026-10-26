@@ -148,6 +148,9 @@ class CNNModel(nn.Module):
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal = control_signal.unsqueeze(-1)
             control_signal_rc = 1 - control_signal
+            if mask is not None:
+                control_signal = control_signal.masked_fill(pad, 0.0)
+                control_signal_rc = control_signal_rc.masked_fill(pad, 0.0)
             seq = torch.cat([seq, control_signal], dim=-1).type(torch.float32)
             rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1).type(torch.float32)
 
@@ -167,6 +170,11 @@ class CNNModel(nn.Module):
             rc_h = self.dropout(rc_feat.clone())
             h = self.norms[i]((h).permute(0, 2, 1))
             rc_h = self.rc_norms[i]((rc_h).permute(0,2,1))
+            if mask is not None:
+                # LayerNorm biases otherwise recreate padded features that the
+                # following convolutions would mix back into real positions.
+                h = h.masked_fill(pad, 0.0)
+                rc_h = rc_h.masked_fill(pad, 0.0)
             g = F.sigmoid(self.gates[i](rc_h.permute(0, 2, 1)))
             h = F.gelu(self.convs[i](h.permute(0, 2, 1)))
             feat = h*g + feat
@@ -180,6 +188,8 @@ class CNNModel(nn.Module):
         feat = self.milinear(feat.permute(0,2,1)).permute(0,2,1)+feat
         if self.use_final_conv:
             feat = self.final_conv(feat)
+        if mask is not None:
+            feat = feat.masked_fill(pad_cl, 0.0)
         feat = feat.permute(0, 2, 1)
 
         if not self.pretrain:

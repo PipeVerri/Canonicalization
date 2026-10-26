@@ -161,8 +161,9 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             if seq_len > self.max_length:
                 y = y[:self.max_length]
             elif seq_len < self.max_length:
-                #print(f"idx={idx}, seq_len={seq_len}, y.shape={y.shape}, true_idx={df_seq.name}")
-                y = np.pad(y, (self.max_length - seq_len, 0), mode="constant", constant_values=-100)
+                pad_length = self.max_length - seq_len
+                pad_width = (0, pad_length) if self.tokenizer.padding_side == "right" else (pad_length, 0)
+                y = np.pad(y, pad_width, mode="constant", constant_values=-100)
         elif self.dataset_name == "variant_effects_disease" or self.dataset_name == "variant_effects_expression":
             # Start = end, indicates the position of the SNP
             seq_start = df_seq["start"] - (self.max_length // 2)
@@ -180,4 +181,6 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             raise RuntimeError(f"{self.dataset_name} not implemented in bend benchmark")
         target = torch.LongTensor(y)
 
+        if self.return_mask:
+            return seq_ids, target, {'mask': torch.BoolTensor(seq['attention_mask'])}
         return seq_ids, target

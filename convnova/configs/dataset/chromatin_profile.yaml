@@ -6,10 +6,7 @@ d_output: 919
 use_control_signal: False
 control_signals_dir: null
 
-use_padding: True
-padding_side: 'right'
-return_mask: True
-
+# Inputs are fixed-length preprocessed arrays, so no runtime padding mask is needed.
 add_eos: False
 __l_max: ${.max_length}
 shuffle: true  # set this as default!

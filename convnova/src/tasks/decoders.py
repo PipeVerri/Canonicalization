@@ -91,18 +91,13 @@ class SequenceDecoder(Decoder):
                     ).unsqueeze(-1)
                 )[..., -l_output:, :]           
             else:
-                # sum masks
-                mask_sums = torch.sum(mask, dim=-1).squeeze() - 1  # for 0 indexing
-
-                # convert mask_sums to dtype int
-                mask_sums = mask_sums.type(torch.int64)
-
+                # Average real tokens directly so left, right, and non-contiguous
+                # padding all produce the same result.
+                weights = mask.unsqueeze(-1).to(dtype=x.dtype)
                 restrict = lambda x: (
-                    torch.cumsum(x, dim=-2)
-                    / torch.arange(
-                        1, 1 + x.size(-2), device=x.device, dtype=x.dtype
-                    ).unsqueeze(-1)
-                )[torch.arange(x.size(0)), mask_sums, :].unsqueeze(1)  # need to keep original shape
+                    (x * weights).sum(dim=-2, keepdim=True)
+                    / weights.sum(dim=-2, keepdim=True).clamp(min=1)
+                )
 
         elif self.mode == "sum":
             restrict = lambda x: torch.cumsum(x, dim=-2)[..., -l_output:, :]

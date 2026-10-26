@@ -241,10 +241,12 @@ class HG38Dataset(torch.utils.data.Dataset):
         return data, target
 
 
-def random_mask(seq, mask_token_id, mask_prob=0.15):
+def random_mask(seq, mask_token_id, mask_prob=0.15, valid_mask=None):
     rand = torch.rand(seq.shape)
-    
-    mask = rand < mask_prob
+    if valid_mask is None:
+        valid_mask = torch.ones_like(seq, dtype=torch.bool)
+
+    mask = (rand < mask_prob) & valid_mask
     
     masked_seq = seq.clone()
     masked_seq[mask] = mask_token_id
@@ -252,18 +254,20 @@ def random_mask(seq, mask_token_id, mask_prob=0.15):
     return (masked_seq, mask, None) # Make it have the same shape as bert_mask
 
 
-def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, random_token_prob=0.1, unchanged_token_prob=0.1, special_token_ids=None):
+def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, random_token_prob=0.1, unchanged_token_prob=0.1, special_token_ids=None, valid_mask=None):
     """
     Applies BERT masking strategy to a sequence of BPE tokens.
 
     Args:
         seq: Input sequence of BPE tokens (shape: [batch_size, seq_length]).
         mask_token_id: ID of the [MASK] token.
-        pad_token_id: ID of the padding token.
+        pad_token_id: ID of the padding token, or None when padding is only
+            identified by valid_mask.
         vocab_size: Size of the vocabulary.
         mask_prob: Probability of masking a token.
         random_token_prob: Probability of replacing a masked token with a random token.
         unchanged_token_prob: Probability of keeping a masked token unchanged.
+        valid_mask: Optional boolean mask where True marks real (non-padding) tokens.
     
     Returns:
         A tuple containing:
@@ -271,8 +275,13 @@ def bert_mask(seq, mask_token_id, pad_token_id, vocab_size, mask_prob=0.15, rand
             - labels: The ground truth labels for the masked positions.
             - mask: The mask used to identify which tokens were masked.
     """
-    # 避免遮蔽padding
-    mask = (seq != pad_token_id) & (torch.rand(seq.shape) < mask_prob)
+    # Avoid masking padding. The explicit valid mask is required after the
+    # five-symbol conversion has mapped PAD to the same ID as N.
+    if valid_mask is None:
+        valid_mask = torch.ones_like(seq, dtype=torch.bool) if pad_token_id is None else seq != pad_token_id
+    elif pad_token_id is not None:
+        valid_mask = valid_mask & (seq != pad_token_id)
+    mask = valid_mask & (torch.rand(seq.shape) < mask_prob)
 
     # 复制一份用于保存label
     labels = seq.clone()
@@ -392,52 +401,65 @@ class BertHG38Dataset(torch.utils.data.Dataset):
 
         # Uses character tokenizer by default
         if self.tokenizer_name == 'char':
-
-            seq = self.tokenizer(seq,
+            tokenized = self.tokenizer(seq,
                 add_special_tokens=True if self.add_eos else False,  # this is what controls adding eos
                 padding="max_length",
                 max_length=self.max_length,
                 truncation=True,
             )
-            seq = seq["input_ids"]  # get input_ids
+            seq = tokenized["input_ids"]
+            valid_mask = tokenized["attention_mask"]
 
         elif self.tokenizer_name == 'bpe':
-            seq = self.tokenizer(seq, 
-                # add_special_tokens=False, 
+            tokenized = self.tokenizer(seq,
+                # add_special_tokens=False,
                 padding="max_length",
                 max_length=self.pad_max_length,
                 truncation=True,
-            ) 
-            # get input_ids
+            )
+            seq = tokenized["input_ids"]
+            valid_mask = tokenized["attention_mask"]
             if self.add_eos:
-                seq = seq["input_ids"][1:]  # remove the bos, keep the eos token
+                seq = seq[1:]  # remove the bos, keep the eos token
+                valid_mask = valid_mask[1:]
             else:
-                seq = seq["input_ids"][1:-1]  # remove both special tokens
-        
-        # convert to tensor
-        seq = torch.LongTensor(seq)  # hack, remove the initial cls tokens for now
+                seq = seq[1:-1]  # remove both special tokens
+                valid_mask = valid_mask[1:-1]
+
+        # Preserve the tokenizer's real-token mask before remapping special IDs.
+        seq = torch.LongTensor(seq)
+        valid_mask = torch.BoolTensor(valid_mask)
         if not self.use_tokenizer:
             seq = seq-7
-            mask = (seq >= 4) | (seq < 0)
-            seq[mask] = 4
+            special_tokens = (seq >= 4) | (seq < 0)
+            seq[special_tokens] = 4
             data = seq
             target = seq.clone()
-            seq, mask, labels = bert_mask(data, 4, 5, 5, special_token_ids=[4])
-            masked = bert_mask(data, 4, 5, 5, special_token_ids=[4])
-            return append_control_signal(masked, control_signal), target
+            masked = bert_mask(
+                data, 4, None, 5, special_token_ids=[4], valid_mask=valid_mask
+            )
+            return append_control_signal(masked, control_signal), target, {'mask': valid_mask}
 
         if self.replace_N_token:
             # replace N token with a pad token, so we can ignore it in the loss
             seq = self.replace_value(seq, self.tokenizer._vocab_str_to_int['N'], self.tokenizer.pad_token_id)
 
-        data = seq.clone()  # remove eos
-        target = seq.clone()  # offset by 1, includes eos
+        data = seq.clone()
+        target = seq.clone()
         special_token_ids = self.tokenizer.all_special_ids
 
         # (seq, mask, labels)
         if self.objective=="stdmlm":
-            masked = bert_mask(data, self.tokenizer.mask_token_id, self.tokenizer.pad_token_id, self.tokenizer.vocab_size, special_token_ids=special_token_ids)
+            masked = bert_mask(
+                data,
+                self.tokenizer.mask_token_id,
+                self.tokenizer.pad_token_id,
+                self.tokenizer.vocab_size,
+                special_token_ids=special_token_ids,
+                valid_mask=valid_mask,
+            )
         else:
-            masked = random_mask(data, self.tokenizer.mask_token_id)
-        
-        return append_control_signal(masked, control_signal), target
+            loss_valid_mask = valid_mask & (seq != self.tokenizer.pad_token_id)
+            masked = random_mask(data, self.tokenizer.mask_token_id, valid_mask=loss_valid_mask)
+
+        return append_control_signal(masked, control_signal), target, {'mask': valid_mask}

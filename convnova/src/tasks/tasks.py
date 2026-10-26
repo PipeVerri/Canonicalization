@@ -244,8 +244,8 @@ class MaskedMultiClass(MultiClass):
             assert len(z) == 1 and isinstance(z[0], dict), "Dataloader must return dictionary of extra arguments"
             z = z[0]
 
-        x, w = encoder(x) # w can model-specific constructions such as key_padding_mask for transformers or state for RNNs
-        x, state = model(x)
+        x, w = encoder(x, **z) # w can model-specific constructions such as key_padding_mask for transformers or state for RNNs
+        x, state = model(x, **w, state=_state)
         self._state = state
         x, w = decoder(x, state=state, **z)
         return x, y, w
