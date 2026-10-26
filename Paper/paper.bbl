@@ -1,0 +1,338 @@
+\begin{thebibliography}{32}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Akiba et~al.(2019)Akiba, Sano, Yanase, Ohta, and
+  Koyama]{akibaOptunaNextgenerationHyperparameter2019}
+Takuya Akiba, Shotaro Sano, Toshihiko Yanase, Takeru Ohta, and Masanori Koyama.
+\newblock Optuna: {{A Next-generation Hyperparameter Optimization Framework}},
+  July 2019.
+
+\bibitem[Arnold et~al.(2013)Arnold, Gerlach, Stelzer, Bory{\'n}, and
+  Et.]{arnoldGenomeWideQuantitativeEnhancer2013}
+Cosmas~D. Arnold, Daniel Gerlach, Christoph Stelzer, {\L}ukasz~M. Bory{\'n},
+  and Al~Et.
+\newblock Genome-{{Wide Quantitative Enhancer Activity Maps Identified}} by
+  {{STARR-seq}}.
+\newblock \emph{Science}, 2013.
+\newblock \doi{10.1126/science.1232542}.
+
+\bibitem[Arnold et~al.(2020)Arnold, Wells, and
+  Li]{arnoldDiversityEmergingRoles2020}
+Preston~R. Arnold, Andrew~D. Wells, and Xian~C. Li.
+\newblock Diversity and {{Emerging Roles}} of {{Enhancer RNA}} in
+  {{Regulation}} of {{Gene Expression}} and {{Cell Fate}}.
+\newblock \emph{Frontiers in Cell and Developmental Biology}, 7, January 2020.
+\newblock ISSN 2296-634X.
+\newblock \doi{10.3389/fcell.2019.00377}.
+
+\bibitem[Avsec et~al.(2021)Avsec, Agarwal, Visentin, Ledsam,
+  {Grabska-Barwinska}, Taylor, Assael, Jumper, Kohli, and
+  Kelley]{avsecEffectiveGeneExpression2021}
+{\v Z}iga Avsec, Vikram Agarwal, Daniel Visentin, Joseph~R. Ledsam, Agnieszka
+  {Grabska-Barwinska}, Kyle~R. Taylor, Yannis Assael, John Jumper, Pushmeet
+  Kohli, and David~R. Kelley.
+\newblock Effective gene expression prediction from sequence by integrating
+  long-range interactions.
+\newblock \emph{Nature Methods}, 18\penalty0 (10):\penalty0 1196--1203, October
+  2021.
+\newblock ISSN 1548-7105.
+\newblock \doi{10.1038/s41592-021-01252-x}.
+
+\bibitem[Bird(1978)]{birdUseRestrictionEnzymes1978}
+A.~P. Bird.
+\newblock Use of restriction enzymes to study eukaryotic {{DNA}} methylation:
+  {{II}}. {{The}} symmetry of methylated sites supports semi-conservative
+  copying of the methylation pattern.
+\newblock \emph{Journal of Molecular Biology}, 118\penalty0 (1):\penalty0
+  49--60, January 1978.
+\newblock ISSN 0022-2836.
+\newblock \doi{10.1016/0022-2836(78)90243-7}.
+
+\bibitem[Bo et~al.(2025)Bo, Mao, Shao, Bai, Ye, Ma, Zhao, Chen, and
+  Shen]{boRevisitingConvolutionArchitecture2025}
+Yu~Bo, Weian Mao, Yanjun Shao, Weiqiang Bai, Peng Ye, Xinzhu Ma, Junbo Zhao,
+  Hao Chen, and Chunhua Shen.
+\newblock Revisiting {{Convolution Architecture}} in the {{Realm}} of {{DNA
+  Foundation Models}}.
+\newblock https://arxiv.org/abs/2502.18538v1, February 2025.
+
+\bibitem[Coons et~al.(2019)Coons, Burkholder, Hewitt, McDonnell, and
+  Korach]{coonsDecodingInversionSymmetry2019}
+Laurel~A. Coons, Adam~B. Burkholder, Sylvia~C. Hewitt, Donald~P. McDonnell, and
+  Kenneth~S. Korach.
+\newblock Decoding the {{Inversion Symmetry Underlying Transcription Factor
+  DNA-Binding Specificity}} and {{Functionality}} in the {{Genome}}.
+\newblock \emph{iScience}, 15:\penalty0 552--591, May 2019.
+\newblock ISSN 25890042.
+\newblock \doi{10.1016/j.isci.2019.04.006}.
+
+\bibitem[{Dalla-Torre} et~al.(2025){Dalla-Torre}, Gonzalez, {Mendoza-Revilla},
+  Lopez~Carranza, Grzywaczewski, Oteri, Dallago, Trop, {de Almeida},
+  Sirelkhatim, Richard, Skwark, Beguir, Lopez, and
+  Pierrot]{dalla-torreNucleotideTransformerBuilding2025}
+Hugo {Dalla-Torre}, Liam Gonzalez, Javier {Mendoza-Revilla}, Nicolas
+  Lopez~Carranza, Adam~Henryk Grzywaczewski, Francesco Oteri, Christian
+  Dallago, Evan Trop, Bernardo~P. {de Almeida}, Hassan Sirelkhatim, Guillaume
+  Richard, Marcin Skwark, Karim Beguir, Marie Lopez, and Thomas Pierrot.
+\newblock Nucleotide {{Transformer}}: Building and evaluating robust foundation
+  models for human genomics.
+\newblock \emph{Nature Methods}, 22\penalty0 (2):\penalty0 287--297, February
+  2025.
+\newblock ISSN 1548-7105.
+\newblock \doi{10.1038/s41592-024-02523-z}.
+
+\bibitem[Duttke et~al.(2015)Duttke, Lacadie, Ibrahim, Glass, Corcoran, Benner,
+  Heinz, Kadonaga, and Ohler]{duttkeHumanPromotersAre2015}
+Sascha H.~C. Duttke, Scott~A. Lacadie, Mahmoud~M. Ibrahim, Christopher~K.
+  Glass, David~L. Corcoran, Christopher Benner, Sven Heinz, James~T. Kadonaga,
+  and Uwe Ohler.
+\newblock Human {{Promoters Are Intrinsically Directional}}.
+\newblock \emph{Molecular Cell}, 57\penalty0 (4):\penalty0 674--684, February
+  2015.
+\newblock ISSN 1097-2765.
+\newblock \doi{10.1016/j.molcel.2014.12.029}.
+
+\bibitem[Eichinger et~al.(2005)Eichinger, Pachebat, Gl{\"o}ckner, Rajandream,
+  Sucgang, Berriman, Song, Olsen, Szafranski, Xu, Tunggal, Kummerfeld, Madera,
+  Konfortov, Rivero, Bankier, Lehmann, Hamlin, Davies, Gaudet, Fey, Pilcher,
+  Chen, Saunders, Sodergren, Davis, Kerhornou, Nie, Hall, Anjard, Hemphill,
+  Bason, Farbrother, Desany, Just, Morio, Rost, Churcher, Cooper, Haydock,
+  Van~Driessche, Cronin, Goodhead, Muzny, Mourier, Pain, Lu, Harper, Lindsay,
+  Hauser, James, Quiles, Madan~Babu, Saito, Buchrieser, Wardroper, Felder,
+  Thangavelu, Johnson, Knights, Loulseged, Mungall, Oliver, Price, Quail,
+  Urushihara, Hernandez, Rabbinowitsch, Steffen, Sanders, Ma, Kohara, Sharp,
+  Simmonds, Spiegler, Tivey, Sugano, White, Walker, Woodward, Winckler, Tanaka,
+  Shaulsky, Schleicher, Weinstock, Rosenthal, Cox, Chisholm, Gibbs, Loomis,
+  Platzer, Kay, Williams, Dear, Noegel, Barrell, and
+  Kuspa]{eichingerGenomeSocialAmoeba2005}
+L.~Eichinger, J.~A. Pachebat, G.~Gl{\"o}ckner, M.-A. Rajandream, R.~Sucgang,
+  M.~Berriman, J.~Song, R.~Olsen, K.~Szafranski, Q.~Xu, B.~Tunggal,
+  S.~Kummerfeld, M.~Madera, B.~A. Konfortov, F.~Rivero, A.~T. Bankier,
+  R.~Lehmann, N.~Hamlin, R.~Davies, P.~Gaudet, P.~Fey, K.~Pilcher, G.~Chen,
+  D.~Saunders, E.~Sodergren, P.~Davis, A.~Kerhornou, X.~Nie, N.~Hall,
+  C.~Anjard, L.~Hemphill, N.~Bason, P.~Farbrother, B.~Desany, E.~Just,
+  T.~Morio, R.~Rost, C.~Churcher, J.~Cooper, S.~Haydock, N.~Van~Driessche,
+  A.~Cronin, I.~Goodhead, D.~Muzny, T.~Mourier, A.~Pain, M.~Lu, D.~Harper,
+  R.~Lindsay, H.~Hauser, K.~James, M.~Quiles, M.~Madan~Babu, T.~Saito,
+  C.~Buchrieser, A.~Wardroper, M.~Felder, M.~Thangavelu, D.~Johnson,
+  A.~Knights, H.~Loulseged, K.~Mungall, K.~Oliver, C.~Price, M.~A. Quail,
+  H.~Urushihara, J.~Hernandez, E.~Rabbinowitsch, D.~Steffen, M.~Sanders, J.~Ma,
+  Y.~Kohara, S.~Sharp, M.~Simmonds, S.~Spiegler, A.~Tivey, S.~Sugano, B.~White,
+  D.~Walker, J.~Woodward, T.~Winckler, Y.~Tanaka, G.~Shaulsky, M.~Schleicher,
+  G.~Weinstock, A.~Rosenthal, E.~C. Cox, R.~L. Chisholm, R.~Gibbs, W.~F.
+  Loomis, M.~Platzer, R.~R. Kay, J.~Williams, P.~H. Dear, A.~A. Noegel,
+  B.~Barrell, and A.~Kuspa.
+\newblock The genome of the social amoeba {{Dictyostelium}} discoideum.
+\newblock \emph{Nature}, 435\penalty0 (7038):\penalty0 43--57, May 2005.
+\newblock ISSN 0028-0836, 1476-4687.
+\newblock \doi{10.1038/nature03481}.
+
+\bibitem[Eilbeck et~al.(2005)Eilbeck, Lewis, Mungall, Yandell, Stein, Durbin,
+  and Ashburner]{eilbeckSequenceOntologyTool2005}
+Karen Eilbeck, Suzanna~E. Lewis, Christopher~J. Mungall, Mark Yandell, Lincoln
+  Stein, Richard Durbin, and Michael Ashburner.
+\newblock The {{Sequence Ontology}}: A tool for the unification of genome
+  annotations.
+\newblock \emph{Genome Biology}, 6\penalty0 (5):\penalty0 R44, 2005.
+\newblock ISSN 1474-760X.
+\newblock \doi{10.1186/gb-2005-6-5-r44}.
+
+\bibitem[{Georgakopoulos-Soares} et~al.(2021){Georgakopoulos-Soares},
+  Mouratidis, Parada, Matharu, Hemberg, and
+  Ahituv]{georgakopoulos-soaresAsymmetronToolkitIdentification2021}
+Ilias {Georgakopoulos-Soares}, Ioannis Mouratidis, Guillermo~E. Parada, Navneet
+  Matharu, Martin Hemberg, and Nadav Ahituv.
+\newblock Asymmetron: A toolkit for the identification of strand asymmetry
+  patterns in biological sequences.
+\newblock \emph{Nucleic Acids Research}, 49\penalty0 (1):\penalty0 e4, January
+  2021.
+\newblock ISSN 1362-4962.
+\newblock \doi{10.1093/nar/gkaa1052}.
+
+\bibitem[Ginno et~al.(2012)Ginno, Lott, Christensen, Korf, and
+  Ch{\'e}din]{ginnoRloopFormationDistinctive2012}
+Paul~A. Ginno, Paul~L. Lott, Holly~C. Christensen, Ian Korf, and
+  Fr{\'e}d{\'e}ric Ch{\'e}din.
+\newblock R-loop formation is a distinctive characteristic of unmethylated
+  human {{CpG}} island promoters.
+\newblock \emph{Molecular Cell}, 45\penalty0 (6):\penalty0 814--825, March
+  2012.
+\newblock ISSN 1097-4164.
+\newblock \doi{10.1016/j.molcel.2012.01.017}.
+
+\bibitem[Green et~al.(2003)Green, Ewing, Miller, Thomas, {NISC Comparative
+  Sequencing Program}, and
+  Green]{greenTranscriptionassociatedMutationalAsymmetry2003}
+Phil Green, Brent Ewing, Webb Miller, Pamela~J. Thomas, {NISC Comparative
+  Sequencing Program}, and Eric~D. Green.
+\newblock Transcription-associated mutational asymmetry in mammalian evolution.
+\newblock \emph{Nature Genetics}, 33\penalty0 (4):\penalty0 514--517, April
+  2003.
+\newblock ISSN 1061-4036.
+\newblock \doi{10.1038/ng1103}.
+
+\bibitem[Gre{\v s}ov{\'a} et~al.(2023)Gre{\v s}ov{\'a}, Martinek, {\v
+  C}ech{\'a}k, {\v S}ime{\v c}ek, and
+  Alexiou]{gresovaGenomicBenchmarksCollection2023}
+Katar{\'i}na Gre{\v s}ov{\'a}, Vlastimil Martinek, David {\v C}ech{\'a}k, Petr
+  {\v S}ime{\v c}ek, and Panagiotis Alexiou.
+\newblock Genomic benchmarks: A collection of datasets for genomic sequence
+  classification.
+\newblock \emph{BMC Genomic Data}, 24\penalty0 (1):\penalty0 25, May 2023.
+\newblock ISSN 2730-6844.
+\newblock \doi{10.1186/s12863-023-01123-8}.
+
+\bibitem[Jaderberg et~al.(2015)Jaderberg, Simonyan, Zisserman, and
+  {kavukcuoglu}]{jaderbergSpatialTransformerNetworks2015}
+Max Jaderberg, Karen Simonyan, Andrew Zisserman, and koray {kavukcuoglu}.
+\newblock Spatial {{Transformer Networks}}.
+\newblock In \emph{Advances in {{Neural Information Processing Systems}}},
+  volume~28. Curran Associates, Inc., 2015.
+
+\bibitem[Kaba et~al.(2023)Kaba, Mondal, Zhang, Bengio, and
+  Ravanbakhsh]{kabaEquivarianceLearnedCanonicalization2023}
+S{\'e}kou-Oumar Kaba, Arnab~Kumar Mondal, Yan Zhang, Yoshua Bengio, and Siamak
+  Ravanbakhsh.
+\newblock Equivariance with {{Learned Canonicalization Functions}}, July 2023.
+
+\bibitem[Kassouf et~al.(2025)Kassouf, Francis, Gosden, Suciu, Downes, Harrold,
+  Larke, Oudelaar, Cornell, Blayney, Telenius, Xella, Shen, Sousos, Sharpe,
+  {Sloane-Stanley}, Smith, Babbs, Hughes, and
+  Higgs]{kassoufAglobinSuperenhancerActs2025}
+Mira~T. Kassouf, Helena~S. Francis, Matthew Gosden, Maria~C. Suciu, Damien~J.
+  Downes, Caroline Harrold, Martin Larke, Marieke Oudelaar, Lucy Cornell,
+  Joseph Blayney, Jelena Telenius, Barbara Xella, Yuki Shen, Nikolaos Sousos,
+  Jacqueline~A. Sharpe, Jacqueline {Sloane-Stanley}, Andrew J.~H. Smith,
+  Christian Babbs, Jim~R. Hughes, and Douglas~R. Higgs.
+\newblock The {$\alpha$}-globin super-enhancer acts in an orientation-dependent
+  manner.
+\newblock \emph{Nature Communications}, 16\penalty0 (1):\penalty0 1033, January
+  2025.
+\newblock ISSN 2041-1723.
+\newblock \doi{10.1038/s41467-025-56380-1}.
+
+\bibitem[Kelley et~al.(2016)Kelley, Snoek, and
+  Rinn]{kelleyBassetLearningRegulatory2016}
+David~R. Kelley, Jasper Snoek, and John~L. Rinn.
+\newblock Basset: Learning the regulatory code of the accessible genome with
+  deep convolutional neural networks.
+\newblock \emph{Genome Research}, 26\penalty0 (7):\penalty0 990--999, July
+  2016.
+\newblock ISSN 1088-9051.
+\newblock \doi{10.1101/gr.200535.115}.
+
+\bibitem[Kelley et~al.(2018)Kelley, Reshef, Bileschi, Belanger, McLean, and
+  Snoek]{kelleySequentialRegulatoryActivity2018}
+David~R. Kelley, Yakir~A. Reshef, Maxwell Bileschi, David Belanger, Cory~Y.
+  McLean, and Jasper Snoek.
+\newblock Sequential regulatory activity prediction across chromosomes with
+  convolutional neural networks.
+\newblock \emph{Genome Research}, 28\penalty0 (5):\penalty0 739--750, May 2018.
+\newblock ISSN 1088-9051.
+\newblock \doi{10.1101/gr.227819.117}.
+
+\bibitem[Li(2018)]{liMinimap2PairwiseAlignment2018}
+Heng Li.
+\newblock Minimap2: Pairwise alignment for nucleotide sequences.
+\newblock \emph{Bioinformatics}, 34\penalty0 (18):\penalty0 3094--3100,
+  September 2018.
+\newblock ISSN 1367-4803.
+\newblock \doi{10.1093/bioinformatics/bty191}.
+
+\bibitem[Mao et~al.(2018)Mao, Ghanbarian, Spiegel, Mart{\'i}nez~Cuesta,
+  Beraldi, Di~Antonio, Marsico, {H{\"a}nsel-Hertsch}, Tannahill, and
+  Balasubramanian]{maoDNAGquadruplexStructures2018}
+Shi-Qing Mao, Avazeh~T. Ghanbarian, Jochen Spiegel, Sergio Mart{\'i}nez~Cuesta,
+  Dario Beraldi, Marco Di~Antonio, Giovanni Marsico, Robert
+  {H{\"a}nsel-Hertsch}, David Tannahill, and Shankar Balasubramanian.
+\newblock {{DNA G-quadruplex}} structures mold the {{DNA}} methylome.
+\newblock \emph{Nature Structural \& Molecular Biology}, 25\penalty0
+  (10):\penalty0 951--957, October 2018.
+\newblock ISSN 1545-9985.
+\newblock \doi{10.1038/s41594-018-0131-8}.
+
+\bibitem[Marin et~al.(2023)Marin, Teufel, Horlacher, Madsen, Pultz, Winther,
+  and Boomsma]{marinBENDBenchmarkingDNA2023}
+Frederikke~Isa Marin, Felix Teufel, Marc Horlacher, Dennis Madsen, Dennis
+  Pultz, Ole Winther, and Wouter Boomsma.
+\newblock {{BEND}}: {{Benchmarking DNA Language Models}} on biologically
+  meaningful tasks.
+\newblock https://arxiv.org/abs/2311.12570v4, November 2023.
+
+\bibitem[Moeckel et~al.(2023)Moeckel, Zaravinos, and
+  {Georgakopoulos-Soares}]{moeckelStrandAsymmetriesGenomic2023}
+Camille Moeckel, Apostolos Zaravinos, and Ilias {Georgakopoulos-Soares}.
+\newblock Strand asymmetries across genomic processes.
+\newblock \emph{Computational and Structural Biotechnology Journal},
+  21:\penalty0 2036--2047, March 2023.
+\newblock ISSN 2001-0370.
+\newblock \doi{10.1016/j.csbj.2023.03.007}.
+
+\bibitem[Nguyen et~al.(2023)Nguyen, Poli, Faizi, Thomas, {Birch-Sykes}, Wornow,
+  Patel, Rabideau, Massaroli, Bengio, Ermon, Baccus, and
+  R{\'e}]{nguyenHyenaDNALongRangeGenomic2023}
+Eric Nguyen, Michael Poli, Marjan Faizi, Armin Thomas, Callum {Birch-Sykes},
+  Michael Wornow, Aman Patel, Clayton Rabideau, Stefano Massaroli, Yoshua
+  Bengio, Stefano Ermon, Stephen~A. Baccus, and Chris R{\'e}.
+\newblock {{HyenaDNA}}: {{Long-Range Genomic Sequence Modeling}} at {{Single
+  Nucleotide Resolution}}, November 2023.
+
+\bibitem[Penzar et~al.(2023)Penzar, Nogina, Noskova, Zinkevich, Meshcheryakov,
+  Lando, Rafi, {de Boer}, and Kulakovskiy]{penzarLegNetBestinclassDeep2023}
+Dmitry Penzar, Daria Nogina, Elizaveta Noskova, Arsenii Zinkevich, Georgy
+  Meshcheryakov, Andrey Lando, Abdul~Muntakim Rafi, Carl {de Boer}, and Ivan~V.
+  Kulakovskiy.
+\newblock {{LegNet}}: A best-in-class deep learning model for short {{DNA}}
+  regulatory regions.
+\newblock \emph{Bioinformatics}, 39\penalty0 (8):\penalty0 btad457, August
+  2023.
+\newblock ISSN 1367-4811.
+\newblock \doi{10.1093/bioinformatics/btad457}.
+
+\bibitem[Schiff et~al.(2024)Schiff, Kao, Gokaslan, Dao, Gu, and
+  Kuleshov]{schiffCaduceusBiDirectionalEquivariant2024}
+Yair Schiff, Chia-Hsiang Kao, Aaron Gokaslan, Tri Dao, Albert Gu, and Volodymyr
+  Kuleshov.
+\newblock Caduceus: {{Bi-Directional Equivariant Long-Range DNA Sequence
+  Modeling}}, June 2024.
+
+\bibitem[Yu \& Koltun(2016)Yu and Koltun]{yuMultiScaleContextAggregation2016}
+Fisher Yu and Vladlen Koltun.
+\newblock Multi-{{Scale Context Aggregation}} by {{Dilated Convolutions}},
+  April 2016.
+
+\bibitem[Yu et~al.(2019)Yu, Lin, Yang, Shen, Lu, and
+  Huang]{yuFreeFormImageInpainting2019}
+Jiahui Yu, Zhe Lin, Jimei Yang, Xiaohui Shen, Xin Lu, and Thomas Huang.
+\newblock Free-{{Form Image Inpainting}} with {{Gated Convolution}}, October
+  2019.
+
+\bibitem[Zhou et~al.(2021)Zhou, Shrikumar, and
+  Kundaje]{zhouBetterUnderstandingReverseComplement2021}
+Hannah Zhou, Avanti Shrikumar, and Anshul Kundaje.
+\newblock Towards a {{Better Understanding}} of {{Reverse-Complement
+  Equivariance}} for {{Deep Learning Models}} in {{Regulatory Genomics}},
+  February 2021.
+
+\bibitem[Zhou \& Troyanskaya(2015)Zhou and
+  Troyanskaya]{zhouPredictingEffectsNoncoding2015}
+Jian Zhou and Olga~G Troyanskaya.
+\newblock Predicting effects of noncoding variants with deep learning--based
+  sequence model.
+\newblock \emph{Nature methods}, 12\penalty0 (10):\penalty0 931--934, October
+  2015.
+\newblock ISSN 1548-7091.
+\newblock \doi{10.1038/nmeth.3547}.
+
+\bibitem[Zhou et~al.(2024)Zhou, Ji, Li, Dutta, Davuluri, and
+  Liu]{zhouDNABERT2EfficientFoundation2024}
+Zhihan Zhou, Yanrong Ji, Weijian Li, Pratik Dutta, Ramana Davuluri, and Han
+  Liu.
+\newblock {{DNABERT-2}}: {{Efficient Foundation Model}} and {{Benchmark For
+  Multi-Species Genome}}, March 2024.
+
+\end{thebibliography}

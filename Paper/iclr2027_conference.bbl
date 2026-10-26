@@ -1,0 +1,115 @@
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Avsec et~al.(2021)Avsec, Agarwal, Visentin, Ledsam,
+  {Grabska-Barwinska}, Taylor, Assael, Jumper, Kohli, and
+  Kelley]{avsecEffectiveGeneExpression2021}
+{\v Z}iga Avsec, Vikram Agarwal, Daniel Visentin, Joseph~R. Ledsam, Agnieszka
+  {Grabska-Barwinska}, Kyle~R. Taylor, Yannis Assael, John Jumper, Pushmeet
+  Kohli, and David~R. Kelley.
+\newblock Effective gene expression prediction from sequence by integrating
+  long-range interactions.
+\newblock \emph{Nature Methods}, 18\penalty0 (10):\penalty0 1196--1203, October
+  2021.
+\newblock ISSN 1548-7105.
+\newblock \doi{10.1038/s41592-021-01252-x}.
+
+\bibitem[Bo et~al.(2025)Bo, Mao, Shao, Bai, Ye, Ma, Zhao, Chen, and
+  Shen]{boRevisitingConvolutionArchitecture2025}
+Yu~Bo, Weian Mao, Yanjun Shao, Weiqiang Bai, Peng Ye, Xinzhu Ma, Junbo Zhao,
+  Hao Chen, and Chunhua Shen.
+\newblock Revisiting {{Convolution Architecture}} in the {{Realm}} of {{DNA
+  Foundation Models}}.
+\newblock https://arxiv.org/abs/2502.18538v1, February 2025.
+
+\bibitem[{Dalla-Torre} et~al.(2025){Dalla-Torre}, Gonzalez, {Mendoza-Revilla},
+  Lopez~Carranza, Grzywaczewski, Oteri, Dallago, Trop, {de Almeida},
+  Sirelkhatim, Richard, Skwark, Beguir, Lopez, and
+  Pierrot]{dalla-torreNucleotideTransformerBuilding2025}
+Hugo {Dalla-Torre}, Liam Gonzalez, Javier {Mendoza-Revilla}, Nicolas
+  Lopez~Carranza, Adam~Henryk Grzywaczewski, Francesco Oteri, Christian
+  Dallago, Evan Trop, Bernardo~P. {de Almeida}, Hassan Sirelkhatim, Guillaume
+  Richard, Marcin Skwark, Karim Beguir, Marie Lopez, and Thomas Pierrot.
+\newblock Nucleotide {{Transformer}}: Building and evaluating robust foundation
+  models for human genomics.
+\newblock \emph{Nature Methods}, 22\penalty0 (2):\penalty0 287--297, February
+  2025.
+\newblock ISSN 1548-7105.
+\newblock \doi{10.1038/s41592-024-02523-z}.
+
+\bibitem[Kelley et~al.(2016)Kelley, Snoek, and
+  Rinn]{kelleyBassetLearningRegulatory2016}
+David~R. Kelley, Jasper Snoek, and John~L. Rinn.
+\newblock Basset: Learning the regulatory code of the accessible genome with
+  deep convolutional neural networks.
+\newblock \emph{Genome Research}, 26\penalty0 (7):\penalty0 990--999, July
+  2016.
+\newblock ISSN 1088-9051.
+\newblock \doi{10.1101/gr.200535.115}.
+
+\bibitem[Kelley et~al.(2018)Kelley, Reshef, Bileschi, Belanger, McLean, and
+  Snoek]{kelleySequentialRegulatoryActivity2018}
+David~R. Kelley, Yakir~A. Reshef, Maxwell Bileschi, David Belanger, Cory~Y.
+  McLean, and Jasper Snoek.
+\newblock Sequential regulatory activity prediction across chromosomes with
+  convolutional neural networks.
+\newblock \emph{Genome Research}, 28\penalty0 (5):\penalty0 739--750, May 2018.
+\newblock ISSN 1088-9051.
+\newblock \doi{10.1101/gr.227819.117}.
+
+\bibitem[Moeckel et~al.(2023)Moeckel, Zaravinos, and
+  {Georgakopoulos-Soares}]{moeckelStrandAsymmetriesGenomic2023}
+Camille Moeckel, Apostolos Zaravinos, and Ilias {Georgakopoulos-Soares}.
+\newblock Strand asymmetries across genomic processes.
+\newblock \emph{Computational and Structural Biotechnology Journal},
+  21:\penalty0 2036--2047, March 2023.
+\newblock ISSN 2001-0370.
+\newblock \doi{10.1016/j.csbj.2023.03.007}.
+
+\bibitem[Nguyen et~al.(2023)Nguyen, Poli, Faizi, Thomas, {Birch-Sykes}, Wornow,
+  Patel, Rabideau, Massaroli, Bengio, Ermon, Baccus, and
+  R{\'e}]{nguyenHyenaDNALongRangeGenomic2023}
+Eric Nguyen, Michael Poli, Marjan Faizi, Armin Thomas, Callum {Birch-Sykes},
+  Michael Wornow, Aman Patel, Clayton Rabideau, Stefano Massaroli, Yoshua
+  Bengio, Stefano Ermon, Stephen~A. Baccus, and Chris R{\'e}.
+\newblock {{HyenaDNA}}: {{Long-Range Genomic Sequence Modeling}} at {{Single
+  Nucleotide Resolution}}, November 2023.
+
+\bibitem[Penzar et~al.(2023)Penzar, Nogina, Noskova, Zinkevich, Meshcheryakov,
+  Lando, Rafi, {de Boer}, and Kulakovskiy]{penzarLegNetBestinclassDeep2023}
+Dmitry Penzar, Daria Nogina, Elizaveta Noskova, Arsenii Zinkevich, Georgy
+  Meshcheryakov, Andrey Lando, Abdul~Muntakim Rafi, Carl {de Boer}, and Ivan~V.
+  Kulakovskiy.
+\newblock {{LegNet}}: A best-in-class deep learning model for short {{DNA}}
+  regulatory regions.
+\newblock \emph{Bioinformatics}, 39\penalty0 (8):\penalty0 btad457, August
+  2023.
+\newblock ISSN 1367-4811.
+\newblock \doi{10.1093/bioinformatics/btad457}.
+
+\bibitem[Schiff et~al.(2024)Schiff, Kao, Gokaslan, Dao, Gu, and
+  Kuleshov]{schiffCaduceusBiDirectionalEquivariant2024}
+Yair Schiff, Chia-Hsiang Kao, Aaron Gokaslan, Tri Dao, Albert Gu, and Volodymyr
+  Kuleshov.
+\newblock Caduceus: {{Bi-Directional Equivariant Long-Range DNA Sequence
+  Modeling}}, June 2024.
+
+\bibitem[Zhou et~al.(2021)Zhou, Shrikumar, and
+  Kundaje]{zhouBetterUnderstandingReverseComplement2021}
+Hannah Zhou, Avanti Shrikumar, and Anshul Kundaje.
+\newblock Towards a {{Better Understanding}} of {{Reverse-Complement
+  Equivariance}} for {{Deep Learning Models}} in {{Regulatory Genomics}},
+  February 2021.
+
+\bibitem[Zhou et~al.(2024)Zhou, Ji, Li, Dutta, Davuluri, and
+  Liu]{zhouDNABERT2EfficientFoundation2024}
+Zhihan Zhou, Yanrong Ji, Weijian Li, Pratik Dutta, Ramana Davuluri, and Han
+  Liu.
+\newblock {{DNABERT-2}}: {{Efficient Foundation Model}} and {{Benchmark For
+  Multi-Species Genome}}, March 2024.
+
+\end{thebibliography}

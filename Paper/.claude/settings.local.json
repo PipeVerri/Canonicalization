@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep *)",
+      "Bash(zotero-cli *)",
+      "Bash(xargs -I{} grep -n -A5 \"eichingerGenomeSocialAmoeba2005\" {})"
+    ]
+  }
+}

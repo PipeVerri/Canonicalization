@@ -1,0 +1,985 @@
+\documentclass[   ]{article}
+
+% --- Estilo ICLR y paquetes requeridos ---
+\usepackage{iclr2027_conference,times}
+
+\iclrfinalcopy
+
+% Comandos matemáticos y notación por defecto
+\input{math_commands.tex}
+
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{longtable}
+\usepackage{ltablex}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{inconsolata}
+\usepackage[T1]{fontenc}
+\usepackage{seqsplit}
+\usepackage{float}
+\usepackage{graphicx}
+\graphicspath{{./images}}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{soul}
+\usepackage[table]{xcolor}
+
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{\oldtexttt{\itshape #1}}
+
+% Compatibilidad para títulos y secciones de Pandoc
+\providecommand{\hypertarget}[2]{#2}
+
+% Definición requerida por Pandoc para las listas
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\makeatletter
+\@ifundefined{c@none}{\newcounter{none}}{}
+\makeatother
+
+% --- Metadatos del Título y Autores ---
+\title{DNA Canonicalization improves foundational models}
+
+\author{
+    \textbf{Felipe Verri} \\
+    \texttt{pipe.verri@gmail.com}\\
+    }
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+% Inclusiones de cabecera de Pandoc
+
+\begin{document}
+
+\maketitle
+
+% --- Abstract ---
+\begin{abstract}
+The abstract paragraph should be indented 1/2 inch (3 picas) on both
+left and\ldots{}
+\end{abstract}
+
+% --- Cuerpo Principal ---
+\section{Introduction}\label{introduction}
+
+One of the central goals of computational genomics is to predict
+biological function directly from DNA sequences. This goal encompasses
+tasks ranging from identifying functional elements, such as
+promoters, enhancers, transcription factor binding sites, and splice
+sites; to chromatin accessibility, gene expression, or estimating the
+functional effect of genetic variants.
+
+To address this diversity of problems, DNA foundational models (FMs)
+have been developed in recent years. These models are pretrained using
+self-supervised objectives on large collections of genomes to learn
+generalizable features, which can then be adapted to different tasks
+through fine-tuning.
+
+Transformer-based and SSM-inspired architectures have become the dominant approach in DNA modeling and FMs. Recently, the use of CNNs, which was the dominant approach before transformers, has also been re-explored in ConvNova \citep{boRevisitingConvolutionArchitecture2025}. See section \ref{sec:related_work_transformers_and_ssm} for more details.
+
+DNA consists of two strands, where each one is the reverse complement(RC) of the other. Because a double-stranded sequence and its reverse complement describe the same physical molecule, a model that can't recognize this equivalence is wasting capacity relearning it separately for both orientations. We refer to this equivalence, that S and RC(S) encode the same physical molecule, as DNA's RC-symmetry.
+
+One of the main challenges of DNA modeling is designing the model architecture to exploit the RC-symmetry of DNA. It has been shown that making the model treat the RC on it's input in an invariant or equivariant way improves performance as seen in \citet{zhouBetterUnderstandingReverseComplement2021} or Caduceus \citep{schiffCaduceusBiDirectionalEquivariant2024}. See section \ref{sec:related_work_zhou} for more details.
+
+Formally, if \(S\) is a DNA sequence, \(f(S)=y\) is the ground-truth
+function, and \(RC(S)\) is the reverse-complement of \(S\):
+\begin{itemize}
+	\item An RC-invariant task is one where \(f(RC(S))=f(S)\), such as ChIP-seq results, for example (since they work on double-stranded DNA)
+	\item An RC-equivariant task is one where \(f(RC(S))=T(f(S))\), with \(T\) being
+	a known transformation over the output space
+	\item A non-canonicalizable task is one where $f(S)\neq f(RC(S))$, and there isn't a known $T$ transformation. For example, in a promoter classification task, the RC of a sequence labelled as
+	non-promoter might or might not correspond to a promoter. Therefore, the
+	transformation of the negative class under RC cannot be determined
+	solely from its original label.
+\end{itemize}
+
+While \(RC(S)\) is a deterministic and reversible transformation of
+\(S\) --- knowing \(S\) implies knowing \(RC(S)\) --- this does not
+imply that these strands are functionally equivalent. \citet{moeckelStrandAsymmetriesGenomic2023} show that functional asymmetries are produced by several biological
+processes. Several of
+these asymmetries are associated with transcription, of which a few examples are:
+\begin{itemize}
+	\item A GC-skew between the template and coding strands
+	\citep{greenTranscriptionassociatedMutationalAsymmetry2003}, which
+	favours the production of structures such as R-loops and G-quadruplexes
+	(\citet{ginnoRloopFormationDistinctive2012},
+	\citet{maoDNAGquadruplexStructures2018}, reviewed from \citet{moeckelStrandAsymmetriesGenomic2023})
+	\item Repetitive elements show significant transcriptional asymmetry
+	\citep{georgakopoulos-soaresAsymmetronToolkitIdentification2021}.
+	\item Certain elements, such as promoters, are only functional when correctly
+	oriented \citep{nagawaRelationshipTATASequence1985}.
+\end{itemize}
+
+It's hypothesized that even though making the model equivariant or invariant to the RC is empirically beneficial(as shown in \citet{zhouBetterUnderstandingReverseComplement2021}), leaving room for the model to be partially asymmetrical and allowing it to model those asymmetries shown previously may improve performance.
+
+Based on the available literature, the only model that explicitly
+incorporates this asymmetry is CrossDNA
+\citep{luoExplicitDynamicCrossStrand2026}, focused on modeling
+physical interactions of double-stranded DNA. However, we did not find other works
+that incorporate it to condition the processing orientation in sequence
+prediction tasks. Most models focus on:
+\begin{enumerate}[label=\alph*]
+	\item Processing both DNA strands in
+	a fully symmetric way, as in the RCPS, Conjoined models
+	\citep{zhouBetterUnderstandingReverseComplement2021} and Caduceus
+	\citep{schiffCaduceusBiDirectionalEquivariant2024}
+	\item Not explicitly incorporating this symmetry into the model architecture and instead letting the model learn it independently, as in Nucleotide Transformer
+	\citep{dalla-torreNucleotideTransformerBuilding2025}, HyenaDNA
+	\citep{nguyenHyenaDNALongRangeGenomic2023}, Zhou's RC-aug models
+	\citep{zhouBetterUnderstandingReverseComplement2021}, and ConvNova
+	\citep{boRevisitingConvolutionArchitecture2025}
+\end{enumerate}
+
+Although models that implicitly capture this symmetry could
+theoretically learn it, and even be capable of accounting for the
+asymmetries observed in \citet{moeckelStrandAsymmetriesGenomic2023}, better results are observed when
+it is incorporated explicitly into the architecture, as can be seen in
+the decreased performance of \citet{zhouBetterUnderstandingReverseComplement2021} RC-aug models or the general
+improvement of Caduceus compared to HyenaDNA
+\citep{schiffCaduceusBiDirectionalEquivariant2024}.
+
+However, the best-performing model does not fit into either of the two
+previous categories. ConvNova outperforms Caduceus, the second-best
+model, by approximately 10 points despite having significantly fewer
+parameters \citep{boRevisitingConvolutionArchitecture2025}, despite not
+imposing RC invariance or equivariance in its architecture: it is
+symmetry-aware (it takes both strands as input) but lets the network
+modulate the symmetry instead of forcing it through weight-tying. This
+suggests that neither ignoring symmetry nor fully forcing it is optimal,
+and provides grounds for exploring an intermediate direction: being
+symmetry-aware without forcing invariance or equivariance.
+
+Another way to model this "semi-symmetry" consists of using a model
+that processes both DNA strands and that, in order to specifically
+address transcriptional asymmetry, always receives them in a consistent
+orientation: the template strand and the coding strand occupying
+predefined positions within the input.
+
+Passing both strands in this orientation-consistent processing would
+allow the model to capture the asymmetries that occur only in that
+specific strand, since if it were simply given both strands in either of
+the 2 orientations, the model would be forced to learn the biological
+signals that occur equally on both strands (and become RC-invariant with
+respect to transcription)
+
+The orientation of the strands received by the model could be made
+consistent through a canonicalization function. \cite{kabaEquivarianceLearnedCanonicalization2023}.~successfully
+uses canonicalization for a wide range of domains, and proposes that
+this canonicalization function should be learned rather than hand-engineered
+
+Based on this, we present a proof of concept of this canonicalization, in which:
+\begin{enumerate}
+	\item Genome annotation data is obtained to determine which features are transcribed, and which are the template/coding strands
+	\item Using ConvNova, chosen for being symmetry-aware without imposing RC invariance/equivariance (see Methods), this method is evaluated on the Nucleotide Transformer benchmark \citep{dalla-torreNucleotideTransformerBuilding2025}, Genomic Benchmark \citep{fengBenchmarkingDNAFoundation2025}, BEND Benchmark \citep{marinBENDBenchmarkingDNA2023}, and on chromatin profile prediction using the DeepSEA dataset \citep{zhouPredictingEffectsNoncoding2015}. It is shown to produce an improvement over \ldots{}
+	\item The future path towards a learned canonicalization function that does not depend on data external to the sequence is discussed.
+\end{enumerate}
+
+This canonicalization method could theoretically be applied to any architecture (it just wouldn't make sense in the case of an RC-equivariant or RC-invariant architecture).
+
+Since the GFF constitutes the most reliable source available for
+inferring transcriptional orientation, these results should be
+interpreted as an upper bound on what is achievable for transcriptional
+asymmetry through a learned function. 
+\section{Related work} 
+
+\subsection{Transformers, CNNs and SSM-inspired architectures}
+\label{sec:related_work_transformers_and_ssm}
+
+CNNs, such as Basset \citep{kelleyBassetLearningRegulatory2016}, Basenji \citep{kelleySequentialRegulatoryActivity2018}, and LegNet
+\citep{penzarLegNetBestinclassDeep2023} were the dominant approach in DNA modeling before the rise of transformer-based architectures.
+
+In recent years, transformer-based architectures such as
+Nucleotide Transformer
+\citep{dalla-torreNucleotideTransformerBuilding2025}, Enformer
+\citep{avsecEffectiveGeneExpression2021}, DNABERT-2
+\citep{zhouDNABERT2EfficientFoundation2024} have become the
+dominant approach as FMs thanks to attention's ability to focus on
+specific signals.
+
+Recently, architectures such as HyenaDNA
+\citep{nguyenHyenaDNALongRangeGenomic2023} and Caduceus
+\citep{schiffCaduceusBiDirectionalEquivariant2024} have become popular because of their ability to capture long range dependencies without the large computational cost of transformer-based architectures.
+
+\subsection{RC-aug, RCPS and Conjoined models}
+\label{sec:related_work_zhou}
+In \citet{zhouBetterUnderstandingReverseComplement2021}, 3 types of CNNs are evaluated on predicting 919 chromatin features(TF binding, histone marks and DNase I hypersensitivity). Each of the models take a single DNA sequence as input, represented as a matrix where the row is the nucleotide and the column is the nucleotide position. The models evaluated were:
+\begin{itemize}
+	\item RC-augmented/RC-aug models: The data was
+	augmented by taking the RC-aug of the sequence and keeping the target
+	value, and the model was trained normally
+	\item RCPS (Reverse Complement
+	Parameter Sharing) models: The network's filters are designed so that
+	\(f(S)=f(RC(S))\)
+	\item Conjoined (CJ) and Conjoined post-hoc models: The
+	outputs of \(S\) and \(RC(S)\) were computed using the same network and
+	then the outputs of both results were averaged.
+\end{itemize}
+
+The models were evaluated on multiple DNA datasets, where it can be
+observed that the RCPS and Conjoined models were consistently the best.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{zhou_equivariance.png}
+	\caption{The RC-augmented(RC-aug), RCPS and Conjoined(CJ-trained) and Conjoined post-hoc(CJ-posthoc) models were evaluated on ChIP-seq, ChIP-nexus and simulated datasets. Figure adapted from \cite{zhouBetterUnderstandingReverseComplement2021}}
+\end{figure}
+
+\subsection{Canonicalization}
+
+Canonicalization offers a third strategy for handling symmetries,
+distinct from both data augmentation and architectural weight-tying.
+Instead of forcing invariance within the network (as in RCPS) or
+implicitly teaching it through the data (as in RC-aug), canonicalization
+transforms the input to a standard orientation before it enters the
+model, so that the network never needs to explicitly learn or impose the
+symmetry.
+
+Before \cite{kabaEquivarianceLearnedCanonicalization2023}, other frameworks were proposed in specific and
+non-generalized forms, such as spatial transformer networks
+\citep{jaderbergSpatialTransformerNetworks2015}. Kaba et al.~formalizes
+and generalizes this approach, making the model \(\phi(x)\) be: \[
+\phi(x)=h'(x)\cdot f\left( h^{-1}(x)\cdot x \right) 
+\] Where:
+\begin{itemize}
+	\item \(h(x)\) predicts the transformation that the canonical
+	version of \(x\) underwent, and its inverse is taken to bring \(x\) to
+	its canonical version
+	\item \(f(x)\) is the prediction function 
+	\item \(h'(x)\)
+	predicts the transformation that the \(y\) of that canonical \(x\)
+	underwent. On RC-invariant tasks, $h'(x)$ is the identity function for all $x$
+\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.5\textwidth]{kaba.png}
+	\caption{A diagram of the canonicalization process for a task where the goal was to recognize MNIST digits rotation in an RC-equivariant way, were the digit is transformed to it's canonical form, recognized, and then the classification is rotated back to it's original form. Figure adapted from \cite{kabaEquivarianceLearnedCanonicalization2023}}
+\end{figure}
+
+It is important to note that this work uses only the general concept of
+canonicalization: transforming the input to a standard orientation
+before processing it. It does not adopt the specific techniques that \citet{kabaEquivarianceLearnedCanonicalization2023} proposes to make this function learnable end-to-end.
+
+Based on the available literature, there are no prior works that apply
+canonicalization, learned or hand-engineered, to DNA sequence models
+using external biological annotation as the source of the
+transformation.
+
+\subsection{ConvNova}
+ConvNova \citep{boRevisitingConvolutionArchitecture2025} is a convolutional
+network that was evaluated on multiple benchmarks: the Nucleotide
+Transformer benchmark \citep{dalla-torreNucleotideTransformerBuilding2023}, Genomic Benchmark \citep{fengBenchmarkingDNAFoundation2025}, BEND Benchmark
+\citep{marinBENDBenchmarkingDNA2023}, and on chromatin profile prediction using the DeepSEA dataset \citep{zhouPredictingEffectsNoncoding2015}, and it outperformed many SoTA models despite having fewer parameters and a lower runtime.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{convnova_performance.png}
+	\caption{Trade-off between model performance and size for ConvNova and baseline methods. (A) Performance versus parameter count. (B) Inference time versus sequence length. Figure adapted from \cite{boRevisitingConvolutionArchitecture2025}}
+\end{figure}
+
+\section{Methods}
+
+\subsection{Network architecture}
+ConvNova was used for the evaluation of the canonicalization's performance, which is a CNN consisting of a series of Gated
+Convolution Blocks (GCBs), which consist of a gated convolution
+\citep{yuFreeFormImageInpainting2019} with dilated filters
+\citep{yuMultiScaleContextAggregation2016}, with an MLP or pooling at
+the end depending on the task.
+
+The model takes the DNA and its reverse-complement as inputs
+\(\text{A}\) and \(\text{B}\) and computes the output as follows, making
+the features of \(\text{A}\) be updated depending on the gating imposed
+by \(\text{B}\)
+\begin{gather*}
+h=\text{GELU}(\text{convolution}(\text{A}))\\
+g=\text{sigmoid}(\text{convolution}(\text{B}))\\
+\text{A}=\text{A}+h\odot g\\
+\text{B}=\text{B}+g
+\end{gather*}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[height=0.3\textheight]{convnova_arch.png}
+	\caption{Diagram of ConvNova's architecture. Figure adapted from \cite{boRevisitingConvolutionArchitecture2025}}
+\end{figure}
+
+The dilation rate of the GCBs increases as \([1,1,d,d^2,d^3,\dots]\) for
+each block. At the end of the series of GCBs, the output \(A\) is passed
+through an MLP before being passed to the downstream head.
+
+ConvNova was chosen because it achieves state of the art metrics with a
+relatively small number of parameters, because using an RC-invariant or
+RC-equivariant architecture would nullify the effect of
+canonicalization, and because by taking both DNA strands, it could more
+clearly see the asymmetries between the forward and RC strands mentioned
+earlier.
+
+\subsection{Canonicalization}
+==actualizar para que refleje los hiperparametros
+optimos encontrados en el futuro ablation==
+
+The canonicalization algorithm consists of a pipeline that consists of:
+1. Extract all transcribed features (including pseudogenes), their
+positions, and whether they are oriented in coding or template form in
+the dataset. The orientation of the features is obtained directly from
+the `Strand' field.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\setcounter{enumi}{1}
+\item
+  To classify features as transcribed or not: For annotations without a
+  standardized type field (NCBI), the Sequence Ontology hierarchy
+  \citep{eilbeckSequenceOntologyTool2005} was used to programmatically
+  determine which features correspond to transcribed units; for GENCODE
+  annotations, the `Feature' and `Transcript type' fields were used
+  directly.
+\item
+  Based on that, the goal is for all features to be in the coding
+  orientation (chosen arbitrarily) by taking the reverse-complement of
+  their coordinates in the genome.
+\item
+  In the case where there are overlaps between features of opposite
+  orientation, applying RC to one segment is considered to
+  \textbf{completely} destroy the other, since one of the features would
+  be partially canonicalized. There are 2 possible options for how to
+  resolve that window of overlapping features:
+
+  \begin{enumerate}[label=\alph*.]
+  	\tightlist
+  	\item
+  	Bring all features from - orientation to + orientation, destroying
+  	the nucleotides of the features in the + orientation
+  	\item
+  	Bring all features from + orientation to - orientation, and then
+  	take the RC of the entire window of overlaps to bring everything to
+  	the + orientation, destroying the nucleotides of the features in the
+  	- orientation
+  \end{enumerate}
+
+  Of these 2 options, the option that destroys the fewest total
+  nucleotides is chosen (in the case where they both destroy the same amount,
+  option 1 is chosen arbitrarily). To obtain the coordinates of the
+  overlap window, the overlaps of each segment are explored recursively.
+\end{enumerate}
+
+Multiple canonicalization algorithms were evaluated. For details on the different algorithms, see section \ref{sec:methods_optimal_canonicalization_search} for more details on the different algorithms evaluate and section \ref{sec:evaluation_canonicalizaiton_algorithms} for the evaluation protocol.
+
+For the downstream tasks, their DNA sequences are aligned, using
+minimap2 (\citep{liMinimap2PairwiseAlignment2018}) in the case where the
+coordinates are not given and only the sequence is available along with
+the genome from which they were taken. We refer to this genome as the
+source genome, and this alignment is performed to determine whether the
+sequences fall on a transcribed feature and must be canonicalized.
+
+If more than 50\% of the sequence must be transformed, then the entire
+sequence is transformed along with its label. The label transformation
+depends on the task, and they are divided into 3 categories: -
+RC-invariant tasks where the target value of \(S\) is the same as that
+of \(RC(S)\) - RC-equivariant tasks where the target values are not
+equal, but the target value of \(RC(S)\) can be known from that of \(S\)
+- Tasks where the label of \(RC(S)\) can only be known by obtaining
+experimental data. In these cases, canonicalization is skipped for the
+entire task (since transforming the sequence would break the label)
+
+Regions without transcribed features remain unmodified. Even if the
+sequence falls on the negative strand and the model never saw it, I will
+not take its RC in order to test the model's generalization.
+
+It should also be noted that not all transcribed features are
+canonicalized, since when there are overlaps, the canonicalization
+algorithm has to make compromises in certain places. Even so, it is
+assumed that all features were canonicalized correctly, since the goal
+is to evaluate how well the model learns to capture transcriptional
+asymmetries, not the compromises the canonicalization algorithm had to
+make.
+
+\subsection{Evaluation of the canonicalization algorithm}
+\label{sec:evaluation_canonicalizaiton_algorithms}
+
+To evaluate the canonicalization method (described more extensively below) the training data is
+pre-processed, and the same pretraining and fine-tuning protocol as
+in the ConvNova paper is used (except for the cases where it is
+explicitly stated that a different protocol was used)
+
+For each of the tasks, as with HyenaDNA, the model is pretrained on hg38
+using MLM. 10\% of the nucleotides are masked and the model's objective
+is to predict the masked nucleotides.
+
+For the downstream tasks, simply comparing the performance of the non-canonicalized model vs the canonicalized one isn't enough, because the canonicalization algorithm uses additional data, introducing a data leakage that could be inflating the true improvement caused by the canonicalization algorithm.
+
+In the gene finding task from the BEND Benchmark, for example, a task that
+consists of classifying each nucleotide as exon, intron, acceptor,
+donor, or nothing, the (noisy) introduction of the strand orientation data by the canonicalization algorithm produces a leakage.
+
+To mitigate that, an ablation was designed where 3 different versions of the model are evaluated:
+\begin{itemize}
+	\item Baseline: The baseline model without any canonicalization
+	\item Canonicalized: The model evaluated on the canonicalized datasets
+	\item: Leakage control: The model evaluated on the non-canonicalized datasets with an extra channel on it's input indicating whether that nucleotide is a positively transcribed feature (+1), a negatively transcribed feature( -1) or isn't transcribed (0)
+\end{itemize}
+
+The evaluation protocol for a model consists of 5 runs with 5 different random seeds. Those 3 versions of the model are evaluated using that protocol on all downstream tasks using a fewer parameter configuration to speed up the evaluation(see section \ref{hyperparameter-search}). Then, for the tasks where a promising difference appears between the canonicalization model vs the baseline and leakage control models, that same evaluation protocol is used but with the original, larger configuration used in ConvNova.
+
+The 5 random seeds used were: 1938, 205, 8262, 1480 and 4436.
+
+\subsection{Downstream tasks}
+For the choice of baselines and evaluation protocol we
+follow the protocol established by the authors of ConvNova
+\citep{boRevisitingConvolutionArchitecture2025}, unless stated
+otherwise. The reason this protocol was used is that, by using ConvNova
+as the architecture and only changing the data pre-processing, the
+results are directly comparable.
+
+All models were fine-tuned after being pretrained on hg38. For details
+regarding how the labels of each downstream task were handled, see
+section \ref{sec:downstream-task-canon-classification} The downstream tasks and their details are listed below. Each downstream task has a specific model configuration, see section \ref{sec:appendix_downstream_tasks} for more details.
+
+\subsubsection{NT Benchmark} 
+This benchmark is the one used by Nucleotide Transformer
+(\cite{dalla-torreNucleotideTransformerBuilding2025}). It consists of 3
+types of tasks: histone marker prediction, splice site annotation
+prediction, and regulatory annotation prediction. It should be noted
+that the most recent version of the benchmark was used, which was not
+used in the original ConvNova paper.
+
+To evaluate the tasks, the same methodology as in HyenaDNA
+(\citep{nguyenHyenaDNALongRangeGenomic2023}) was followed, using the
+Matthews Correlation Coefficient (MCC) for certain tasks and the
+F1-score for others. The results of the model with canonicalization are
+compared against the model without canonicalization, and the rest of the
+models against those the original ConvNova paper compared against.
+
+For canonicalization, GRCh38 was used as the source genome and the
+annotations were obtained from the Genome Reference Consortium, since all the datasets come from human samples. The tasks were evaluated using a pooling downstream head.
+
+\subsubsection{Genomic Benchmark}
+It is a multi-species benchmark, consisting of human, mouse,
+roundworm, and fruit fly samples. Its tasks consist of enhancers,
+species classification, and regulatory elements.
+
+For canonicalization, the following source genomes were used: hg38 for
+the human sample tasks, GRCm39 from the Genome Reference Consortium, and for the roundworm and drosophila sample
+tasks the NCBI reference genomes were used. The tasks were evaluated using a pooling downstream head.
+
+Keep in mind that for \texttt{human\_ensembl\_regulatory}, the model performance dropped compared to the original ConvNova paper because a longer sequence length was used, where the whole dataset sequence is passed to the model instead of a trimmed version of it like in the original ConvNova paper (see more details in section \ref{sec:appendix_downstream_tasks}). It's theorized that happens because of the pooling decoder because the signal is at the start of the sequence and the pooling decoder dilutes it with a longer sequence length.
+
+\subsubsection{BEND Benchmark}
+The model was evaluated only on the gene finding tasks, where given a DNA sequence
+each nucleotide must be classified as intron, exon, or neither, and cpg
+methylation, where given a DNA sequence multilabel classification is
+performed on whether it is methylated or not in different cell lines.
+
+The chromatin accessibility and histone modification tasks are redundant
+compared to the tasks in the rest of the benchmarks, and therefore were
+not included in the evaluation.
+
+The zero-shot variant effects tasks were also omitted, since unlike
+models with an attention mechanism, each output token was determined by
+a very small local context, and if one wanted to mitigate that through
+pooling, the SNP token signal becomes too diluted for classification.
+Evaluating those tasks in that way gives artificially low results.
+
+For CpG methylation a linear head was used over the entire encoded
+sequence, and for gene finding each token is passed through a linear
+layer.
+
+\subsubsection{Chromatin Profile Prediction}
+This task \citep{zhouPredictingEffectsNoncoding2015} consists of predicting
+chromatin profiles and epigenetic markers given a DNA sequence. The
+dataset consists of 919 chromatin features, grouped into transcription
+factor binding profiles, DNase I hypersensitivity, and histone marks.
+
+The source genome of DeepSEA is hg19. In this specific case, for
+canonicalization, hg38 is used as the source genome in order to use the
+most up-to-date annotations, and the coordinates are resolved directly
+by aligning the DeepSEA sequences with minimap2
+\citep{liMinimap2PairwiseAlignment2018} instead of using the GENCODE
+lift-over.
+
+\subsection{Optimal canonicalization parameters search}
+\label{sec:methods_optimal_canonicalization_search}
+
+The canonicalization pipeline and its parameters were optimized using Optuna \citep{akibaOptunaNextgenerationHyperparameter2019} using its default TPE optimizer. 20 trials were run to optimize the following parameters:
+
+\begin{itemize}
+	\item \texttt{annotations\_level}: Filter the GENCODE annotations to use
+	annotations up to level 1, 2, or 3.
+	\item \texttt{transformation}: Whether to transform a segment (and the
+	overlaps window) by taking the reverse-complement, the complement, or
+	inverting it.
+	\item \texttt{overlapped\_segments\_break\_entirely}: If set to True, it is
+	then assumed that when transforming a feature A that overlaps with a
+	feature B that's in the opposite orientation, both A and B are broken, making
+	it most convenient to ignore any segment that overlaps.
+	\item \texttt{partial\_canonicalization\_works}: When canonicalizing a segment
+	that overlaps with another, whether to consider that the entire
+	partially canonicalized segment breaks, or only the part that was
+	overlapping breaks. The optimal value was to consider that the entire
+	segment breaks
+	\item \texttt{include\_cvdj\_segments}: Whether to count the
+	cvdj segments of the human and mouse adaptive immune system as
+	transcribed features or not.
+	\item \texttt{include\_pseudogenes}: Whether to count pseudogenes or not as
+	transcribed features.
+\end{itemize}
+
+See section \ref{sec:design-of-the-canonicalization-algorithm} for more details on ===(TODO: THE VARIABLES USED)=== and a more detailed explanation on the different canonicalization algorithms and the way they deal with overlapping features.
+
+Only 20 trials were used because even though the amount of possible configurations (96) is much larger than 32, most of the hyperparameters had little to no importance. See section \ref{sec:hyperparameter-optimization-results} for more details on the results.
+
+To speed up the trials, the model was pretrained and fine-tuned with a
+single configuration, in order to obtain representative metrics for the
+configuration without having to wait too long. See section
+\ref{hyperparameter-search} for more details on the model configuration.
+
+For more details about the hyperparameter optimization results, see section \ref{sec:hyperparameter-optimization-results}
+
+Each trial was evaluated on all the downstream tasks, and their score was computed by computing and averaging the z-score for all downstream tasks. The mean and variance for those z-scores were obtained from the non-canonicalized baseline previously mentioned on section \ref{sec:evaluation_canonicalizaiton_algorithms}. 
+
+Because there is a considerable task type imbalance (there are many more histone marks related tasks than splicing related tasks for example), the tasks scores were split into groups, and then the average of each group was averaged together. See section \ref{sec:hpo_task_grouping} for more details on how the tasks were grouped together.
+
+\section{Experiments}
+
+\subsection{Hyperparameter optimization results}
+\label{sec:hyperparameter-optimization-results}
+
+\section{Discussion}
+\subsection{Interpreting the results}
+==TODO: Hablar aca sobre "aunque haya mejora, quizas no sea suficiente ya que esto es un upper bound" y sobre los detalles biologicos que podrian ser el por que la mejoria/empeoro en cada tarea.==
+
+\subsection{Future work}
+Regarding future work, one could:
+\begin{itemize}
+	\item Make the
+	canonicalization pipeline work with an algorithm that does not require
+	external annotations, such as a neural network for example, so that the
+	model can achieve superior performance without needing to incorporate
+	additional data, and so that it works only with the DNA sequence without
+	needing extra data.
+	
+	In order to train such a network end-to-end, since the \(\arg\max\) that
+	decides whether to canonicalize the DNA strand is not differentiable, a
+	straight-through estimator could be used to mitigate this
+	\citep{bengioEstimatingPropagatingGradients2013}
+
+	\item Evaluate this canonicalization proof
+	of concept on other, non-convolutional models to assess its
+	generalization capacity. For example, it could be incorporated into
+	HyenaDNA and evaluated against Caduceus, its RC-equivariant variant.
+	\item Evaluate a proof of concept incorporating the recognition of origin
+	recognition complexes (ORC) into the canonicalization pipeline, in order
+	to evaluate the performance of a model that works with the replicational
+	asymmetry between the leading and lagging strands.
+\end{itemize}
+
+\subsection*{Reproducibility}
+The code for the project can be found on \href{https://github.com/PipeVerri/Canonicalization}{Github}, with further guidance on how to reproduce the results there.
+
+\subsection*{Acknowledgments}
+My thanks go to E. Matias Castro for valuable guidance on the research process
+
+% --- Bibliografía ---
+\bibliography{iclr2027_conference.bib}
+\bibliographystyle{iclr2027_conference}
+
+\appendix
+\section{Appendix}
+
+\subsection{Design of the canonicalization algorithm for overlapping transcripts}\label{sec:design-of-the-canonicalization-algorithm}
+Regarding the approach to dealing with overlapping transcribed
+features, 3 variables were proposed with which to formulate all the
+hypotheses of the optimal algorithm: 
+
+\begin{itemize}
+	\item \emph{\texttt{overlap\_transformation\_behavior}}: Determines the different hypotheses for what happens when canonicalizing a segment \textbf{A} that overlaps with a segment \textbf{B}:
+	\begin{itemize}
+		\item \emph{Partial break}: Only the overlapping part between \textbf{A} and \textbf{B} of both features breaks.
+		\item \emph{Full break}: The entire segment \textbf{B} is broken when partially
+		canonicalizing one of its parts.
+		\item \emph{Both break}: Both \textbf{A} and \textbf{B} are entirely broken, since that overlapping part needed to be kept intact for both features to be understood correctly by the model.
+	\end{itemize}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\textwidth]{overlap_break_behavior.png}
+	\end{figure}
+	
+	\item \emph{\texttt{orient\_all\_segments}}: A binary variable indicating whether it
+	is necessary for all features to be in the canonical orientation, or
+	whether to not canonicalize certain features if the cost of ignoring
+	them (the number of nucleotides) is lower than the cost of
+	canonicalizing them (the number of nucleotides it destroys, which are
+	calculated depending on \texttt{overlap\_transformation\_behavior}). The
+	only case where it is not irrelevant is where
+	\texttt{overlap\_transformation\_behavior = full\_break}; it is irrelevant in
+	the rest of the cases. This is explained in more detail below.
+	
+	\item \emph{\texttt{keep\_segments\_order}}: In the case where
+	\texttt{overlap\_transformation\_behavior = full\_break} and
+	\texttt{orient\_all\_segments=True} there are 2 ways to canonicalize the
+	features, one that breaks the fewest nucleotides but destroys the
+	original order of the features, and another where that original order is
+	kept but more nucleotides are destroyed. This variable decides which of
+	the 2 ways to use. They are described in more detail below
+\end{itemize}
+
+Based on all the possible permutations of these variables, the following
+canonicalization methods arise:
+\begin{enumerate}
+	\item If \texttt{overlap\_transformation\_behavior=partial\_break},
+	\texttt{orient\_all\_segments} (and \texttt{keep\_segments\_order}) have no effect since the cost of ignoring a segment is always \(\geq\) the cost
+	of canonicalizing it, since the length of the overlap is always less
+	than or equal to the length of the segment, so all features are
+	oriented, regardless of whether there is an overlap or not
+	\\
+	\item If \texttt{overlap\_transformation\_behavior=both\_break}, the rest of the
+	variables have no effect, since the cost of ignoring \textbf{B}
+	(length(\textbf{B})) is always less than the cost of canonicalizing it
+	(length(\textbf{A}) + length( \textbf{B} )), so only the features that have no overlap at
+	all are oriented
+	\\
+	\item If \texttt{overlap\_transformation\_behavor=full\_break}, there are 3
+	possible canonicalization algorithms. They all rely on building a \emph{conflict window} first. When a negative segment that overlaps with a positive one is found, the entire conflict window is computed recursively, the set of the whole ``chain'' of overlapping features.
+	
+	The reason conflict windows are used instead of simply looking at
+	immediate overlaps, is that there are cases where only looking at
+	immediate overlaps ends up in a bad decision. As shown in Figure~\ref{fig:conflict_window_example}, for example,
+	if I decide whether to canonicalize \textbf{A} or not:
+	\begin{enumerate}[label=\alph*]
+		\item If I only check the immediate overlaps, then I do not canonicalize \textbf{A} since it is
+		preferable to destroy it rather than \textbf{B}, (because \textbf{B} is longer)
+		
+		\item If I check the entire conflict window, it is preferable for me to canonicalize the
+		negative features (100bp) and destroy \textbf{B} rather than ignore them.
+	\end{enumerate}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.5\textwidth]{conflict_window.png}
+		\caption{Example showing the reason behind the usage of conflict windows}
+		\label{fig:conflict_window_example}
+	\end{figure}
+	
+	After the conflict window is built, the canonicalization algorithm branches in:
+	\begin{enumerate}
+		\item If \texttt{orient\_all\_segments=False}, then the cheapest option is chosen. Orient the negative features at the cost of destroying the positive features (the sum of the lengths of positive features in the conflict window), or ignore the negative features, at a cost equal to the sum of the lengths of the negative features.
+		
+		\item If \texttt{orient\_all\_segments=True}, then there are 2 ways to deal with the overlapping features:
+		
+		\begin{enumerate}
+			\item If one wishes to keep the exact order of the features as they were (\texttt{keep\_segments\_order=True}), then, across the whole genome, one can either canonicalize the features from the - to the + strand in all of the conflict windows, or canonicalize the features from the + to the - strand, and then take the RC of the entire genome to bring them all to the + strand.
+			
+			\medskip
+			Although the original order of the features is not maintained when applying the second option, relative order of ``which one follows which'' is still maintained. An example of this canonicalization method can be seen on Figure~\ref{fig:canon_ordered_segments}
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\textwidth]{ordered_segments_canonicalization.png}
+				\caption{}
+				\captionsetup{labelsep=none}
+				\label{fig:canon_ordered_segments}
+			\end{figure}
+			
+			
+			\item If the canonicalization with the lowest total cost is desired, regardless of the order of the features, a procedure similar to the previous one is applied but with scope at the overlap window level instead of the genomic level. The reason the order is lost is that some overlap windows are reversed and others are not, causing the order to be lost at the genomic level. An example of this method can be seen below on Figure~\ref{fig:keep_order_false_example}
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[height=0.4\textheight]{keep_order_false_example.png}
+				\caption{}
+				\captionsetup{labelsep=none}
+				\label{fig:keep_order_false_example}
+			\end{figure}
+		\end{enumerate}
+	\end{enumerate}
+\end{enumerate}
+
+The advantages and disadvantages of the possible configurations of
+\texttt{keep\_segments\_order} can be seen on Figure~\ref{fig:full_break_examples}.
+\begin{itemize}
+	\item On the case where \texttt{keep\_segments\_order=True}, the canonicalization is done that way because destroying the B, D and F features (110bp) is cheaper than destroying the A, C and E features(210bp)
+	\item On the case where \texttt{keep\_segments\_order=False} each overlap window is processed individually, and even though the result destroys the least amount of nucleotides, the order is lost(as seen in the second conflicts window)
+\end{itemize}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{canonicalization_algorithms_example.png}
+	\caption{}
+	\captionsetup{labelsep=none}
+	\label{fig:full_break_examples}
+\end{figure}
+
+\subsection{Model parameters}
+
+It's worth noting that \texttt{d\_inner} determines the dimension of the middle layers of the MLP that comes before the downstream head, as seen on the figure below
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{mlp_final_layer.png}
+\end{figure}
+
+\subsubsection{Pretraining}
+The same configuration as the original
+ConvNova paper was used, which used a configuration similar to HyenaDNA.
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}ll@{}}
+\toprule\noalign{}
+Hyperparameter & Value \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Learning Rate & \(\beta_1=0.9, \beta_2=0.999\) \\
+Batch Size & 256 \\
+Weight Decay & 0.1 \\
+Dropout & 0.0 \\
+Optimizer & AdamW \\
+Optimizer Momentum & \(\beta_1=0.9, \beta_2=0.999\) \\
+Learning Rate Scheduler & Cosine Decay \\
+\midrule
+Epochs & 400 \\
+Dilation rate & 4 \\
+Precision & fp32 \\
+Kernel size & 9 \\
+\end{longtable}
+}
+
+Different sequence lengths were used for each model:
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}lllll@{}}
+\toprule\noalign{}
+Parameters & 378k & 1.7M & 6.8M & 7.4M \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Sequence length & 1k & 1k & 1k & 2k \\
+\end{longtable}
+}
+
+\subsubsection{Downstream tasks}\label{sec:appendix_downstream_tasks}
+
+The same configuration as for pretraining was used but with the
+following changes. The configuration is similar to the one used in ConvNova, with a slight difference on the sequence length for Genomic Benchmark. While they trained ConvNova on Genomic Benchmark with a sequence length of 1k(to have a direct comparison against transformer-based models), some tasks on Genomic Benchmark have an actual higher sequence length(one of the tasks, for example, has a sequence length of 5k), and it was decided to use those true sequence lengths to have a more accurate representation of the canonicalization algorithm's performance.
+
+It should be noted that for Genomic Benchmark, even though the original ConvNova paper reports a 378k parameter model for this task, the configurations provided on the paper and their Github repo don't match this parameter count. The authors were contacted with no response, so the configuration that comes closest to 378k parameters was chosen.
+
+\begin{table}[ht]
+	\centering
+	% Nota que se usa tabularx, se define el ancho {\textwidth} y se agregó \\ al final
+	\begin{tabularx}{\textwidth}{X X c c c c}
+		\toprule
+		Task & Sequence Length & Hidden dim & Num GCBs & Size & \texttt{d\_inner} \\
+		\midrule
+		NT Benchmark & 1k & 128 & 5 & 1.7M & 2 \\
+		Genomic Benchmark & Depends on the task, shown below & 128 & 5 & 378k & 4 \\
+		BEND Benchmark & 512 for cpg methylation, 16k for gene finding & 196 & 10 & 7.4M & 2 \\
+		Chromatin Profile Prediction & 1k & 256 & 5 & 6.8M & 2 \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Sequence lengths for Genomic Benchmark}
+	\begin{tabular}{lc}
+		\toprule
+		Task & Sequence length \\
+		\midrule
+		dummy\_mouse\_enhancers\_ensembl & 5000 \\
+		demo\_coding\_vs\_intergenomic\_seqs & 200 \\
+		demo\_human\_or\_worm & 200 \\
+		human\_enhancers\_cohn & 500 \\
+		human\_enhancers\_ensembl & 573 \\
+		human\_ensembl\_regulatory & 802 \\
+		human\_nontata\_promoters & 251 \\
+		human\_ocr\_ensembl & 600 \\
+		drosophila\_enhancers\_stark & 3250 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsubsection{Hyperparameter search}\label{hyperparameter-search}
+
+For the hyperparameter search, the model was pretrained and fine-tuned
+on all tasks with the same pretraining and downstream tasks
+configuration, but with the following differences across all of them.
+
+It should be noted that a single pretrained model per trial was used for
+the rest of the downstream tasks. The number of pretraining epochs was
+also changed from 400 to 200.
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}lllllll@{}}
+\toprule\noalign{}
+Hidden dim & Num GCBs & Kernel size & d\_inner & Size & Precision & Random seed \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+64 & 4 & 5 & 2 & 262k & bf16 & 2222 \\
+\end{longtable}
+}
+
+\subsection{Classification of tasks into RC-invariant, RC-equivariant, or omitted}
+\label{sec:downstream-task-canon-classification}
+
+Many benchmark tasks can generally be classified into tasks of: histone
+marks, enhancers, promoters, and splicing. These task classes were
+treated as specified in the table below.
+
+It is worth mentioning that tasks were the canonicalization was omitted were still evaluated because it was hypothesized that the canonicalized pretraining may change the performance of the model on those tasks.
+
+\begin{xltabular}{\textwidth}{p{3cm} p{1.8cm} X}
+	\caption{\textbf{Classification and rationale for genomic tasks}} 
+	\label{tab:genomic_tasks_classification} \\
+	\toprule
+	Task & Class & Reason \\
+	\midrule
+	\endfirsthead
+	
+	\multicolumn{3}{c}%
+	{{\tablename\ \thetable{} -- Continuation of the previous page}} \\
+	\toprule
+	Task & Class & Reason \\
+	\midrule
+	\endhead
+	
+	\bottomrule
+	\endfoot
+	
+	Histone marks tasks and OCR (open chromatin region) tasks & RC-invariant & Histones interact with double-stranded DNA, so their marks are invariant to the RC of the sequence. The same applies to OCR tasks. \\
+	\midrule
+	Enhancer tasks & RC-invariant & Most enhancers are functionally bidirectional \citep{arnoldGenomeWideQuantitativeEnhancer2013}, and when transcribed into eRNA, both strands of the enhancer are transcribed. Even so, it should be noted that there are exceptions where enhancers are orientation-dependent \citep{kassoufAglobinSuperenhancerActs2025}. \\
+	\midrule
+	Promoter tasks & Omitted & Promoters are inherently directional, since they only function on one of the strands --- otherwise, both strands would be transcribed. \par\medskip There is no way to know without experimental data whether the RC of a promoter is a promoter or not, or whether the RC of a non-promoter sequence produces a promoter. That is why they were omitted. \\
+	\midrule
+	Splicing tasks & Omitted & The acceptor and donor sites are already positioned on the coding strand of the transcribed feature, so it is not necessary to canonicalize them. \\
+
+\end{xltabular}	
+
+For the particular cases, the way each of them is handled is detailed below:
+
+\subsubsection{Nucleotide Transformer Benchmark}
+There are no particular task that don't fit within the classes mentioned above.
+
+\subsubsection{Genomic Benchmark}
+The only tasks that don't fit within the classes mentioned above are;
+ \begin{table}[htbp]
+	\centering
+	\caption{Classification and rationale for genomic tasks}
+	
+	\begin{tabularx}{\linewidth}{p{3cm} p{3cm} X}
+		
+		\toprule
+		
+		Task & Class & Reason \\
+		
+		\midrule
+		
+		\seqsplit{demo\_human\_or\_worm} & RC-invariant & The RC of human DNA is still human DNA; the same applies to any other species. \\
+		
+		\midrule
+		
+		\seqsplit{demo\_coding\_vs\_intergenomic\_seqs} & RC-invariant & Taking the RC of a sequence positioned on a transcribed feature does not move it outside that feature, it only changes its orientation. The same applies to non-transcribed sequences \\
+		
+		\midrule
+		
+		\seqsplit{human\_ensembl\_regulatory} & RC-invariant for enhancers and OCR; promoter samples are omitted & The task consists of classifying a DNA sequence among enhancers, promoters, and OCR. What each strand is is identified using the labels, and promoters are omitted. \\
+		
+		\bottomrule
+		
+	\end{tabularx}
+\end{table} 
+
+\subsubsection{BEND Benchmark}
+
+\begin{table}[H]
+	\centering
+	\caption{Classification and rationale for BEND Benchmark tasks}
+	\label{tab:bend_benchmark}
+	
+	\begin{tabularx}{\linewidth}{p{3cm} p{3cm} X}
+		\toprule
+		Task & Class & Reason \\
+		\midrule
+		
+		Gene finding & RC-equivariant & The task consists of classifying each nucleotide as \{exon forward, donor forward, intron forward, acceptor forward, exon reverse, ..., non-coding\}. Taking the RC of a coding nucleotide changes its orientation and changes its position. \\
+		
+		\midrule
+		
+		CpG Methylation & RC-invariant & The reverse complement of a CG is a GC, and they are methylated on both strands \cite{birdUseRestrictionEnzymes1978} \\
+		
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+\subsubsection{Chromatin Profile Prediction}
+
+Most transcription factors (TFs) are functionally invariant to the
+reverse complement \citep{yanDecouplingDivergentGene2015}, so the task
+is treated as RC-invariant. 
+
+\subsection{Hyperparameter optimization}
+
+\subsubsection{Task grouping}
+\label{sec:hpo_task_grouping}
+
+As it was mentioned previously, the trials scores were computed by computing a z-score for each task score based of a non-canonicalized baseline and then, because of a task type imbalance (for example, more histone marks related tasks than splicing related tasks), each task is placed into a group, their scores are averaged into those grouped averages, and then the grouped averages are average together.
+
+The proposed grouped mean method doesn't distort the true trial's performance, as it can be seen on the chart below, where the grouped mean is compared to a simple mean over all tasks.
+===TODO: EL GRAFICO===
+
+The way each task was grouped is defined in the table below. It should be noted that the reason for the individually grouped Gene finding, CpG methylation and Chromatin profile prediction tasks was because they didn't fit cleanly into any of the previous categories, or in a single unified category.
+
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{@{} l p{10cm} @{}}
+		\toprule
+		\textbf{Group} & \textbf{Tasks} \\
+		\midrule
+		Histone marks &
+		H2AFZ$^1$, H3K27ac$^1$, H3K27me3$^1$, H3K36me3$^1$, H3K4me1$^1$, H3K4me2$^1$, H3K4me3$^1$, H3K9ac$^1$, H3K9me3$^1$, H4K20me1$^1$ \\
+		\midrule
+		Promoters &
+		promoter\_all$^1$, promoter\_tata$^1$, promoter\_no\_tata$^1$, human\_nontata\_promoters$^2$ \\
+		\midrule
+		Enhancers &
+		enhancers$^1$, enhancers\_types$^1$, dummy\_mouse\_enhancers\_ensembl$^2$, human\_enhancers\_cohn$^2$, human\_enhancers\_ensembl$^2$, human\_ensembl\_regulatory$^2$, human\_ocr\_ensembl$^2$, drosophila\_enhancers\_stark$^2$ \\
+		\midrule
+		Splicing &
+		splice\_sites\_all$^1$, splice\_sites\_donors$^1$, splice\_sites\_acceptors$^1$ \\
+		\midrule
+		General genomic content &
+		demo\_coding\_vs\_intergenomic\_seqs$^2$, demo\_human\_or\_worm$^2$ \\
+		\midrule
+		Gene finding &
+		Gene finding $^3$ \\
+		\midrule
+		CpG methylation &
+		CpG methylation$^3$ \\
+		\midrule
+		Chromatin profile prediction &
+		Chromatin profile prediction \\
+		\bottomrule
+	\end{tabular}
+	\caption*{$^1$ Nucleotide Transformer Benchmark \quad
+		$^2$ Genomic Benchmark \quad
+		$^3$ BEND Benchmark}
+	\label{tab:task_grouping}
+\end{table}
+
+\end{document}

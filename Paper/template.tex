@@ -1,0 +1,126 @@
+$if(legacy-header)$
+$legacy-header$
+$else$
+\documentclass[$if(fontsize)$ $fontsize$,$endif$ $if(lang)$ $babel-lang$,$endif$ $if(papersize)$ $papersize$ paper,$endif$ $for(classoption)$ $classoption$$sep$,$endfor$]{article}
+$endif$
+
+% --- Estilo ICLR y paquetes requeridos ---
+\usepackage{$if(iclr-style)$$iclr-style$$else$iclr2027_conference$endif$,times}
+
+$if(final)$
+\iclrfinalcopy
+$endif$
+
+% Comandos matemáticos y notación por defecto
+$if(math-commands)$
+\input{$math-commands$}
+$else$
+\input{math_commands.tex}
+$endif$
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{calc}
+
+% Compatibilidad para títulos y secciones de Pandoc
+\providecommand{\hypertarget}[2]{#2}
+
+% Definición requerida por Pandoc para las listas
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\makeatletter
+\@ifundefined{c@none}{\newcounter{none}}{}
+\makeatother
+
+% --- Metadatos del Título y Autores ---
+$if(title)$
+\title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
+$endif$
+
+\author{
+$if(author)$
+$for(author)$
+  $if(author.name)$
+    \textbf{$author.name$}$if(author.thanks)$\thanks{$author.thanks$}$endif$ \\
+    $if(author.affiliation)$$author.affiliation$\\$endif$
+    $if(author.address)$$author.address$\\$endif$
+    $if(author.email)$\texttt{$author.email$}\\$endif$
+  $else$
+    \textbf{$author$}
+  $endif$
+  $sep$ \And
+$endfor$
+$else$
+  \textbf{Anonymous Authors} \\
+  Paper under double-blind review
+$endif$
+}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+% Inclusiones de cabecera de Pandoc
+$for(header-includes)$
+$header-includes$
+$endfor$
+
+\begin{document}
+
+\maketitle
+
+% --- Abstract ---
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+
+% --- Cuerpo Principal ---
+$body$
+
+% --- Declaraciones Especiales de ICLR 2027 ---
+$if(ai-statement)$
+\subsection*{AI use statement}
+$ai-statement$
+$endif$
+
+$if(ethics-statement)$
+\subsection*{Ethics statement}
+$ethics-statement$
+$endif$
+
+$if(reproducibility-statement)$
+\subsection*{Reproducibility statement}
+$reproducibility-statement$
+$endif$
+
+$if(contributions)$
+\subsubsection*{Author Contributions}
+$contributions$
+$endif$
+
+$if(acknowledgments)$
+\subsubsection*{Acknowledgments}
+$acknowledgments$
+$endif$
+
+% --- Bibliografía ---
+$if(natbib)$
+$if(bibliography)$
+\bibliography{$for(bibliography)$$bibliography$$sep$,$endfor$}
+\bibliographystyle{iclr2027_conference}
+$endif$
+$endif$
+
+$if(biblatex)$
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+$endif$
+
+\end{document}
