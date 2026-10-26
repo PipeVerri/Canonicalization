@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  26 OCT 2026 10:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  26 OCT 2026 12:04
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -811,82 +811,74 @@ aper.bbl
 File: ./images/overlap_break_behavior.png Graphic file (type png)
 <use ./images/overlap_break_behavior.png>
 Package pdftex.def Info: ./images/overlap_break_behavior.png  used on input lin
-e 651.
+e 650.
 (pdftex.def)             Requested size: 278.23827pt x 129.45587pt.
  [16]
-Underfull \hbox (badness 10000) in paragraph at lines 676--682
+Underfull \hbox (badness 10000) in paragraph at lines 675--681
 
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 682--688
-
- []
-
-<./images/conflict_window.png, id=474, 695.59875pt x 338.26375pt>
+<./images/conflict_window.png, id=474, 1391.1975pt x 650.43pt>
 File: ./images/conflict_window.png Graphic file (type png)
 <use ./images/conflict_window.png>
-Package pdftex.def Info: ./images/conflict_window.png  used on input line 705.
-(pdftex.def)             Requested size: 198.7425pt x 96.64359pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [17 <./images/overlap_break_behavior.png>]
-Underfull \hbox (badness 3407) in paragraph at lines 717--718
-[]\T1/ptm/m/n/10 (+20) If one wishes to keep the ex-act or-der of the fea-tures
+Package pdftex.def Info: ./images/conflict_window.png  used on input line 698.
+(pdftex.def)             Requested size: 198.7425pt x 92.9155pt.
+[17 <./images/overlap_break_behavior.png> <./images/conflict_window.png>]
+Underfull \hbox (badness 2591) in paragraph at lines 710--711
+[]\T1/ptm/m/n/10 (+20) If one wishes to keep the ex-act or-der of the seg-ments
  as they were
  []
 
-<./images/ordered_segments_canonicalization.png, id=488, 2375.87625pt x 961.592
+<./images/ordered_segments_canonicalization.png, id=488, 4822.015pt x 2040.6237
 5pt>
 File: ./images/ordered_segments_canonicalization.png Graphic file (type png)
 <use ./images/ordered_segments_canonicalization.png>
 Package pdftex.def Info: ./images/ordered_segments_canonicalization.png  used o
-n input line 724.
-(pdftex.def)             Requested size: 397.48499pt x 160.87149pt.
-<./images/keep_order_false_example.png, id=490, 998.73125pt x 590.205pt>
+n input line 717.
+(pdftex.def)             Requested size: 397.48499pt x 168.20407pt.
+<./images/keep_order_false_example.png, id=490, 2527.4425pt x 1204.5pt>
 File: ./images/keep_order_false_example.png Graphic file (type png)
 <use ./images/keep_order_false_example.png>
 Package pdftex.def Info: ./images/keep_order_false_example.png  used on input l
-ine 735.
-(pdftex.def)             Requested size: 440.2508pt x 260.16801pt.
-
-Overfull \hbox (42.76581pt too wide) in paragraph at lines 735--736
- [][] 
- []
-
+ine 728.
+(pdftex.def)             Requested size: 397.48499pt x 189.41568pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [18 <./images/conflict_window.png> <./images/ordered_segments_canonicalization
-.png>]
-<./images/canonicalization_algorithms_example.png, id=504, 1752.5475pt x 457.71
+ [18 <./images/ordered_segments_canonicalization.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 742--743
+[]\T1/ptm/m/n/10 (+20) This al-go-rithm is sim-i-lar to the one used when
+ []
+
+<./images/canonicalization_algorithms_example.png, id=503, 1752.5475pt x 457.71
 pt>
 File: ./images/canonicalization_algorithms_example.png Graphic file (type png)
 <use ./images/canonicalization_algorithms_example.png>
 Package pdftex.def Info: ./images/canonicalization_algorithms_example.png  used
- on input line 753.
+ on input line 754.
 (pdftex.def)             Requested size: 397.48499pt x 103.80443pt.
-<./images/mlp_final_layer.png, id=505, 2004.48875pt x 231.86626pt>
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [19 <./images/keep_order_false_example.png>]
+<./images/mlp_final_layer.png, id=514, 2004.48875pt x 231.86626pt>
 File: ./images/mlp_final_layer.png Graphic file (type png)
 <use ./images/mlp_final_layer.png>
-Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 765.
+Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 766.
 (pdftex.def)             Requested size: 397.48499pt x 45.97617pt.
-
-[19 <./images/keep_order_false_example.png> <./images/canonicalization_algorith
-ms_example.png> <./images/mlp_final_layer.png>] [20]
-Underfull \hbox (badness 10000) in paragraph at lines 907--907
+ [20 <./images/canonicalization_algorithms_example.png> <./images/mlp_final_lay
+er.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 908--908
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 907--907
+Underfull \hbox (badness 10000) in paragraph at lines 908--908
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
-
-ignored: Infinite glue shrinkage found in box being split [21]
-Underfull \hbox (badness 5622) in paragraph at lines 940--940
+[21]
+Underfull \hbox (badness 5622) in paragraph at lines 941--941
 \T1/ptm/m/n/10 (+20) hancers and OCR;
  []
 
@@ -903,13 +895,13 @@ Package rerunfilecheck Info: File `paper.out' has not changed.
 (rerunfilecheck)             Checksum: 1D1062BA9990B05CB847A13547484774;6992.
  ) 
 Here is how much of TeX's memory you used:
- 18120 strings out of 469515
- 286355 string characters out of 5470808
- 738219 words of memory out of 5000000
+ 18122 strings out of 469515
+ 286369 string characters out of 5470808
+ 743219 words of memory out of 5000000
  46093 multiletter control sequences out of 15000+600000
  679168 words of font info for 235 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,13n,117p,1823b,956s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,13n,117p,1823b,954s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/inconsolata/Inconsolata-zi4r.pfb></
 usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/t
@@ -919,10 +911,10 @@ pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share
 /texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1
 /urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
 
-Output written on paper.pdf (23 pages, 3036744 bytes).
+Output written on paper.pdf (23 pages, 3269115 bytes).
 PDF statistics:
- 650 PDF objects out of 1000 (max. 8388607)
- 543 compressed objects within 6 object streams
- 145 named destinations out of 1000 (max. 500000)
+ 652 PDF objects out of 1000 (max. 8388607)
+ 545 compressed objects within 6 object streams
+ 147 named destinations out of 1000 (max. 500000)
  44908 words of extra memory for PDF output out of 51595 (max. 10000000)
 

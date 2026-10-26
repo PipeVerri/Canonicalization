@@ -331,13 +331,13 @@ The canonicalization algorithm consists of a pipeline that consists of:
 	annotations, the `Feature' and `Transcript type' fields were used
 	directly.
 	\item
-	Based on that, the goal is for all features to be in the coding
+	Based on that, the goal is for all transcribed features (we'll call these \emph{segments} from now on) to be in the coding
 	orientation (chosen arbitrarily) by taking the reverse-complement of
 	their coordinates in the genome.
 	\item
-	In the case where there are overlaps between features of opposite
-	orientation, applying RC to one segment is considered to
-	\textbf{completely} destroy both segments (this hypothesis produced the best results, see section \ref{sec:methods_optimal_canonicalization_search} for more details). In that case, both features are left as is.
+	In the case where there are overlaps between segments of opposite
+	orientations, applying RC to one segment is considered to
+	\textbf{completely} destroy both segments (this hypothesis produced the best results, see section \ref{sec:methods_optimal_canonicalization_search} for more details). In that case, both segments are left as is.
 	\item After the whole genome is canonicalized, it's then saved and the model is trained on it
 \end{enumerate}
 
@@ -362,14 +362,14 @@ The label transformation method depends on the tasks, and they are divided into 
 	entire task (since transforming the sequence would break the label)
 \end{itemize}
 
-Regions without transcribed features remain unmodified and passed in arbitrarily as they were on the origin genome, as done in ConvNova. Even if the
+Regions without transcribed segments remain unmodified and passed in arbitrarily as they were on the origin genome, as done in ConvNova. Even if the
 sequence falls on the negative strand and the model never saw it, I will
 not take its RC in order to test the model's generalization.
 
-It should also be noted that not all transcribed features are
+It should also be noted that not all transcribed segments are
 canonicalized, since when there are overlaps, the canonicalization
 algorithm has to make compromises in certain places. Even so, it is
-assumed that all features were canonicalized correctly, since the goal
+assumed that all segments were canonicalized correctly, since the goal
 is to evaluate how well the model learns to capture transcriptional
 asymmetries, not the compromises the canonicalization algorithm had to
 make.
@@ -633,17 +633,16 @@ My thanks go to E. Matias Castro for valuable guidance on the research process.
 \section{Appendix}
 
 \subsection{Design of the canonicalization algorithm for overlapping transcripts}\label{sec:design-of-the-canonicalization-algorithm}
-Regarding the approach to dealing with overlapping transcribed
-features, 3 variables were proposed with which to formulate all the
+Regarding the approach to dealing with overlapping segments, 3 variables were proposed with which to formulate all the
 hypotheses of the optimal algorithm: 
 
 \begin{itemize}
 	\item \emph{\texttt{overlap\_transformation\_behavior}}: Determines the different hypotheses for what happens when canonicalizing a segment \textbf{A} that overlaps with a segment \textbf{B}:
 	\begin{itemize}
-		\item \emph{Partial break}: Only the overlapping part between \textbf{A} and \textbf{B} of both features breaks.
+		\item \emph{Partial break}: Only the overlapping part between \textbf{A} and \textbf{B} of both segments breaks.
 		\item \emph{Full break}: The entire segment \textbf{B} is broken when partially
 		canonicalizing one of its parts.
-		\item \emph{Both break}: Both \textbf{A} and \textbf{B} are entirely broken, since that overlapping part needed to be kept intact for both features to be understood correctly by the model.
+		\item \emph{Both break}: Both \textbf{A} and \textbf{B} are entirely broken, since that overlapping part needed to be kept intact for both segments to be understood correctly by the model.
 	\end{itemize}
 	
 	\begin{figure}[H]
@@ -652,8 +651,8 @@ hypotheses of the optimal algorithm:
 	\end{figure}
 	
 	\item \emph{\texttt{orient\_all\_segments}}: A binary variable indicating whether it
-	is necessary for all features to be in the canonical orientation, or
-	whether to not canonicalize certain features if the cost of ignoring
+	is necessary for all segments to be in the canonical orientation, or
+	whether to not canonicalize certain segments if the cost of ignoring
 	them (the number of nucleotides) is lower than the cost of
 	canonicalizing them (the number of nucleotides it destroys, which is
 	calculated depending on \texttt{overlap\_transformation\_behavior}). The
@@ -664,8 +663,8 @@ hypotheses of the optimal algorithm:
 	\item \emph{\texttt{keep\_segments\_order}}: In the case where
 	\texttt{overlap\_transformation\_behavior = full\_break} and
 	\texttt{orient\_all\_segments=True} there are 2 ways to canonicalize the
-	features, one that breaks the fewest nucleotides but destroys the
-	original order of the features, and another where that original order is
+	segments, one that breaks the fewest nucleotides but destroys the
+	original order of the segments, and another where that original order is
 	kept but more nucleotides are destroyed. This variable decides which of
 	the 2 ways to use. They are described in more detail below
 \end{itemize}
@@ -676,11 +675,11 @@ canonicalization methods arise:
 	\item If \texttt{overlap\_transformation\_behavior=partial\_break},
 	\texttt{orient\_all\_segments} (and \texttt{keep\_segments\_order}) have no effect since the cost of ignoring a segment is always \(\geq\) the cost
 	of canonicalizing it, since the length of the overlap is always less
-	than or equal to the length of the segment, so all features are
+	than or equal to the length of the segment, so all segments are
 	oriented, regardless of whether there is an overlap or not
 	\\
 	\item If \texttt{overlap\_transformation\_behavior=full\_break}, there are 3
-	possible canonicalization algorithms. They all rely on building a \emph{conflict window} first. When a negative segment that overlaps with a positive one is found, the entire conflict window is computed recursively, the set of the whole ``chain'' of overlapping features.
+	possible canonicalization algorithms. They all rely on building a \emph{conflict window} first. When a negative segment that overlaps with a positive one is found, the entire conflict window is computed recursively, the set of the whole ``chain'' of overlapping segments.
 	
 	The reason conflict windows are used instead of simply looking at
 	immediate overlaps, is that there are cases where only looking at
@@ -691,7 +690,7 @@ canonicalization methods arise:
 		preferable to destroy it rather than \textbf{B} (because \textbf{B} is longer)
 		
 		\item If I check the entire conflict window, it is preferable for me to canonicalize the
-		negative features (100bp) and destroy \textbf{B} rather than ignore them.
+		negative segments (100bp) and destroy \textbf{B} rather than ignore them.
 	\end{enumerate}
 	
 	\begin{figure}[H]
@@ -703,15 +702,15 @@ canonicalization methods arise:
 	
 	After the conflict window is built, the canonicalization algorithm branches in:
 	\begin{enumerate}
-		\item If \texttt{orient\_all\_segments=False}, then the cheapest option is chosen. Orient the negative features at the cost of destroying the positive features (the sum of the lengths of positive features in the conflict window), or ignore the negative features, at a cost equal to the sum of the lengths of the negative features.
+		\item If \texttt{orient\_all\_segments=False}, then the cheapest option is chosen. Orient the negative segments at the cost of destroying the positive ones (the sum of the lengths of positive segments in the conflict window), or ignore the negative segments, at a cost equal to the sum of their lengths.
 		
-		\item If \texttt{orient\_all\_segments=True}, then there are 2 ways to deal with the overlapping features:
+		\item If \texttt{orient\_all\_segments=True}, then there are 2 ways to deal with the overlapping segments:
 		
 		\begin{enumerate}
-			\item If one wishes to keep the exact order of the features as they were (\texttt{keep\_segments\_order=True}), then, across the whole genome, one can either canonicalize the features from the - to the + strand in all of the conflict windows, or canonicalize the features from the + to the - strand, and then take the RC of the entire genome to bring them all to the + strand.
+			\item If one wishes to keep the exact order of the segments as they were (\texttt{keep\_segments\_order=True}), then, across the whole genome, one can either canonicalize the segments from the - to the + strand in all of the conflict windows, or canonicalize the segments from the + to the - strand, and then take the RC of the entire genome to bring them all to the + strand.
 			
 			\medskip
-			Although the original order of the features is not maintained when applying the second option, relative order of ``which one follows which'' is still maintained. An example of this canonicalization method can be seen on Figure~\ref{fig:canon_ordered_segments}
+			Although the original order of the segments is not maintained when applying the second option, relative order of ``which one follows which'' is still maintained. An example of this canonicalization method can be seen on Figure~\ref{fig:canon_ordered_segments}
 			
 			\begin{figure}[H]
 				\centering
@@ -722,11 +721,11 @@ canonicalization methods arise:
 			\end{figure}
 			
 			
-			\item If the canonicalization with the lowest total cost is desired, regardless of the order of the features, a procedure similar to the previous one is applied but with scope at the overlap window level instead of the genomic level. The reason the order is lost is that some overlap windows are reversed and others are not, causing the order to be lost at the genomic level. An example of this method can be seen below on Figure~\ref{fig:keep_order_false_example}
+			\item If the canonicalization with the lowest total cost is desired, regardless of the order of the segments, a procedure similar to the previous one is applied but with scope at the overlap window level instead of the genomic level. The reason the order is lost is that some overlap windows are reversed and others are not, causing the order to be lost at the genomic level. An example of this method can be seen below on Figure~\ref{fig:keep_order_false_example}
 			
 			\begin{figure}[H]
 				\centering
-				\includegraphics[height=0.4\textheight]{keep_order_false_example.png}
+				\includegraphics[width=\textwidth]{keep_order_false_example.png}
 				\caption{}
 				\captionsetup{labelsep=none}
 				\label{fig:keep_order_false_example}
@@ -734,16 +733,19 @@ canonicalization methods arise:
 		\end{enumerate}
 	\end{enumerate}
 	
-	\item If \texttt{overlap\_transformation\_behavior=both\_break}, there are two possible canonicalization algorithms
+	\item If \texttt{overlap\_transformation\_behavior=both\_break}, there are two possible canonicalization algorithms. Both algorithms consist of canonicalizing the segments that don't overlap with any segments on the opposite strand, and for the ones that do, instead of canonicalizing them --- which would always cost more, because the cost of canonicalizing them (length(\textbf{A}) + length(\textbf{B})) is always higher than the cost of ignoring them (length(\textbf{A})) --- it's chosen whether to keep the positive strand of the segments or the negative one, depending on which strand has the most amount of coding nucleotides.
 	\begin{enumerate}
-		\item 
+		\item If \texttt{keep\_segments\_order=True} the algorithm chooses whether to canonicalize the non-overlapping negative segments, or to canonicalize the non-overlapping positive segments and then take the RC of the whole sequence
+		\item If \texttt{keep\_segments\_order=False}, the algorithm canonicalizes all the non-overlapping negative segments, and then, for each conflict window, it decides whether to leave it as-is or to canonicalize it.
 	\end{enumerate}
+	
+	This algorithm is similar to the one used when \texttt{overlap\_transformation\_behavior=full\_break} and \texttt{orient\_all\_segments=False}, the only difference is in that case, all the segments(including the ones that have overlaps) are canonicalized.
 \end{enumerate}
 
 The advantages and disadvantages of the possible configurations of
 \texttt{keep\_segments\_order} can be seen on Figure~\ref{fig:full_break_examples}.
 \begin{itemize}
-	\item In the case where \texttt{keep\_segments\_order=True}, the canonicalization is done that way because destroying the B, D and F features (110bp) is cheaper than destroying the A, C and E features (210bp)
+	\item In the case where \texttt{keep\_segments\_order=True}, the canonicalization is done that way because destroying the B, D and F segments (110bp) is cheaper than destroying the A, C and E segments (210bp)
 	\item In the case where \texttt{keep\_segments\_order=False} each overlap window is processed individually, and even though the result destroys the least amount of nucleotides, the order is lost (as seen in the second conflict window)
 \end{itemize}
 
