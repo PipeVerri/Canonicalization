@@ -1,5 +1,6 @@
 import copy
 from collections import namedtuple
+from xmlrpc.client import TRANSPORT_ERROR
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -71,7 +72,7 @@ class CNNModel(nn.Module):
         self.use_control_signal = use_control_signal
 
         inp_size = self.alphabet_size
-        if self.use_control_signal:
+        if self.use_control_signal != False:
             inp_size += 1
 
         self.linear = nn.Conv1d(inp_size, args.hidden_dim, kernel_size=9, padding=4)
@@ -147,7 +148,7 @@ class CNNModel(nn.Module):
 
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal = control_signal.unsqueeze(-1)
-            control_signal_rc = 1 - control_signal
+            control_signal_rc = control_signal * -1 if self.use_control_signal == "raw" else 1 - control_signal
             if mask is not None:
                 control_signal = control_signal.masked_fill(pad, 0.0)
                 control_signal_rc = control_signal_rc.masked_fill(pad, 0.0)

@@ -280,7 +280,7 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_params
             transform_sequence(canonicalized, start, end, transformation)
 
         if transformation_params.should_rc_at_end:
-            transform_sequence(canonicalized, 0, len(canonicalized), transformation)
+            transform_sequence(canonicalized, 0, len(canonicalized), "rc")
 
         results[training_genome_id] = canonicalized
 
@@ -300,10 +300,11 @@ def save_canonicalization_control_signal(training_genome, training_genome_to_can
             mask = control_signal == 1
             control_signal[control_signal == 0] = 1
             control_signal[mask] = 0
+            control_signal = control_signal[::-1]
 
         np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)
 
-def save_raw_control_signal(training_genome, annotations: ParsedGenome, out_dir):
+def save_raw_control_signal(training_genome, annotations: ParsedGenome, should_rc_at_end, out_dir):
     for ucsc_id in annotations.genome_transcribed_segments:
         control_signal = np.zeros(len(training_genome[ucsc_id]))
 
@@ -312,5 +313,10 @@ def save_raw_control_signal(training_genome, annotations: ParsedGenome, out_dir)
             control_signal[segment[0]:segment[1]] = 1
         for segment in annotations.genome_transcribed_segments[ucsc_id]["negative"]:
             control_signal[segment[0]:segment[1]] = -1
+
+        # I'm passing should_rc_at_end, because if it's set, then the whole genome(including the transcripts positions) are reversed
+        if should_rc_at_end:
+            control_signal *= -1
+            control_signal = control_signal[::-1]
 
         np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)

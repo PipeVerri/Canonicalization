@@ -82,7 +82,7 @@ def main(config: DictConfig):
 
     raw_control_signal_dir = out_path / "raw_control_signals"
     raw_control_signal_dir.mkdir(parents=True, exist_ok=True)
-    save_raw_control_signal(training_genome, hg38, raw_control_signal_dir)
+    save_raw_control_signal(training_genome, hg38, c_cfg.should_rc_at_end, raw_control_signal_dir)
     
     # Canonicalize the downstream tasks
     # The reference genomes are too large to load them all at once, so the tasks are canonicalized partially loading one reference genome at a time

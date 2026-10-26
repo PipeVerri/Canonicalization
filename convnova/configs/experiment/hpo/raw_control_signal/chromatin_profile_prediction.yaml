@@ -12,4 +12,4 @@ dataset:
   load_control_signal_using_memmap: False
 
 model:
-  use_control_signal: True
+  use_control_signal: "raw"

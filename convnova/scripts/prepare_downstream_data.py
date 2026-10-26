@@ -56,6 +56,9 @@ def fix_deepsea_nucleotides(x_chunk):
     x_chunk[c_nucleotides] = 1
     return x_chunk
 
+def process_bend_benchmark():
+    
+
 def process_deepsea_data(deepsea_dir, chunk_size=10000):
     for f in ("train", "test", "valid"):
         print(f"  Processing {f}...")

@@ -146,12 +146,17 @@ class CanonicalizedDownstreamTask:
             raw_control_signal[start:end] = -1
 
         # Check if I should RC the whole sequence
+        # When doing this, I'll take the RC no matter the transformation, because I just want to switch the strands across the model's input gates
         if self.config.should_rc_at_end:
-            transform_sequence(seq_canon, 0, len(seq), self.config.transformation)
+            transform_sequence(seq_canon, 0, len(seq), "rc")
+            # Complement
             mask = control_signal == 1
             control_signal[control_signal == 0] = 1
             control_signal[mask] = 0
             raw_control_signal *= -1
+            # Reverse
+            control_signal = control_signal[::-1]
+            raw_control_signal = raw_control_signal[::-1]
 
         return seq_canon, control_signal, raw_control_signal
 
@@ -384,12 +389,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             canonicalized_labels = []
             for idx, label in enumerate(labels):
                 df_row = df.iloc[idx]
-                if df_row["strand"] == '+':
-                    strand = 1
-                elif df_row["strand"] == '-':
-                    strand = -1
-                else:
-                    raise RuntimeError(f"Strand {df_row['strand']} not recognized")
+                strand = 1 # The code for BEND explicitly ignores the strand field of the dataset (https://github.com/frederikkemarin/BEND/blob/main/conf/embedding/embed.yaml)
 
                 alignment = Alignment(df_row["start"], df_row["end"], df_row["chromosome"], strand)
                 mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
