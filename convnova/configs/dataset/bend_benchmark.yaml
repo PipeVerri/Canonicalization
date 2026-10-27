@@ -1,12 +1,10 @@
 _name_: bend_benchmark
 # Provide a sensible default for `dataset_dir` so tasks can access it.
 # This can still be overridden by an experiment or environment variable.
-dataset_dir: ???
-dataset_name: ???
 
-bed_path: ${.${.dataset_name}.bed_path}
-labels_path: ${oc.select:.${.dataset_name}.labels_path,null} # If there isn't a labels_path, set it to null
-fasta_path: ???
+dataset_name: ???
+h5_path: ???
+
 pool_mode: "snp" # Only applies to the zero shot tasks
 
 decoder: ${.${.dataset_name}.decoder}
@@ -27,7 +25,7 @@ metric: ${.${.dataset_name}.metric}
 batch_size: ${.${.dataset_name}.batch_size}
 
 use_control_signal: False
-control_signals_dir: ${oc.env:PROJECT_ROOT}/data/parsed/control_signals
+control_signals_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed/raw_control_signals/
 
 # Details taken from BEND's paper, table 1
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml

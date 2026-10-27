@@ -335,7 +335,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     gene_finding_bed_columns = ("chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split")
     tasks_list = [DownstreamTask(task_name=t, reference_genome_name="hg38") for t in (
-        "gene_finding", "cpg_methylation"
+        "gene_finding", "cpg_methylation", "variant_effects_expression", "variant_effects_disease" 
     )]
 
     @staticmethod
@@ -366,6 +366,10 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         return label
 
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
+        if task.task_name in self.task_config.skip_tasks:
+            self.has_downstream_task_been_processed[task] = True
+            return
+
         original_df = read_bend_task(self.input_dir / BEND_H5_FILENAME, task.task_name)
         df = original_df.copy()
         Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"]) # Mock alignment because I already have the genome coords

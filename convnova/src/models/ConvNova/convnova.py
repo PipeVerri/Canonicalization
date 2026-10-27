@@ -117,6 +117,9 @@ class CNNModel(nn.Module):
             self.out_linear = nn.Linear(args.hidden_dim, self.alphabet_size)
         self.dropout = nn.Dropout(args.dropout)
 
+        if switch_strands:
+            print("***SWITCHING STRANDS***")
+
     def forward(self, seq, t=None, cls = None, return_embedding=False, state=None, mask=None):
         # Mask can either be (seq, mask, labels) or (seq, mask, labels, control_signal)
         # `mask` (if passed) is a padding mask: True for real tokens, False for padding

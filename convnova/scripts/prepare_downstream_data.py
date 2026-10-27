@@ -96,7 +96,7 @@ def process_bend_benchmark(data_path: Path):
     df = parse_bend_benchmark_bed_to_df(data_path / "bend_benchmark", "cpg_methylation")
     sequences = []
     labels = []
-    for _, row in df.iterrows():
+    for _, row in tqdm(df.iterrows(), total=len(df)):
         sequences.append(str(genome[row["chromosome"]][row["start"]:row["end"]]))
         label = [0] * 7
         if not pd.isna(row["label"]):
@@ -164,8 +164,6 @@ if __name__ == "__main__":
     bend_dir = project_root / "data/bend_benchmark_baseline/"
     print("Processing BEND Benchmark...")
     process_bend_benchmark(project_root / "data")
-
-    raise
 
     # List of tasks defined in convnova/configs/dataset/nucleotide_transformer.yaml
     # Target directory is always convnova/data/nucleotide_transformer

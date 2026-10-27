@@ -1,9 +1,10 @@
+from regex import T
+
 import optuna
 from pathlib import Path
 from src.hpo.optimize_study import optimize_study
 
 ROOT_DIR = Path(__file__).parents[1]
-## TODO!!!!! BOTH_BREAK CONFIG UPDATE NEEDED, AND ALSO THE KEEP_SEGMENTS_ORDER UPDATE
 
 def build_overrides_dict(trial: optuna.Trial):
     overlap_transformation_behavior = trial.suggest_categorical("overlapping_segments_canonicalization", ["partial_break", "full_break", "both_break"])
@@ -43,6 +44,9 @@ def build_overrides_dict(trial: optuna.Trial):
             "should_rc_at_end": trial.suggest_categorical("should_rc_at_end", [True, False]),
             "partial_downstream_canonicalization": trial.suggest_categorical("partial_downstream_canonicalization", [True, False])
         } | overlaps_overrides,
+        "model": {
+            "switch_strands": trial.suggest_categorial("switch_strands", [True, False])
+        },
         "wandb": {
             "group": "hpo",
             "mode": "online"
@@ -53,7 +57,7 @@ def build_overrides_dict(trial: optuna.Trial):
     }
 
 sampler = optuna.samplers.TPESampler(
-    n_startup_trials=5, # 25% of 20 total runs
+    n_startup_trials=5,
     multivariate=True, # hparams interactions are really important
     group=True # Not all hparams coexist
 )

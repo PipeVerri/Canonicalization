@@ -5,5 +5,4 @@ defaults:
   - _self_
 
 dataset:
-  dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/parsed/canonicalized.fasta
+  h5_path: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed/bend_benchmark.h5

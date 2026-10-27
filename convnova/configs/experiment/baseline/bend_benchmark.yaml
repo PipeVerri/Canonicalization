@@ -16,11 +16,10 @@ trainer:
   max_epochs: 10
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
 
-# cpg_methylation, gene_finding, variant_effects_disease, variant_effects_expresison
+# cpg_methylation, gene_finding
 dataset:
-  dataset_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/
-  fasta_path: ${oc.env:PROJECT_ROOT}/data/hg38/GRCh38.primary_assembly.genome.fa
   dataset_name: "cpg_methylation"
+  h5_path: ${oc.env:PROJECT_ROOT}/data/bend_benchmark/bend_benchmark.h5
   add_eos: False
   tokenizer_name: char
   use_tokenizer: False
