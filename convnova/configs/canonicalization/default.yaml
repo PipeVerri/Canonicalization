@@ -7,7 +7,6 @@ canonicalization:
   include_na_transcript_type: false
   transformation: "rc"  # reverse, complement, rc
   num_workers: 16
-  should_rc_at_end: false # The CNN is asymmetric, so it's good to check if switching the strands does anything
 
   # Check the discussion section for more details
   overlap_transformation_behavior: "both_break" # partial_break, full_break, both_break

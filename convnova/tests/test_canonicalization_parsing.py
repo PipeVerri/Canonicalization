@@ -84,7 +84,7 @@ def test_canonicalize_genome():
             CanonicalizationParams(
                 segments=[(0, 10), (20, 30)],
                 conflict_windows=[],
-                should_rc_at_end=False
+                should_transform_at_end=False
             )
     }
 
@@ -112,7 +112,7 @@ def test_canonicalize_genome():
         "genome1": CanonicalizationParams(
             segments=[],
             conflict_windows=[],
-            should_rc_at_end=True
+            should_transform_at_end=True
         )
     }
     canon = canonicalize_genome(training_genome, canonicalization, "rc")

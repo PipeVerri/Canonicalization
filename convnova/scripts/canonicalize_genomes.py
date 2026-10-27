@@ -49,9 +49,6 @@ def main(config: DictConfig):
             keep_segments_order=c_cfg.keep_segments_order
         )
 
-        if c_cfg.should_rc_at_end: # Invert it here so I don't have to modify the canonicalization and control signals method
-            canonicalization_params.should_rc_at_end = not canonicalization_params.should_rc_at_end
-
         training_genome_to_canonicalize[ucsc_id] = canonicalization_params
     
     hg38 = ParsedGenome("hg38", c_cfg, c_cfg.hg38, parse_segments_using=parse_hg38_segments)
@@ -78,11 +75,11 @@ def main(config: DictConfig):
     log.info("Saving control signals...")
     control_signal_dir = out_path / "control_signals"
     control_signal_dir.mkdir(parents=True, exist_ok=True)
-    save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, control_signal_dir)
+    save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize, transformation, control_signal_dir)
 
     raw_control_signal_dir = out_path / "raw_control_signals"
     raw_control_signal_dir.mkdir(parents=True, exist_ok=True)
-    save_raw_control_signal(training_genome, hg38, c_cfg.should_rc_at_end, raw_control_signal_dir)
+    save_raw_control_signal(training_genome, hg38, raw_control_signal_dir)
     
     # Canonicalize the downstream tasks
     # The reference genomes are too large to load them all at once, so the tasks are canonicalized partially loading one reference genome at a time

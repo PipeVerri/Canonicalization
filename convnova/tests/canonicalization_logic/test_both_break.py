@@ -19,7 +19,7 @@ def test_free_order_skips_conflict_window_when_flipping_costs_more(orient_all_se
 
     assert result.segments == [(100, 110)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 @pytest.mark.parametrize("orient_all_segments", [True, False])
@@ -31,7 +31,7 @@ def test_free_order_flips_conflict_window_when_cheaper(orient_all_segments):
 
     assert result.segments == []
     assert result.conflict_windows == [(0, 30)]
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_free_order_tie_prefers_to_flip_the_conflict_window():
@@ -41,7 +41,7 @@ def test_free_order_tie_prefers_to_flip_the_conflict_window():
 
     assert result.segments == []
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_free_order_flips_a_chained_conflict_window_only_once():
@@ -56,7 +56,7 @@ def test_free_order_flips_a_chained_conflict_window_only_once():
 
     assert result.segments == []
     assert result.conflict_windows == [(0, 30)]
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_free_order_resolves_independent_conflict_windows_separately():
@@ -71,7 +71,7 @@ def test_free_order_resolves_independent_conflict_windows_separately():
 
     assert result.segments == [(300, 310)]
     assert result.conflict_windows == [(200, 230)]
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 # With keep_segments_order=True, the decision is chromosome-wide instead of per
@@ -92,7 +92,7 @@ def test_keep_order_prefers_positive_strand_when_cheaper(orient_all_segments):
 
     assert result.segments == [(100, 110)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_keep_order_prefers_negative_strand_when_cheaper():
@@ -108,7 +108,7 @@ def test_keep_order_prefers_negative_strand_when_cheaper():
 
     assert result.segments == [(100, 110)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is True
+    assert result.should_transform_at_end is True
 
 
 def test_keep_order_tie_prefers_the_positive_strand():
@@ -118,4 +118,4 @@ def test_keep_order_tie_prefers_the_positive_strand():
 
     assert result.segments == [(100, 110)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False

@@ -15,7 +15,7 @@ def test_overlapping_negative_segment_is_always_flipped_regardless_of_flags(orie
 
     assert result.segments == [(0, 10)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_multiple_overlapping_negative_segments_are_all_flipped():

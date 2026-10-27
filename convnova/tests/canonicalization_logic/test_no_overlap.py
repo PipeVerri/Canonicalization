@@ -15,7 +15,7 @@ def test_non_overlapping_negative_segment_is_always_flipped_directly(behavior, o
 
     assert result.segments == [(0, 10)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 @pytest.mark.parametrize("behavior", ["partial_break", "both_break", "full_break"])
@@ -24,7 +24,7 @@ def test_empty_inputs_produce_empty_result(behavior):
 
     assert result.segments == []
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_multiple_non_overlapping_negative_segments_are_all_flipped():

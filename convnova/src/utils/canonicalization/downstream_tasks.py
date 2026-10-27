@@ -161,19 +161,6 @@ class CanonicalizedDownstreamTask:
             start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
             raw_control_signal[start:end] = -1
 
-        # Check if I should RC the whole sequence
-        # When doing this, I'll take the RC no matter the transformation, because I just want to switch the strands across the model's input gates
-        if self.config.should_rc_at_end:
-            transform_sequence(seq_canon, 0, len(seq), "rc")
-            # Complement
-            mask = control_signal == 1
-            control_signal[control_signal == 0] = 1
-            control_signal[mask] = 0
-            raw_control_signal *= -1
-            # Reverse
-            control_signal = control_signal[::-1]
-            raw_control_signal = raw_control_signal[::-1]
-
         return seq_canon, control_signal, raw_control_signal
 
     def _verify_all_tasks_were_canonicalized(self):
@@ -306,12 +293,8 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         # Do it after to get the raw control signal
         if (state["task_name"] in c.task_config.skip_tasks) or skip_task:
             status = None
-            if state["canonicalizer"].config.should_rc_at_end:
-                seq_canon = transform_sequence(seq, 0, len(seq), c.config.transformation)
-                control_signal[0:len(seq)] = 1
-            else:
-                seq_canon = seq
-                control_signal = np.zeros(len(seq))
+            seq_canon = seq
+            control_signal = np.zeros(len(seq))
 
         with open(state["seqs_dir_output"] / filename, "w") as f:
             f.write(str(seq_canon))
@@ -425,8 +408,8 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         raw_control_signals_dir.mkdir(exist_ok=True)
 
         for split in splits:
-            np.save(control_signals_dir / f"{task.task_name}_{split}", np.array(control_signals[split]))
-            np.save(raw_control_signals_dir / f"{task.task_name}_{split}", np.array(raw_control_signals[split]))
+            np.save(control_signals_dir / f"{task.task_name}_{split}", np.array(control_signals[split], dtype=object))
+            np.save(raw_control_signals_dir / f"{task.task_name}_{split}", np.array(raw_control_signals[split], dtype=object))
         self.has_downstream_task_been_processed[task] = True
 
 # The SNPs occurs on both strands, so taking the RC should leave the label intact

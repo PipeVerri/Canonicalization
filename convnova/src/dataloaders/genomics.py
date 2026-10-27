@@ -351,7 +351,7 @@ class BendBenchmark(HG38):
         if self.use_control_signal and self.control_signals is None:
             self.control_signals = {}
             for split in ("train", "test", "valid"):
-                self.control_signals[split] = np.load(self.control_signals_dir / f"{self.dataset_name}_{split}.npy")
+                self.control_signals[split] = np.load(self.control_signals_dir / f"{self.dataset_name}_{split}.npy", allow_pickle=True)
 
         # Create all splits: torch datasets (only train/test in this benchmark)
         self.dataset_train, self.dataset_val, self.dataset_test = [

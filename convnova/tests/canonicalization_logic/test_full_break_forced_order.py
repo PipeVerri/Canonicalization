@@ -17,7 +17,7 @@ def test_moves_everything_to_positive_strand_when_cheaper():
 
     assert sorted(result.segments) == [(0, 10), (18, 30)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_moves_everything_to_negative_strand_when_cheaper():
@@ -32,7 +32,7 @@ def test_moves_everything_to_negative_strand_when_cheaper():
 
     assert result.segments == [(0, 50)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is True
+    assert result.should_transform_at_end is True
 
 
 def test_tie_prefers_the_positive_strand():
@@ -40,7 +40,7 @@ def test_tie_prefers_the_positive_strand():
     result = generate_canonicalization_params([(0, 10)], [(0, 10)], "full_break", True, True)
 
     assert result.segments == [(0, 10)]
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False
 
 
 def test_takes_this_path_even_when_no_segments_overlap():
@@ -48,4 +48,4 @@ def test_takes_this_path_even_when_no_segments_overlap():
 
     assert result.segments == [(0, 10)]
     assert result.conflict_windows == []
-    assert result.should_rc_at_end is False
+    assert result.should_transform_at_end is False

@@ -15,7 +15,7 @@ from pathlib import Path
 class CanonicalizationParams:
     segments: list
     conflict_windows: list
-    should_rc_at_end: bool
+    should_transform_at_end: bool
 
 def calculate_segment_set_destruction_cost(segment_set: set):
     return sum(end - start for (start, end) in segment_set)
@@ -78,13 +78,13 @@ def generate_canonicalization_params(
             return CanonicalizationParams(
                 segments=negative_coding_segments,
                 conflict_windows=[],
-                should_rc_at_end=False
+                should_transform_at_end=False
             )
         else:
             return CanonicalizationParams(
                 segments=positive_coding_segments,
                 conflict_windows=[],
-                should_rc_at_end=True
+                should_transform_at_end=True
             )
 
     if overlap_transformation_behavior == "both_break":
@@ -110,13 +110,13 @@ def generate_canonicalization_params(
                 return CanonicalizationParams(
                     segments=non_overlapping_negative_segments,
                     conflict_windows=[],
-                    should_rc_at_end=False
+                    should_transform_at_end=False
                 )
             else:
                 return CanonicalizationParams(
                     segments=non_overlaping_positive_segments,
                     conflict_windows=[],
-                    should_rc_at_end=True
+                    should_transform_at_end=True
                 )
         else:
             # The same logic as keep_segments_order, but at the conflict window level instead of the chromosome level
@@ -151,7 +151,7 @@ def generate_canonicalization_params(
             return CanonicalizationParams(
                 segments=non_overlapping_negative_segments,
                 conflict_windows=conflict_windows_to_flip,
-                should_rc_at_end=False
+                should_transform_at_end=False
             )
 
 
@@ -222,7 +222,7 @@ def generate_canonicalization_params(
     return CanonicalizationParams(
         segments=segments_to_flip,
         conflict_windows=conflict_windows_to_flip,
-        should_rc_at_end=False
+        should_transform_at_end=False
     )
 
 
@@ -279,14 +279,15 @@ def canonicalize_genome(training_genome, training_genome_canonicalization_params
         for (start, end) in transformation_params.conflict_windows:
             transform_sequence(canonicalized, start, end, transformation)
 
-        if transformation_params.should_rc_at_end:
-            transform_sequence(canonicalized, 0, len(canonicalized), "rc")
+        # THis is for the algorithm specific RC
+        if transformation_params.should_transform_at_end:
+            transform_sequence(canonicalized, 0, len(canonicalized), transformation)
 
         results[training_genome_id] = canonicalized
 
     return results
 
-def save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize: dict[str, CanonicalizationParams], out_dir: Path):
+def save_canonicalization_control_signal(training_genome, training_genome_to_canonicalize: dict[str, CanonicalizationParams], transformation, out_dir: Path):
     for ucsc_id in training_genome_to_canonicalize:
         control_signal = np.zeros(len(training_genome[ucsc_id]))
         
@@ -296,15 +297,19 @@ def save_canonicalization_control_signal(training_genome, training_genome_to_can
         for (start, end) in training_genome_to_canonicalize[ucsc_id].conflict_windows:
             control_signal[start:end] = 0 if control_signal[start] == 1 else 1 # Invert the first operation, even though it isn't truly representative
 
-        if training_genome_to_canonicalize[ucsc_id].should_rc_at_end:
-            mask = control_signal == 1
-            control_signal[control_signal == 0] = 1
-            control_signal[mask] = 0
-            control_signal = control_signal[::-1]
+        # Algorithm specific chromosome transformation
+        if training_genome_to_canonicalize[ucsc_id].should_transform_at_end:
+            if not transformation in ("complement", "reverse", "rc"):
+                raise ValueError(f"Transformation {transformation} not recognized")
+
+            if transformation == "reverse" or transformation == "rc":
+                control_signal = control_signal[::-1]
+            if transformation == "complement" or transformation == "rc":
+                control_signal = 1 - control_signal
 
         np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)
 
-def save_raw_control_signal(training_genome, annotations: ParsedGenome, should_rc_at_end, out_dir):
+def save_raw_control_signal(training_genome, annotations: ParsedGenome, out_dir):
     for ucsc_id in annotations.genome_transcribed_segments:
         control_signal = np.zeros(len(training_genome[ucsc_id]))
 
@@ -313,10 +318,5 @@ def save_raw_control_signal(training_genome, annotations: ParsedGenome, should_r
             control_signal[segment[0]:segment[1]] = 1
         for segment in annotations.genome_transcribed_segments[ucsc_id]["negative"]:
             control_signal[segment[0]:segment[1]] = -1
-
-        # I'm passing should_rc_at_end, because if it's set, then the whole genome(including the transcripts positions) are reversed
-        if should_rc_at_end:
-            control_signal *= -1
-            control_signal = control_signal[::-1]
 
         np.save(str(out_dir / f"{ucsc_id}.npy"), control_signal)

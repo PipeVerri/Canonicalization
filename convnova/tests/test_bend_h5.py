@@ -188,12 +188,12 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path
     gene_task = DownstreamTask("gene_finding", "hg38")
     cpg_task = DownstreamTask("cpg_methylation", "hg38")
     gene = pd.DataFrame({
-        "sequence": ["AACG"],
-        "label": [np.array([0, 1, 2, 8])],
-        "chromosome": ["chr1"],
-        "start": [0],
-        "end": [4],
-        "split": ["train"],
+        "sequence": ["AACG", "AC"],
+        "label": [np.array([0, 1, 2, 8]), np.array([1, 2])],
+        "chromosome": ["chr1", "chr1"],
+        "start": [0, 10],
+        "end": [4, 12],
+        "split": ["train", "train"],
     })
     cpg = pd.DataFrame({
         "sequence": ["AC"],
@@ -240,7 +240,10 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path
     assert np.array_equal(canonical_gene["label"][0], np.array([8, 6, 5, 4]))
     assert read_bend_split(output_path, "cpg_methylation", "test")["sequence"][0] == "GT"
 
-    control = np.load(output_dir / "control_signals/gene_finding_train.npy")
-    raw_control = np.load(output_dir / "raw_control_signals/gene_finding_train.npy")
-    assert np.array_equal(control, np.ones((1, 4)))
-    assert np.array_equal(raw_control, np.ones((1, 4)))
+    control = np.load(output_dir / "control_signals/gene_finding_train.npy", allow_pickle=True)
+    raw_control = np.load(output_dir / "raw_control_signals/gene_finding_train.npy", allow_pickle=True)
+    assert control.shape == (2,)
+    assert np.array_equal(control[0], np.ones(4))
+    assert np.array_equal(control[1], np.zeros(2))
+    assert np.array_equal(raw_control[0], np.ones(4))
+    assert np.array_equal(raw_control[1], np.zeros(2))
