@@ -42,6 +42,12 @@ class BaseTask:
 
         if torchmetrics is None: torchmetrics = []
         self.torchmetric_names = to_list(torchmetrics)
+        # MCC must be computed from the epoch-level confusion matrix rather than
+        # averaging independent batch scores.
+        if "mcc" in self.metric_names:
+            self.metric_names = [name for name in self.metric_names if name != "mcc"]
+            if "mcc" not in self.torchmetric_names:
+                self.torchmetric_names.append("mcc")
         self._tracked_torchmetrics = {}
 
         # The decoder might pass through arguments that the loss needs (e.g. sequence lengths)
@@ -66,7 +72,13 @@ class BaseTask:
         tracked_torchmetrics = {}
 
         for name in self.torchmetric_names:
-            if name in tm_mine:
+            if name == "mcc":
+                tracked_torchmetrics[name] = tm.MatthewsCorrCoef(
+                    task="multiclass",
+                    num_classes=self.dataset.d_output,
+                    ignore_index=-100,
+                )
+            elif name in tm_mine:
                 tracked_torchmetrics[name] = tm_mine[name]()
             elif name in ['AUROC', 'StatScores', 'Precision', 'Recall', 'F1', 'F1Score']:
                 if name=="F1":

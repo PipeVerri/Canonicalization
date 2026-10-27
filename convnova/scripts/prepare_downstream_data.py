@@ -1,13 +1,20 @@
 import os
+from textwrap import indent
 from datasets import load_dataset
 from pathlib import Path
 from genomic_benchmarks.loc2seq import download_dataset
 from genomic_benchmarks.data_check import is_downloaded
 import h5py
+from idna import encode
+from regex import R
 from scipy.io import loadmat
 import numpy as np
 import math
+from sympy import im, sequence
 from tqdm import tqdm
+from src.utils.bend_benchmark_columns import get_bend_dataset_columns
+import pandas as pd
+from src.utils.canonicalization.utils import read_fasta_into_records_dict
 
 nt_dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 nt_dataset_old = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks")
@@ -56,8 +63,53 @@ def fix_deepsea_nucleotides(x_chunk):
     x_chunk[c_nucleotides] = 1
     return x_chunk
 
-def process_bend_benchmark():
+def parse_bend_benchmark_bed_to_df(bend_benchmark_path, dataset_name):
+    bed_columns, to_convert_to_int = get_bend_dataset_columns(dataset_name)
+    df = pd.read_csv(str(bend_benchmark_path / f"{dataset_name}.bed"), sep="\t", header=None, names=bed_columns)
+    df = df.iloc[1:].reset_index(drop=True) # The first row has the column names
+    for col in to_convert_to_int:
+        df[col] = df[col].astype(int)
+    return df
+
+def process_bend_benchmark(data_path: Path):
+    # Parse the bed and h5 files to convert them into an h5py dataset formatted as sequence, class
+    # The reason for that is to simplify the canonicalization algorithm
+
+    # Load the fasta to get the sequences
+    print("  Loading fasta file")
+    genome = read_fasta_into_records_dict(data_path / "hg38/GRCh38.primary_assembly.genome.fa")
+
+    # Start on gene finding, reutilize that same h5 file
+    print("  Parsing gene_finding")
+
+    df = parse_bend_benchmark_bed_to_df(data_path / "bend_benchmark", "gene_finding")
+    sequences = []
+    # Start by producing the str sequences
+    for _, row in df.iterrows():
+        sequences.append(str(genome[row["chromosome"]][row["start"]:row["end"]]))
+    # Add the h5 labels to the df
+    with h5py.File(data_path / "bend_benchmark/gene_finding.hdf5", "r") as f:
+        df["label"] = f["labels"]
+    # Store the df
+    df.to_csv(data_path / "gene_finding.csv", index=False) # index=False stops pandas from writing the index as another column
     
+    # Now continue with cpg_methylation
+    print("  Parsing cpg_methylation")
+    df = parse_bend_benchmark_bed_to_df(data_path / "bend_benchmark", "cpg_methylation")
+    sequences = []
+    labels = []
+    # Produce the data
+    for _, row in df.iterrows():
+        sequences.append(str(genome[row["chromosome"]][row["start"]:row["end"]]))
+        label = [0] * 7
+        if not pd.isna(row["label"]):
+            for label_idx in row["label"].split(","):
+                label[int(label_idx)] = 1
+        labels.append(label)
+    # Store the df
+    df["sequences"] = sequences
+    df["label"] = labels
+    df.to_csv(data_path / "cpg_methylation.csv", index=False)
 
 def process_deepsea_data(deepsea_dir, chunk_size=10000):
     for f in ("train", "test", "valid"):
@@ -108,9 +160,14 @@ if __name__ == "__main__":
     script_dir = Path(__file__).resolve().parent
     # Set the project root to the parent of the script dir (convnova/)
     project_root = script_dir.parent
-    
-    # List of tasks defined in convnova/configs/dataset/nucleotide_transformer.yaml
 
+    bend_dir = project_root / "data/bend_benchmark_baseline/"
+    print("Processing BEND Benchmark...")
+    process_bend_benchmark(project_root / "data")
+
+    raise
+
+    # List of tasks defined in convnova/configs/dataset/nucleotide_transformer.yaml
     # Target directory is always convnova/data/nucleotide_transformer
     output_base = project_root / "data" / "nucleotide_transformer"
     os.system(f"rm -r {str(output_base)}/*")

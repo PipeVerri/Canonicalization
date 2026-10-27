@@ -1,7 +1,12 @@
 import atexit
 from ctypes import c_char
 import os
+from re import split
 from unittest import skip
+
+from sympy import true
+
+from convnova.src.dataloaders.utils import control_signal
 from .utils import read_fasta_into_records_dict, save_records_into_fasta, intervaltree_to_tuples, transform_sequence
 from .parsed_genome import ParsedGenome, AlignmentError
 import numpy as np
@@ -108,6 +113,17 @@ class CanonicalizedDownstreamTask:
             raise RuntimeError(f"Unknown alignment error: {status}")
 
     def _canonicalize_record(self, seq, alignment, reference_genome: ParsedGenome):
+        """Canonicalizes a sequence and returns the canonicalized sequence and control signals
+
+        Args:
+            seq (_type_): A Biopython Seq object
+            alignment (_type_): An Alignment named tuple
+            reference_genome (ParsedGenome): The reference genome used for canonicalization
+
+        Returns:
+            tuple: canonicalized_seq, control_signal, raw_control_signal
+        """
+
         # The model should always view the transcribed features in the + orientattion. The RC-at-end doesn't change that, everything always ends up in the + orientation
         # If seq is on the positive branch, but it's on top of a negative transcribed feature, the model should see the RC of seq
         # If seq is on the negative branch, but it's on top of a positive transcribed feature, the model should see the RC of seq
@@ -336,7 +352,7 @@ class GenomicBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
     gene_finding_bed_columns = ("chromosome", "start", "end", "transcript_id", "strand", "flank_left", "flank_right", "length", "split")
     tasks_list = [DownstreamTask(task_name=t, reference_genome_name="hg38") for t in (
-        "gene_finding", "cpg_methylation", "variant_effects_disease", "variant_effects_expression"
+        "gene_finding", "cpg_methylation"
     )]
 
     @staticmethod
@@ -365,38 +381,27 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         mapping = np.array([4, 5, 6, 7, 0, 1, 2, 3, 8]) # Ef -> Er, Df -> Dr..., NC stays NC
         label[mask] = mapping[label[mask]]
         return label
-        
+
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
-        bed_name = task.task_name + ".bed"
-        shutil.copy(self.input_dir / bed_name, self.output_dir / bed_name) # The bed file stays the same for all
+        original_df = pd.read_csv(self.input_dir / f"{task.task_name}.csv")
+        df = original_df.copy()
+        Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"]) # Mock alignment because I already have the genome coords
+        # Watch out with doing a = b = []. They share the same pointer
+        splits = ("train", "test", "valid")
+        control_signals = {split: [] for split in splits}
+        raw_control_signals = {split: [] for split in splits}
 
-        # The only thing that needs to be canonicalized are the gene_finding labels.
-        # The tasks are just coords of hg38(which has already been canonicalized), so I just leave the coords intact
-        if task.task_name != "gene_finding":
-            self.has_downstream_task_been_processed[task] = True
-            return
-        
-        df = pd.read_csv(str(self.input_dir / f"{task.task_name}.bed"), sep="\t", header=None, names=self.gene_finding_bed_columns)
-        df = df.iloc[1:].reset_index() # The first row has the column names, drop it
-        df[["start", "end"]] = df[["start", "end"]].astype(int) # Convert the cols to int
-        
-        with h5py.File(self.input_dir / bed_name.replace(".bed", ".hdf5"), "r") as f:
-            labels = f["labels"]
-        
-            # Make a mock alignment and get the control signals to know which labels to flip
-            Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"])
-        
-            canonicalized_labels = []
-            for idx, label in enumerate(labels):
-                df_row = df.iloc[idx]
-                strand = 1 # The code for BEND explicitly ignores the strand field of the dataset (https://github.com/frederikkemarin/BEND/blob/main/conf/embedding/embed.yaml)
+        for idx, row in df.iterrows():
+            # The code for BEND explicitly ignores the strand field of the dataset 
+            # (https://github.com/frederikkemarin/BEND/blob/main/conf/embedding/embed.yaml)
+            alignment = Alignment(row["start"], row["end"], row["chromosome"], 1)
+            seq = Seq(row["sequence"])
+            canonicalized_seq, control_signal, raw_control_signal = self._canonicalize_record(seq, alignment, reference_genome)
+            df.at[idx, "sequence"] = str(canonicalized_seq)
 
-                alignment = Alignment(df_row["start"], df_row["end"], df_row["chromosome"], strand)
-                mock_seq = Seq("A" * (df_row["end"] - df_row["start"]))
-                _, control_signal, _ = self._canonicalize_record(mock_seq, alignment, reference_genome)
-
-                # No need to check for should_rc_at_end. It's already being checked in the computation of the control signal
-                canonicalized_label = label.copy().astype(np.int8)
+            # For cpg_methylation the label stays as-is. For gene_finding, the label should be modified
+            if task.task_name == "gene_finding":
+                canonicalized_label = row["label"].copy().astype(np.int8)
                 if self.config.transformation == "reverse":
                     canonicalized_label = self._reverse_label(canonicalized_label, control_signal)
                 elif self.config.transformation == "complement":
@@ -406,17 +411,23 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
                     canonicalized_label = self._complement_label(canonicalized_label, control_signal)
                 else:
                     raise ValueError(f"Transformation {self.config.transformation} not recognized")
-                
-                canonicalized_labels.append(canonicalized_label)
-            
-        # Save the canonicalized labels
-        with h5py.File(self.output_dir / bed_name.replace(".bed", ".hdf5"), "w") as f:
-            # The np arrays have variable length, this is how they should be saved
-            dt = h5py.vlen_dtype(np.dtype("int8"))
-            ds = f.create_dataset("labels", shape=(len(canonicalized_labels,)), dtype=dt)
-            for i, arr in enumerate(canonicalized_labels):
-                ds[i] = arr
 
+                df.at[idx, "label"] = canonicalized_label
+
+            control_signals[row["split"]].append(control_signal)
+            raw_control_signals[row["split"]].append(raw_control_signal)
+
+        # Store everything
+        assert not pd.testing.assert_frame_equal(original_df, df) # In case I forget to do the modifications in-place
+        df.to_csv(self.output_dir / f"{task.task_name}.csv", index=False)
+        control_signals_dir = self.output_dir / "control_signals"
+        raw_control_signals_dir = self.output_dir / "raw_control_signals"
+        control_signals_dir.mkdir()
+        raw_control_signals_dir.mkdir()
+
+        for split in splits:
+            np.save(control_signals_dir / f"{task.task_name}_{split}", np.array(control_signals[split]))
+            np.save(raw_control_signals_dir / f"{task.task_name}_{split}", np.array(raw_control_signals[split]))
         self.has_downstream_task_been_processed[task] = True
 
 # The SNPs occurs on both strands, so taking the RC should leave the label intact

@@ -3,6 +3,7 @@ from pathlib import Path
 from src.hpo.optimize_study import optimize_study
 
 ROOT_DIR = Path(__file__).parents[1]
+## TODO!!!!! BOTH_BREAK CONFIG UPDATE NEEDED, AND ALSO THE KEEP_SEGMENTS_ORDER UPDATE
 
 def build_overrides_dict(trial: optuna.Trial):
     overlap_transformation_behavior = trial.suggest_categorical("overlapping_segments_canonicalization", ["partial_break", "full_break", "both_break"])

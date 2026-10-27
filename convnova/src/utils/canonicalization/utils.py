@@ -11,7 +11,7 @@ log = src.utils.train.get_logger(__name__)
 # Genomic files parsing #
 #########################
 
-def read_fasta_into_records_dict(fasta_path):
+def read_fasta_into_records_dict(fasta_path: Path | str):
     records = {}
     for record in SeqIO.parse(fasta_path, "fasta"):
         records[record.id] = record.seq

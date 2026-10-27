@@ -334,6 +334,21 @@ class SequenceLightningModule(pl.LightningModule):
         x_t, *_ = self.decoder.step(x_t, state=state)
         return x_t
 
+    def _get_torchmetrics(self, prefix):
+        """Return an independent metric collection for a dataloader prefix."""
+        if prefix == "train":
+            return self.train_torchmetrics
+        if prefix == "val":
+            return self.val_torchmetrics
+        if prefix == "test":
+            return self.test_torchmetrics
+
+        attribute = "_torchmetrics_" + prefix.replace("/", "_")
+        if not hasattr(self, attribute):
+            metrics = self.train_torchmetrics.clone(prefix=f"{prefix}/")
+            setattr(self, attribute, metrics.to(self.device))
+        return getattr(self, attribute)
+
     def _shared_step(self, batch, batch_idx, prefix="train"):
         self._process_state(batch, batch_idx, train=(prefix == "train"))
         x, y, w = self.forward(batch)
@@ -354,9 +369,20 @@ class SequenceLightningModule(pl.LightningModule):
         metrics["loss"] = loss
         metrics = {f"{prefix}/{k}": v for k, v in metrics.items() if v is not None}
 
-        # Calculate torchmetrics
-        # torchmetrics = getattr(self, f'{prefix}_torchmetrics')
-        # torchmetrics(x, y, loss=loss)
+        # MCC is epoch-level: update its confusion matrix on every batch and let
+        # Lightning log the accumulated value instead of averaging batch MCCs.
+        if "mcc" in self.task.torchmetric_names:
+            mcc = self._get_torchmetrics(prefix)["mcc"]
+            mcc.update(x, y)
+            self.log(
+                f"{prefix}/mcc",
+                mcc,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                add_dataloader_idx=False,
+                sync_dist=True,
+            )
 
         log_on_step = 'eval' in self.hparams and self.hparams.eval.get('log_on_step', False) and prefix == 'train'
 

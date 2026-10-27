@@ -2,6 +2,7 @@
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/main/training/src/datamodules/language_modeling_hf.py
 from pathlib import Path
 from typing import Any, List, Union
+from sympy import N
 from torch.utils.data.dataloader import DataLoader, Dataset
 from transformers import AutoTokenizer
 from datasets import Dataset
@@ -340,10 +341,10 @@ class BendBenchmark(HG38):
             print("**using pretrained InstaDeepAI tokenizer**")
             self.tokenizer = AutoTokenizer.from_pretrained("InstaDeepAI/nucleotide-transformer-v2-500m-multi-species", trust_remote_code=True)
 
-        if self.use_control_signal:
+        if self.use_control_signal and self.control_signals is None:
             self.control_signals = {}
-            for chr_file in self.control_signals_dir.iterdir():
-                self.control_signals[chr_file.stem] = np.load(chr_file, mmap_mode="r")
+            for split in ("train", "test", "valid"):
+                self.control_signals[split] = np.load(self.control_signals_dir / f"{self.dataset_name}_{split}.npy")
 
         # Create all splits: torch datasets (only train/test in this benchmark)
         self.dataset_train, self.dataset_val, self.dataset_test = [
