@@ -15,6 +15,7 @@ from tqdm import tqdm
 from src.utils.bend_benchmark_columns import get_bend_dataset_columns
 import pandas as pd
 from src.utils.canonicalization.utils import read_fasta_into_records_dict
+from src.utils.bend_benchmark_h5 import BEND_H5_FILENAME, write_bend_h5
 
 nt_dataset = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks_revised")
 nt_dataset_old = load_dataset("InstaDeepAI/nucleotide_transformer_downstream_tasks")
@@ -72,33 +73,29 @@ def parse_bend_benchmark_bed_to_df(bend_benchmark_path, dataset_name):
     return df
 
 def process_bend_benchmark(data_path: Path):
-    # Parse the bed and h5 files to convert them into an h5py dataset formatted as sequence, class
-    # The reason for that is to simplify the canonicalization algorithm
-
-    # Load the fasta to get the sequences
+    # Store each task in one shared, lossless H5 file to simplify canonicalization.
     print("  Loading fasta file")
     genome = read_fasta_into_records_dict(data_path / "hg38/GRCh38.primary_assembly.genome.fa")
+    task_frames = {}
 
-    # Start on gene finding, reutilize that same h5 file
     print("  Parsing gene_finding")
-
     df = parse_bend_benchmark_bed_to_df(data_path / "bend_benchmark", "gene_finding")
-    sequences = []
-    # Start by producing the str sequences
-    for _, row in df.iterrows():
-        sequences.append(str(genome[row["chromosome"]][row["start"]:row["end"]]))
-    # Add the h5 labels to the df
+    sequences = [
+        str(genome[row["chromosome"]][row["start"]:row["end"]])
+        for _, row in df.iterrows()
+    ]
     with h5py.File(data_path / "bend_benchmark/gene_finding.hdf5", "r") as f:
-        df["label"] = f["labels"]
-    # Store the df
-    df.to_csv(data_path / "gene_finding.csv", index=False) # index=False stops pandas from writing the index as another column
-    
-    # Now continue with cpg_methylation
+        labels = [np.asarray(label, dtype=np.int16) for label in f["labels"][:]]
+    if not (len(df) == len(sequences) == len(labels)):
+        raise ValueError("Gene-finding sequences, labels, and BED rows must have equal lengths")
+    df["sequence"] = sequences
+    df["label"] = labels
+    task_frames["gene_finding"] = df
+
     print("  Parsing cpg_methylation")
     df = parse_bend_benchmark_bed_to_df(data_path / "bend_benchmark", "cpg_methylation")
     sequences = []
     labels = []
-    # Produce the data
     for _, row in df.iterrows():
         sequences.append(str(genome[row["chromosome"]][row["start"]:row["end"]]))
         label = [0] * 7
@@ -106,10 +103,13 @@ def process_bend_benchmark(data_path: Path):
             for label_idx in row["label"].split(","):
                 label[int(label_idx)] = 1
         labels.append(label)
-    # Store the df
-    df["sequences"] = sequences
+    df["sequence"] = sequences
     df["label"] = labels
-    df.to_csv(data_path / "cpg_methylation.csv", index=False)
+    task_frames["cpg_methylation"] = df
+
+    output_path = data_path / "bend_benchmark" / BEND_H5_FILENAME
+    write_bend_h5(output_path, task_frames, mode="w")
+    print(f"  Saved BEND data to {output_path}")
 
 def process_deepsea_data(deepsea_dir, chunk_size=10000):
     for f in ("train", "test", "valid"):

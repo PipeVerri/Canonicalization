@@ -12,6 +12,7 @@ import pandas as pd
 from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
+from src.utils.bend_benchmark_h5 import read_bend_split
 import src.tasks.decoders as _decoders
 
 _BendOutput = namedtuple("BendOutput", ["logits"])
@@ -55,7 +56,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         return_augs=False,
         return_mask=False,
         use_tokenizer=True,
-        csv_path: Path | None = None,
+        h5_path: Path | None = None,
         control_signals=None
     ):
 
@@ -76,8 +77,11 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             split = "valid"
         self.split = split
 
-        assert csv_path.exists()
-        self.df = pd.read_csv(csv_path)
+        records = read_bend_split(h5_path, dataset_name, split)
+        self.sequences = records["sequence"]
+        self.labels = records["label"]
+        if len(self.sequences) != len(self.labels):
+            raise ValueError("BEND sequences and labels must have equal lengths")
 
         if add_eos:
             raise RuntimeError("EOS not implemented")
@@ -85,13 +89,12 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             raise RuntimeError(f"{tokenizer_name} tokenizer not implemented")
         
     def __len__(self):
-        return len(self.df)
+        return len(self.sequences)
 
     def __getitem__(self, idx):
-        df_seq = self.df.iloc[idx]
-        seq = df_seq["sequence"][:]
+        sequence = self.sequences[idx]
 
-        seq = self.tokenizer(seq,
+        seq = self.tokenizer(sequence,
             add_special_tokens=True if self.add_eos else False,  # this is what controls adding eos
             padding="max_length" if self.use_padding else 'do_not_pad',
             max_length=self.max_length,
@@ -112,23 +115,21 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
             seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 
         # Get the target
-        if self.dataset_name == "cpg_methylation":
-            y = df_seq["label"]
-        elif self.dataset_name == "gene_finding":
-            # On this case, the label should be trimmed/padded
-
-            # The cross_entropy task expects a tensor with the labels themselves, not the one-hot encoded labels
-            y = df_seq["label"]
-            # Padding and trimming
-            seq_len = df_seq["end"] - df_seq["start"]
-            if seq_len > self.max_length:
-                y = y[:self.max_length]
-            elif seq_len < self.max_length:
-                pad_length = self.max_length - seq_len
+        if self.dataset_name not in ("cpg_methylation", "gene_finding"):
+            raise RuntimeError("Dataset not supported")
+        y = self.labels[idx]
+        if self.dataset_name == "gene_finding":
+            if len(sequence) != len(y):
+                raise ValueError(
+                    f"Gene-finding sequence and label lengths differ at index {idx}: "
+                    f"{len(sequence)} != {len(y)}"
+                )
+            if len(y) > self.max_length:
+                y = y[:self.max_length] if self.tokenizer.truncation_side == "right" else y[-self.max_length:]
+            elif self.use_padding and len(y) < self.max_length:
+                pad_length = self.max_length - len(y)
                 pad_width = (0, pad_length) if self.tokenizer.padding_side == "right" else (pad_length, 0)
                 y = np.pad(y, pad_width, mode="constant", constant_values=-100)
-        else:
-            raise RuntimeError("Dataset not suppported")
 
         target = torch.LongTensor(y)
         if self.return_mask:

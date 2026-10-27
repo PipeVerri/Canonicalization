@@ -12,6 +12,7 @@ from src.dataloaders.datasets.hg38_dataset import BertHG38Dataset, bert_mask
 from src.models.ConvNova.convnova import CNNModel
 from src.tasks.decoders import SequenceDecoder
 from src.tasks.tasks import MaskedMultiClass
+from src.utils.bend_benchmark_h5 import BEND_H5_FILENAME, write_bend_h5
 
 
 def _tokenizer(padding_side):
@@ -109,38 +110,29 @@ def test_hg38_returns_real_token_mask_and_never_selects_padding_for_mlm():
     assert not masked[1][~expected_mask].any()
 
 
-class _FakeRecord:
-    def __init__(self, seq):
-        self.seq = seq
-
-    def __getitem__(self, _):
-        return self
-
-
-class _FakeChromosome:
-    def __init__(self, seq):
-        self.seq = seq
-
-    def __getitem__(self, item):
-        return _FakeRecord(self.seq[item])
-
-
-def _bend_dataset(padding_side, with_control=False):
-    dataset = object.__new__(BendBenchmarkDataset)
-    dataset.max_length = 5
-    dataset.use_padding = True
-    dataset.tokenizer_name = "char"
-    dataset.tokenizer = _tokenizer(padding_side)
-    dataset.return_augs = False
-    dataset.add_eos = False
-    dataset.return_mask = True
-    dataset.use_tokenizer = False
-    dataset.dataset_name = "gene_finding"
-    dataset.labels = [np.array([1, 2])]
-    dataset.control_signals = {"chr1": np.array([9, 8])} if with_control else None
-    dataset.df = pd.DataFrame({"chromosome": ["chr1"], "start": [0], "end": [2]})
-    dataset.seqs = {"chr1": _FakeChromosome("AC")}
-    return dataset
+def _bend_dataset(padding_side, tmp_path, with_control=False):
+    h5_path = tmp_path / BEND_H5_FILENAME
+    frame = pd.DataFrame({
+        "sequence": ["AC"],
+        "label": [np.array([1, 2])],
+        "split": ["train"],
+    })
+    write_bend_h5(h5_path, {"gene_finding": frame}, mode="w")
+    control_signals = {"train": [np.array([9, 8])]} if with_control else None
+    return BendBenchmarkDataset(
+        split="train",
+        max_length=5,
+        dataset_name="gene_finding",
+        d_output=9,
+        tokenizer=_tokenizer(padding_side),
+        tokenizer_name="char",
+        use_padding=True,
+        add_eos=False,
+        return_mask=True,
+        use_tokenizer=False,
+        h5_path=h5_path,
+        control_signals=control_signals,
+    )
 
 
 @pytest.mark.parametrize(
@@ -151,17 +143,17 @@ def _bend_dataset(padding_side, with_control=False):
     ],
 )
 def test_bend_labels_and_mask_follow_tokenizer_padding_side(
-    padding_side, expected_ids, expected_labels, expected_mask
+    padding_side, expected_ids, expected_labels, expected_mask, tmp_path
 ):
-    seq_ids, labels, extra = _bend_dataset(padding_side)[0]
+    seq_ids, labels, extra = _bend_dataset(padding_side, tmp_path)[0]
 
     assert torch.equal(seq_ids, torch.tensor(expected_ids))
     assert torch.equal(labels, torch.tensor(expected_labels))
     assert torch.equal(extra["mask"], torch.tensor(expected_mask, dtype=torch.bool))
 
 
-def test_bend_right_padding_aligns_control_signal():
-    seq_ids, _, extra = _bend_dataset("right", with_control=True)[0]
+def test_bend_right_padding_aligns_control_signal(tmp_path):
+    seq_ids, _, extra = _bend_dataset("right", tmp_path, with_control=True)[0]
 
     assert torch.equal(seq_ids[0], torch.tensor([0, 1, 4, 4, 4]))
     assert torch.equal(seq_ids[1], torch.tensor([9, 8, 0, 0, 0]))
@@ -201,6 +193,7 @@ def test_datamodules_pass_padding_side_to_character_tokenizer(
     datamodule.control_signals = None
     datamodule.control_signals_dir = None
     datamodule.dest_path = None
+    datamodule.h5_path = "unused.h5"
     datamodule.bed_path = None
     datamodule.labels_path = None
     datamodule.fasta_path = None

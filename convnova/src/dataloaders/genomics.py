@@ -24,6 +24,7 @@ from src.dataloaders.datasets.hg38_fixed_dataset import HG38FixedDataset, BertHG
 from src.dataloaders.datasets.dnabert2 import DNABERT2Dataset
 from src.dataloaders.datasets.dnaberts import DNABERTSDataset
 from src.dataloaders.datasets.bend_benchmark_dataset import BendBenchmarkDataset
+from src.utils.bend_benchmark_h5 import BEND_H5_FILENAME
 
 """
 
@@ -271,7 +272,7 @@ class BendBenchmark(HG38):
                 detokenize=False, val_only=False, batch_size=32, batch_size_eval=None, num_workers=1,
                 shuffle=True, pin_memory=False, drop_last=False, fault_tolerant=False, ddp=False,
                 fast_forward_epochs=None, fast_forward_batches=None, bed_path=None, labels_path=None,
-                fasta_path=None, use_control_signal=False, control_signals_dir=None, *args, **kwargs):
+                fasta_path=None, dataset_dir=None, h5_path=None, use_control_signal=False, control_signals_dir=None, *args, **kwargs):
 
         self.dataset_name = dataset_name
         self.tokenizer_name = tokenizer_name
@@ -295,6 +296,12 @@ class BendBenchmark(HG38):
         self.bed_path = bed_path
         self.labels_path = labels_path
         self.fasta_path = fasta_path
+        if h5_path is None:
+            if dataset_dir is None:
+                raise ValueError("BendBenchmark requires dataset_dir or h5_path")
+            h5_path = Path(dataset_dir) / BEND_H5_FILENAME
+        self.h5_path = Path(h5_path)
+        assert self.h5_path.exists()
         self.use_control_signal = use_control_signal
         self.control_signals_dir = Path(control_signals_dir)
         assert self.control_signals_dir.exists()
@@ -361,9 +368,7 @@ class BendBenchmark(HG38):
                 return_augs=False,
                 return_mask=self.return_mask,
                 use_tokenizer=self.use_tokenizer if self.use_tokenizer is not None else True,
-                bed_path=self.bed_path,
-                labels_path=self.labels_path,
-                fasta_path=self.fasta_path,
+                h5_path=self.h5_path,
                 control_signals=self.control_signals
             )
             for split in ['train', 'val', "test"]

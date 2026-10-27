@@ -6,7 +6,6 @@ from unittest import skip
 
 from sympy import true
 
-from convnova.src.dataloaders.utils import control_signal
 from .utils import read_fasta_into_records_dict, save_records_into_fasta, intervaltree_to_tuples, transform_sequence
 from .parsed_genome import ParsedGenome, AlignmentError
 import numpy as np
@@ -18,6 +17,7 @@ from typing import Optional
 import pandas as pd
 import h5py
 import src.utils.train
+from src.utils.bend_benchmark_h5 import BEND_H5_FILENAME, read_bend_task, write_bend_h5
 import shutil
 from tqdm.auto import tqdm
 import multiprocessing as mp
@@ -383,7 +383,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         return label
 
     def process_task(self, task, reference_genome: ParsedGenome) -> None:
-        original_df = pd.read_csv(self.input_dir / f"{task.task_name}.csv")
+        original_df = read_bend_task(self.input_dir / BEND_H5_FILENAME, task.task_name)
         df = original_df.copy()
         Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"]) # Mock alignment because I already have the genome coords
         # Watch out with doing a = b = []. They share the same pointer
@@ -418,12 +418,11 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
             raw_control_signals[row["split"]].append(raw_control_signal)
 
         # Store everything
-        assert not pd.testing.assert_frame_equal(original_df, df) # In case I forget to do the modifications in-place
-        df.to_csv(self.output_dir / f"{task.task_name}.csv", index=False)
+        write_bend_h5(self.output_dir / BEND_H5_FILENAME, {task.task_name: df}, mode="a")
         control_signals_dir = self.output_dir / "control_signals"
         raw_control_signals_dir = self.output_dir / "raw_control_signals"
-        control_signals_dir.mkdir()
-        raw_control_signals_dir.mkdir()
+        control_signals_dir.mkdir(exist_ok=True)
+        raw_control_signals_dir.mkdir(exist_ok=True)
 
         for split in splits:
             np.save(control_signals_dir / f"{task.task_name}_{split}", np.array(control_signals[split]))
