@@ -55,7 +55,7 @@ def build_conv_layers(hidden_dim, kernel_size, num_layers, num_stacks, dilation_
     return conv_layers
 
 class CNNModel(nn.Module):
-    def __init__(self, args, alphabet_size, for_representation=False, pretrain=False, dilation=2, kernel_size=9, num_conv1d=5, d_inner=2, final_conv=False, ffn=True, use_control_signal=False, **kwargs):
+    def __init__(self, args, alphabet_size, for_representation=False, pretrain=False, dilation=2, kernel_size=9, num_conv1d=5, d_inner=2, final_conv=False, ffn=True, use_control_signal=False, switch_strands=False, **kwargs):
         super().__init__()
         self.alphabet_size = alphabet_size
         self.args = args
@@ -70,13 +70,13 @@ class CNNModel(nn.Module):
         self.hidden_dim = int(1.42*args.hidden_dim)
         self.ffn = ffn
         self.use_control_signal = use_control_signal
+        self.switch_strands = switch_strands
 
         inp_size = self.alphabet_size
         if self.use_control_signal != False:
             inp_size += 1
 
         self.linear = nn.Conv1d(inp_size, args.hidden_dim, kernel_size=9, padding=4)
-        
         self.rc_linear = nn.Conv1d(inp_size, args.hidden_dim, kernel_size=9, padding=4)
         self.convs = build_conv_layers(args.hidden_dim, kernel_size, self.num_conv1d, args.num_cnn_stacks, dilation_base=dilation, dilation_max=1024)
         self.gates = build_conv_layers(args.hidden_dim, kernel_size, self.num_conv1d, args.num_cnn_stacks, dilation_base=dilation, dilation_max=1024)
@@ -148,12 +148,19 @@ class CNNModel(nn.Module):
 
         if control_signal is not None: # Concat the control signal along the alphabet dim. (batch, length, alphabet + 1)
             control_signal = control_signal.unsqueeze(-1)
+            # I'm not reversing it because seq_rc isn't reversed either
             control_signal_rc = control_signal * -1 if self.use_control_signal == "raw" else 1 - control_signal
             if mask is not None:
                 control_signal = control_signal.masked_fill(pad, 0.0)
                 control_signal_rc = control_signal_rc.masked_fill(pad, 0.0)
             seq = torch.cat([seq, control_signal], dim=-1).type(torch.float32)
             rc_seq = torch.cat([rc_seq, control_signal_rc], dim=-1).type(torch.float32)
+
+        # Now check if I should switch the features
+        if self.switch_strands:
+            temp = rc_seq
+            rc_seq = seq
+            seq = temp
 
         feat = seq.permute(0, 2, 1) # From (batch, length, alphabet) to (batch, alphabet, length)
         rc_feat = rc_seq.permute(0,2,1)
