@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  26 OCT 2026 12:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  27 OCT 2026 15:12
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -753,12 +753,12 @@ Package pdftex.def Info: ./images/convnova_arch.png  used on input line 302.
 File: ./images/charts/tasks_correlation_histogram.png Graphic file (type png)
 <use ./images/charts/tasks_correlation_histogram.png>
 Package pdftex.def Info: ./images/charts/tasks_correlation_histogram.png  used 
-on input line 521.
+on input line 523.
 (pdftex.def)             Requested size: 198.742pt x 149.0565pt.
 <./images/charts/ablation.png, id=405, 902.6523pt x 962.1546pt>
 File: ./images/charts/ablation.png Graphic file (type png)
 <use ./images/charts/ablation.png>
-Package pdftex.def Info: ./images/charts/ablation.png  used on input line 539.
+Package pdftex.def Info: ./images/charts/ablation.png  used on input line 541.
 (pdftex.def)             Requested size: 902.6501pt x 962.15227pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -766,19 +766,19 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
  [10 <./images/charts/tasks_correlation_histogram.png>]
 File: ./images/charts/ablation.png Graphic file (type png)
 <use ./images/charts/ablation.png>
-Package pdftex.def Info: ./images/charts/ablation.png  used on input line 552.
+Package pdftex.def Info: ./images/charts/ablation.png  used on input line 554.
 (pdftex.def)             Requested size: 902.6501pt x 962.15227pt.
 <./images/charts/ablation_p_values.png, id=419, 902.6523pt x 803.1606pt>
 File: ./images/charts/ablation_p_values.png Graphic file (type png)
 <use ./images/charts/ablation_p_values.png>
 Package pdftex.def Info: ./images/charts/ablation_p_values.png  used on input l
-ine 561.
+ine 563.
 (pdftex.def)             Requested size: 361.71278pt x 321.84679pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [11 <./images/charts/ablation.png>]
-Overfull \hbox (39.79288pt too wide) in paragraph at lines 568--580
+Overfull \hbox (39.79288pt too wide) in paragraph at lines 570--582
  [][] 
  []
 
@@ -788,7 +788,7 @@ File: ./images/charts/trial_scores_confidence_interval.png Graphic file (type p
 ng)
 <use ./images/charts/trial_scores_confidence_interval.png>
 Package pdftex.def Info: ./images/charts/trial_scores_confidence_interval.png  
-used on input line 598.
+used on input line 600.
 (pdftex.def)             Requested size: 397.48499pt x 198.74312pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -798,7 +798,7 @@ t>
 File: ./images/charts/hpo_parameters_importance.png Graphic file (type png)
 <use ./images/charts/hpo_parameters_importance.png>
 Package pdftex.def Info: ./images/charts/hpo_parameters_importance.png  used on
- input line 604.
+ input line 606.
 (pdftex.def)             Requested size: 278.23827pt x 139.10732pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -811,20 +811,20 @@ aper.bbl
 File: ./images/overlap_break_behavior.png Graphic file (type png)
 <use ./images/overlap_break_behavior.png>
 Package pdftex.def Info: ./images/overlap_break_behavior.png  used on input lin
-e 650.
+e 652.
 (pdftex.def)             Requested size: 278.23827pt x 129.45587pt.
  [16]
-Underfull \hbox (badness 10000) in paragraph at lines 675--681
+Underfull \hbox (badness 10000) in paragraph at lines 677--683
 
  []
 
 <./images/conflict_window.png, id=474, 1391.1975pt x 650.43pt>
 File: ./images/conflict_window.png Graphic file (type png)
 <use ./images/conflict_window.png>
-Package pdftex.def Info: ./images/conflict_window.png  used on input line 698.
+Package pdftex.def Info: ./images/conflict_window.png  used on input line 700.
 (pdftex.def)             Requested size: 198.7425pt x 92.9155pt.
 [17 <./images/overlap_break_behavior.png> <./images/conflict_window.png>]
-Underfull \hbox (badness 2591) in paragraph at lines 710--711
+Underfull \hbox (badness 2591) in paragraph at lines 712--713
 []\T1/ptm/m/n/10 (+20) If one wishes to keep the ex-act or-der of the seg-ments
  as they were
  []
@@ -834,19 +834,19 @@ Underfull \hbox (badness 2591) in paragraph at lines 710--711
 File: ./images/ordered_segments_canonicalization.png Graphic file (type png)
 <use ./images/ordered_segments_canonicalization.png>
 Package pdftex.def Info: ./images/ordered_segments_canonicalization.png  used o
-n input line 717.
+n input line 719.
 (pdftex.def)             Requested size: 397.48499pt x 168.20407pt.
 <./images/keep_order_false_example.png, id=490, 2527.4425pt x 1204.5pt>
 File: ./images/keep_order_false_example.png Graphic file (type png)
 <use ./images/keep_order_false_example.png>
 Package pdftex.def Info: ./images/keep_order_false_example.png  used on input l
-ine 728.
+ine 730.
 (pdftex.def)             Requested size: 397.48499pt x 189.41568pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [18 <./images/ordered_segments_canonicalization.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 742--743
+Underfull \hbox (badness 10000) in paragraph at lines 744--745
 []\T1/ptm/m/n/10 (+20) This al-go-rithm is sim-i-lar to the one used when
  []
 
@@ -855,7 +855,7 @@ pt>
 File: ./images/canonicalization_algorithms_example.png Graphic file (type png)
 <use ./images/canonicalization_algorithms_example.png>
 Package pdftex.def Info: ./images/canonicalization_algorithms_example.png  used
- on input line 754.
+ on input line 756.
 (pdftex.def)             Requested size: 397.48499pt x 103.80443pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
@@ -864,21 +864,21 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 <./images/mlp_final_layer.png, id=514, 2004.48875pt x 231.86626pt>
 File: ./images/mlp_final_layer.png Graphic file (type png)
 <use ./images/mlp_final_layer.png>
-Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 766.
+Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 768.
 (pdftex.def)             Requested size: 397.48499pt x 45.97617pt.
  [20 <./images/canonicalization_algorithms_example.png> <./images/mlp_final_lay
 er.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 908--908
+Underfull \hbox (badness 10000) in paragraph at lines 910--910
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 908--908
+Underfull \hbox (badness 10000) in paragraph at lines 910--910
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
 [21]
-Underfull \hbox (badness 5622) in paragraph at lines 941--941
+Underfull \hbox (badness 5622) in paragraph at lines 943--943
 \T1/ptm/m/n/10 (+20) hancers and OCR;
  []
 
@@ -911,7 +911,7 @@ pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share
 /texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1
 /urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
 
-Output written on paper.pdf (23 pages, 3269115 bytes).
+Output written on paper.pdf (23 pages, 3269321 bytes).
 PDF statistics:
  652 PDF objects out of 1000 (max. 8388607)
  545 compressed objects within 6 object streams

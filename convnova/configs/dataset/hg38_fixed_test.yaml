@@ -3,7 +3,7 @@ fasta_file: null
 chr_ranges: null
 pad_max_length: ${.max_length}
 max_length: 1024
-add_eos: True
+add_eos: False
 batch_size: 8  # per GPU
 num_workers: 4  # For preprocessing only
 shuffle: False

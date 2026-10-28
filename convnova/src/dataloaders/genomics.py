@@ -195,7 +195,7 @@ class HG38(SequenceDataset):
                 max_length=self.max_length,
                 pad_max_length=self.max_length,
                 tokenizer=self.tokenizer,
-                add_eos=True,
+                add_eos=False,
             )
 
         return
@@ -1137,7 +1137,7 @@ class BertHG38(SequenceDataset):
                 max_length=self.max_length,
                 pad_max_length=self.max_length,
                 tokenizer=self.tokenizer,
-                add_eos=True,
+                add_eos=False,
             )
 
         return
@@ -1379,7 +1379,7 @@ class DNABert2Pretrain(SequenceDataset):
                 max_length=self.max_length,
                 pad_max_length=self.max_length,
                 tokenizer=self.tokenizer,
-                add_eos=True,
+                add_eos=False,
             )
 
         return

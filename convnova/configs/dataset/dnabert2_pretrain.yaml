@@ -4,7 +4,7 @@ dataset_name: dnabert2_pretrain
 tokenizer_name: null
 cache_dir: null
 max_length: 1024
-add_eos: True
+add_eos: False
 batch_size: 8  # per GPU
 batch_size_eval: ${eval:${.batch_size} * 2}
 num_workers: 4  # For preprocessing only

@@ -40,7 +40,6 @@ dataset:
   tokenizer_name: char
   use_tokenizer: False
   pad_max_length: null  # needed for bpe tokenizer
-  add_eos: true
   rc_aug: false
   num_workers: 12
   use_fixed_len_val: false  # placing a fixed length val here, but it's really the test
