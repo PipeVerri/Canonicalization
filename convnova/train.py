@@ -346,6 +346,7 @@ class SequenceLightningModule(pl.LightningModule):
         attribute = "_torchmetrics_" + prefix.replace("/", "_")
         if not hasattr(self, attribute):
             metrics = self.train_torchmetrics.clone(prefix=f"{prefix}/")
+            metrics.reset()
             setattr(self, attribute, metrics.to(self.device))
         return getattr(self, attribute)
 
@@ -359,9 +360,9 @@ class SequenceLightningModule(pl.LightningModule):
         else:
             loss = self.loss_val(x, y, **w)
 
-        # Metrics — skip during training; per-batch metrics force GPU sync and are statistically
-        # meaningless for multi-label AUROC over small batches.
-        if prefix != "train" or (prefix == "train" and self.config.train.get("compute_train_torchmetrics", True)):
+        # Exact AUROC retains predictions, so honor the training metric opt-out.
+        compute_metrics = prefix != "train" or self.config.train.get("compute_train_torchmetrics", True)
+        if compute_metrics:
             metrics = self.metrics(x, y, **w)
         else:
             metrics = {}
@@ -369,20 +370,27 @@ class SequenceLightningModule(pl.LightningModule):
         metrics["loss"] = loss
         metrics = {f"{prefix}/{k}": v for k, v in metrics.items() if v is not None}
 
-        # MCC is epoch-level: update its confusion matrix on every batch and let
-        # Lightning log the accumulated value instead of averaging batch MCCs.
-        if "mcc" in self.task.torchmetric_names:
-            mcc = self._get_torchmetrics(prefix)["mcc"]
-            mcc.update(x, y)
-            self.log(
-                f"{prefix}/mcc",
-                mcc,
-                on_step=False,
-                on_epoch=True,
-                prog_bar=True,
-                add_dataloader_idx=False,
-                sync_dist=True,
-            )
+        # Log stateful metric objects so Lightning computes and resets them at
+        # epoch end instead of averaging per-batch scalars.
+        if compute_metrics:
+            for name in ("mcc", "auroc"):
+                if name not in self.task.torchmetric_names:
+                    continue
+                metric = self._get_torchmetrics(prefix)[name]
+                metric.update(x, y)
+                self.log(
+                    f"{prefix}/{name}",
+                    metric,
+                    on_step=False,
+                    on_epoch=True,
+                    prog_bar=True,
+                    add_dataloader_idx=False,
+                    sync_dist=True,
+                    metric_attribute=(
+                        f"{prefix}_torchmetrics.{name}" if prefix in ("train", "val", "test")
+                        else f"_torchmetrics_{prefix.replace('/', '_')}.{name}"
+                    ),
+                )
 
         log_on_step = 'eval' in self.hparams and self.hparams.eval.get('log_on_step', False) and prefix == 'train'
 
@@ -483,6 +491,11 @@ class SequenceLightningModule(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
+        if any(name in self.task.torchmetric_names for name in ("mcc", "auroc")):
+            return self._shared_step(
+                batch, batch_idx, prefix=self.test_loader_names[dataloader_idx]
+            )
+
         prefix = "valid"
         self._process_state(batch, batch_idx, train=(prefix == "train"))
         x, y, w = self.forward(batch)

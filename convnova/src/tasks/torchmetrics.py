@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torchmetrics import Metric
+from torchmetrics.classification import MultilabelAUROC
 
 try:
     from flash_attn.losses.cross_entropy import CrossEntropyLoss
@@ -19,6 +20,35 @@ try:
     from apex.transformer import parallel_state
 except ImportError:
     parallel_state = None
+
+
+class EpochAUROC(MultilabelAUROC):
+    """Exact macro AUROC from logits, excluding labels undefined over the epoch.
+
+    TorchMetrics handles accumulation, distributed synchronization, and AUROC.
+    The extra counts preserve the project's convention of excluding labels with
+    only one target value, but make that decision over the whole epoch.
+    """
+
+    def __init__(self, num_labels):
+        super().__init__(num_labels=num_labels, average=None, thresholds=None)
+        self.add_state("positives", default=torch.zeros(num_labels, dtype=torch.long), dist_reduce_fx="sum")
+        self.add_state("negatives", default=torch.zeros(num_labels, dtype=torch.long), dist_reduce_fx="sum")
+
+    def update(self, logits, target):
+        target = target.reshape(-1, self.num_labels).long()
+        # Always apply sigmoid: automatic logits detection on each batch can
+        # mix logits in [0, 1] with probabilities from other batches.
+        scores = logits.reshape(target.shape).float().sigmoid()
+        super().update(scores, target)
+        self.positives += (target == 1).sum(dim=0)
+        self.negatives += (target == 0).sum(dim=0)
+
+    def compute(self):
+        scores = super().compute()
+        valid = (self.positives > 0) & (self.negatives > 0)
+        # An empty mean is NaN: no AUROC is defined for this epoch.
+        return scores[valid].mean()
 
 
 class Perplexity(Metric):

@@ -12,7 +12,7 @@ from src.models.nn.components import ReversibleInstanceNorm1dInput, ReversibleIn
 
 from src.models.nn.adaptive_softmax import AdaptiveEmbedding, ProjectedAdaptiveLogSoftmax
 import src.tasks.metrics as M
-from src.tasks.torchmetrics import torchmetric_fns as tm_mine
+from src.tasks.torchmetrics import EpochAUROC, torchmetric_fns as tm_mine
 import src.models.nn.utils as U
 import torchmetrics as tm
 from src.utils.config import to_list, instantiate
@@ -42,12 +42,13 @@ class BaseTask:
 
         if torchmetrics is None: torchmetrics = []
         self.torchmetric_names = to_list(torchmetrics)
-        # MCC must be computed from the epoch-level confusion matrix rather than
-        # averaging independent batch scores.
-        if "mcc" in self.metric_names:
-            self.metric_names = [name for name in self.metric_names if name != "mcc"]
-            if "mcc" not in self.torchmetric_names:
-                self.torchmetric_names.append("mcc")
+        # Nonlinear metrics must aggregate their state across the epoch rather
+        # than average independent batch scores.
+        for name in ("mcc", "auroc"):
+            if name in self.metric_names:
+                self.metric_names = [metric for metric in self.metric_names if metric != name]
+                if name not in self.torchmetric_names:
+                    self.torchmetric_names.append(name)
         self._tracked_torchmetrics = {}
 
         # The decoder might pass through arguments that the loss needs (e.g. sequence lengths)
@@ -78,6 +79,8 @@ class BaseTask:
                     num_classes=self.dataset.d_output,
                     ignore_index=-100,
                 )
+            elif name == "auroc":
+                tracked_torchmetrics[name] = EpochAUROC(num_labels=self.dataset.d_output)
             elif name in tm_mine:
                 tracked_torchmetrics[name] = tm_mine[name]()
             elif name in ['AUROC', 'StatScores', 'Precision', 'Recall', 'F1', 'F1Score']:

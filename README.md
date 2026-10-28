@@ -111,6 +111,18 @@ Remeber to adjust the setting for different dataset like max seq length and the 
   python train.py experiment='nt-benchmark/convnova' with-some-argments
 </pre>
 
+<h3>3.4 Metric aggregation</h3>
+
+MCC and multilabel AUROC configured as `task.metrics: [mcc]` or
+`task.metrics: [auroc]` use stateful TorchMetrics to compute one score over the
+whole epoch, including distributed workers, rather than averaging batch scores.
+AUROC is the macro average over labels with both positive and negative examples
+in the full epoch; if none qualify, the result is NaN.
+
+Exact AUROC retains the epoch's predictions and targets. Set
+`train.compute_train_torchmetrics=false` to disable training metrics while keeping
+validation and test metrics enabled; the DeepSEA pipeline already does this.
+
 ---
 
 <h2>4 Citation</h2>
