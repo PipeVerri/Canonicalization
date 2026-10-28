@@ -1,8 +1,11 @@
 import pytest
+import numpy as np
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+from Bio.Seq import Seq
 from intervaltree import IntervalTree
 from src.utils.canonicalization import (
+    CanonicalizedDownstreamTask,
     ParsedGenome,
     find_primary_hit,
     get_alignment_transcribed_segments,
@@ -50,11 +53,22 @@ def test_find_annotated_hit():
     # Should return None if no hit matches criteria
     assert ParsedGenome._find_annotated_hit(fake_genome, [hit1, hit3], 30) is None
 
-def test_get_alignment_transcribed_segments():
-    # `get_transcribed_segments_that_contain_seq(hit, intervaltree_dict)` is now
-    # `get_alignment_transcribed_segments(alignment, reference_genome)`, taking a
-    # ParsedGenome-like object exposing `genome_transcribed_segments` instead of the
-    # raw dict. Overlap/strand logic is unchanged.
+@pytest.mark.parametrize(
+    "strand, start, end, expected",
+    [
+        pytest.param(1, 15, 25, [], id="plus-query-same-strand"),
+        pytest.param(-1, 15, 25, [(10, 20)], id="minus-query-opposite-strand"),
+        pytest.param(1, 25, 35, [(30, 40)], id="plus-query-opposite-strand"),
+        pytest.param(-1, 25, 35, [], id="minus-query-same-strand"),
+        pytest.param(1, 0, 100, [(30, 40)], id="plus-query-both-strands-present"),
+        pytest.param(-1, 0, 100, [(10, 20), (50, 70)], id="minus-query-both-strands-present"),
+        pytest.param(1, 100, 200, [], id="plus-query-no-overlap"),
+        pytest.param(-1, 100, 200, [], id="minus-query-no-overlap"),
+    ],
+)
+def test_get_alignment_transcribed_segments(strand, start, end, expected):
+    # CANON-04: select opposite-strand coding annotations, because those are the
+    # features requiring RC to appear in the query's positive transcriptional orientation.
     pos_tree = IntervalTree.from_tuples([(10, 20), (50, 70)])
     neg_tree = IntervalTree.from_tuples([(30, 40)])
 
@@ -66,20 +80,83 @@ def test_get_alignment_transcribed_segments():
     }
     fake_genome = SimpleNamespace(genome_transcribed_segments=intervaltree_dict)
 
-    # Positive strand alignment overlapping (10, 20)
-    hit_pos = MockHit(is_primary=True, mapq=60, ctg="chr1", strand=1, r_st=15, r_en=25)
-    segments = get_alignment_transcribed_segments(hit_pos, fake_genome)
-    assert segments == [(10, 20)]
+    hit = MockHit(is_primary=True, mapq=60, ctg="chr1", strand=strand, r_st=start, r_en=end)
+    assert sorted(get_alignment_transcribed_segments(hit, fake_genome)) == expected
 
-    # Negative strand alignment overlapping (30, 40)
-    hit_neg = MockHit(is_primary=True, mapq=60, ctg="chr1", strand=-1, r_st=25, r_en=35)
-    segments = get_alignment_transcribed_segments(hit_neg, fake_genome)
-    assert segments == [(30, 40)]
 
-    # Alignment with no overlap
-    hit_no_overlap = MockHit(is_primary=True, mapq=60, ctg="chr1", strand=1, r_st=100, r_en=200)
-    segments = get_alignment_transcribed_segments(hit_no_overlap, fake_genome)
-    assert segments == []
+@pytest.fixture
+def downstream_canonicalizer():
+    # Bypass filesystem setup and atexit handlers; exercise the real record processing.
+    canonicalizer = object.__new__(CanonicalizedDownstreamTask)
+    canonicalizer.config = SimpleNamespace(
+        transformation="rc",
+        partial_downstream_canonicalization=False,
+    )
+    return canonicalizer
+
+
+@pytest.fixture
+def strand_reference_genome():
+    # Keep the actual coordinate-projection method without needing an index or GFF.
+    genome = object.__new__(ParsedGenome)
+    genome.genome_transcribed_segments = {
+        "chr1": {"positive": IntervalTree(), "negative": IntervalTree()}
+    }
+    return genome
+
+
+@pytest.mark.parametrize("partial", [False, True], ids=["full", "partial"])
+@pytest.mark.parametrize(
+    "alignment_strand, transcript_strand, expected_sequence, transformed",
+    [
+        pytest.param(1, "negative", "ACGGTT", True, id="plus-query-negative-transcript"),
+        pytest.param(-1, "positive", "ACGGTT", True, id="minus-query-positive-transcript"),
+        pytest.param(1, "positive", "AACCGT", False, id="plus-query-positive-transcript"),
+        pytest.param(-1, "negative", "AACCGT", False, id="minus-query-negative-transcript"),
+    ],
+)
+def test_downstream_rc_orients_only_opposite_strand_transcripts(
+    downstream_canonicalizer, strand_reference_genome, partial,
+    alignment_strand, transcript_strand, expected_sequence, transformed,
+):
+    # Contract-level regression for issue 11.4: assert actual DNA and controls,
+    # not just which annotation bucket the selector returns.
+    sequence = Seq("AACCGT")  # Not an RC palindrome: its RC is ACGGTT.
+    strand_reference_genome.genome_transcribed_segments["chr1"][transcript_strand].addi(100, 106)
+    downstream_canonicalizer.config.partial_downstream_canonicalization = partial
+    hit = MockHit(True, 60, "chr1", strand=alignment_strand, r_st=100, r_en=106)
+
+    canonicalized, control, _ = downstream_canonicalizer._canonicalize_record(
+        sequence, hit, strand_reference_genome,
+    )
+
+    assert str(canonicalized) == expected_sequence
+    np.testing.assert_array_equal(control, np.full(len(sequence), int(transformed)))
+    assert str(sequence) == "AACCGT"
+
+
+@pytest.mark.parametrize(
+    "alignment_strand, transcript_strand, expected_sequence, expected_control",
+    [
+        pytest.param(1, "negative", "GGTTTTGT", [1, 1, 1, 1, 1, 1, 0, 0], id="plus-query"),
+        pytest.param(-1, "positive", "AAACGGTT", [0, 0, 1, 1, 1, 1, 1, 1], id="minus-query"),
+    ],
+)
+def test_partial_downstream_rc_uses_opposite_strand_overlap_in_query_coordinates(
+    downstream_canonicalizer, strand_reference_genome,
+    alignment_strand, transcript_strand, expected_sequence, expected_control,
+):
+    sequence = Seq("AAAACCGT")
+    strand_reference_genome.genome_transcribed_segments["chr1"][transcript_strand].addi(100, 106)
+    downstream_canonicalizer.config.partial_downstream_canonicalization = True
+    hit = MockHit(True, 60, "chr1", strand=alignment_strand, r_st=100, r_en=108)
+
+    canonicalized, control, _ = downstream_canonicalizer._canonicalize_record(
+        sequence, hit, strand_reference_genome,
+    )
+
+    assert str(canonicalized) == expected_sequence
+    np.testing.assert_array_equal(control, expected_control)
 
 def test_align_transcript_position_with_seq():
     # `align_transcript_position_with_seq(hit, segment, chromosome_length)` is now the

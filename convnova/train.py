@@ -807,11 +807,18 @@ def train(config):
     else:
         trainer.fit(model)
 
-    # The ckpt_path=best fails only when instantiating a new trainer
-    if config.train.test:
-        return trainer.test(model, ckpt_path="best")
+    # Restore the full fine-tuned checkpoint, including the downstream decoder.
+    # The pretraining-transfer hook intentionally filters out decoder weights.
+    state_hook = model.hparams.train.pretrained_model_state_hook
+    hook_name = state_hook._name_
+    state_hook._name_ = None
+    try:
+        if config.train.test:
+            return trainer.test(model, ckpt_path="best")
 
-    return trainer.validate(model, ckpt_path="best")
+        return trainer.validate(model, ckpt_path="best")
+    finally:
+        state_hook._name_ = hook_name
 
 def process_config_and_run(config):
     config = utils.train.process_config(config)

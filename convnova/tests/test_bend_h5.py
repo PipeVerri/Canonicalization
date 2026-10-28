@@ -180,7 +180,17 @@ def test_gene_finding_rejects_sequence_label_length_mismatch(tmp_path):
         dataset[0]
 
 
-def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path):
+@pytest.mark.parametrize(
+    "transcript_strand, expected_gene, expected_labels, expected_cpg, expected_control, expected_raw",
+    [
+        ("negative", "CGTT", [8, 6, 5, 4], "GT", 1, -1),
+        ("positive", "AACG", [0, 1, 2, 8], "AC", 0, 1),
+    ],
+)
+def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(
+    tmp_path, transcript_strand, expected_gene, expected_labels,
+    expected_cpg, expected_control, expected_raw,
+):
     input_dir = tmp_path / "input"
     output_dir = tmp_path / "output"
     input_dir.mkdir()
@@ -212,6 +222,7 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path
     canonicalizer = object.__new__(BendBenchmarkCanonicalizer)
     canonicalizer.input_dir = input_dir
     canonicalizer.output_dir = output_dir
+    canonicalizer.task_config = SimpleNamespace(skip_tasks=[])
     canonicalizer.config = SimpleNamespace(
         partial_downstream_canonicalization=False,
         transformation="rc",
@@ -221,11 +232,14 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path
     reference_genome = SimpleNamespace(
         genome_transcribed_segments={
             "chr1": {
-                "positive": IntervalTree.from_tuples([(0, 4)]),
+                "positive": IntervalTree(),
                 "negative": IntervalTree(),
             }
         }
     )
+    # BEND sequences are extracted in plus-reference orientation. Only a negative
+    # transcript requires RC, including the matching gene-label transformation.
+    reference_genome.genome_transcribed_segments["chr1"][transcript_strand].addi(0, 4)
     reference_genome.align_transcript_position_with_seq = MethodType(
         ParsedGenome.align_transcript_position_with_seq,
         reference_genome,
@@ -236,14 +250,14 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(tmp_path
 
     output_path = output_dir / BEND_H5_FILENAME
     canonical_gene = read_bend_split(output_path, "gene_finding", "train")
-    assert canonical_gene["sequence"][0] == "CGTT"
-    assert np.array_equal(canonical_gene["label"][0], np.array([8, 6, 5, 4]))
-    assert read_bend_split(output_path, "cpg_methylation", "test")["sequence"][0] == "GT"
+    assert canonical_gene["sequence"][0] == expected_gene
+    assert np.array_equal(canonical_gene["label"][0], np.array(expected_labels))
+    assert read_bend_split(output_path, "cpg_methylation", "test")["sequence"][0] == expected_cpg
 
     control = np.load(output_dir / "control_signals/gene_finding_train.npy", allow_pickle=True)
     raw_control = np.load(output_dir / "raw_control_signals/gene_finding_train.npy", allow_pickle=True)
     assert control.shape == (2,)
-    assert np.array_equal(control[0], np.ones(4))
+    assert np.array_equal(control[0], np.full(4, expected_control))
     assert np.array_equal(control[1], np.zeros(2))
-    assert np.array_equal(raw_control[0], np.ones(4))
+    assert np.array_equal(raw_control[0], np.full(4, expected_raw))
     assert np.array_equal(raw_control[1], np.zeros(2))

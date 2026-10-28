@@ -26,10 +26,11 @@ from multiprocessing.pool import Pool
 log = src.utils.train.get_logger(__name__)
 
 def get_alignment_transcribed_segments(alignment, reference_genome: ParsedGenome):
+    # If the alignment is on the positive strand, I want to check if it's on top of a NEGATIVE transcript, and vice versa
     if alignment.strand == 1:
-        segments_to_check = reference_genome.genome_transcribed_segments[alignment.ctg]["positive"]
-    elif alignment.strand == -1:
         segments_to_check = reference_genome.genome_transcribed_segments[alignment.ctg]["negative"]
+    elif alignment.strand == -1:
+        segments_to_check = reference_genome.genome_transcribed_segments[alignment.ctg]["positive"]
     else:
         raise RuntimeError(f"Unknown strand: {alignment.strand}")
 
