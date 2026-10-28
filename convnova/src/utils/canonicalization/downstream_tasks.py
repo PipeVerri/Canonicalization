@@ -378,7 +378,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
 
         original_df = read_bend_task(self.input_dir / BEND_H5_FILENAME, task.task_name)
         df = original_df.copy()
-        Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand"]) # Mock alignment because I already have the genome coords
+        Alignment = namedtuple("Alignment", ["r_st", "r_en", "ctg", "strand", "q_st", "q_en"]) # Mock alignment because I already have the genome coords
         # Watch out with doing a = b = []. They share the same pointer
         splits = ("train", "test", "valid")
         control_signals = {split: [] for split in splits}
@@ -387,7 +387,7 @@ class BendBenchmarkCanonicalizer(CanonicalizedDownstreamTask):
         for idx, row in df.iterrows():
             # The code for BEND explicitly ignores the strand field of the dataset 
             # (https://github.com/frederikkemarin/BEND/blob/main/conf/embedding/embed.yaml)
-            alignment = Alignment(row["start"], row["end"], row["chromosome"], 1)
+            alignment = Alignment(row["start"], row["end"], row["chromosome"], 1, 0, len(row["sequence"])) # q_en in mappy is exclusive
             seq = Seq(row["sequence"])
             canonicalized_seq, control_signal, raw_control_signal = self._canonicalize_record(seq, alignment, reference_genome)
             df.at[idx, "sequence"] = str(canonicalized_seq)

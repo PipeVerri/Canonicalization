@@ -10,5 +10,5 @@ control_signals_dir: null
 add_eos: False
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
-num_workers: 1  # data is fully in RAM; more workers hurts via IPC overhead
+num_workers: 0 # data is fully in RAM; more workers hurts via IPC overhead
 pin_memory: true

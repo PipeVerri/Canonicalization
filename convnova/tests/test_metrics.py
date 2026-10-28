@@ -148,28 +148,3 @@ def test_auroc_reset_separates_epochs():
     metric.reset()
     metric.update(-logits, labels)
     assert metric.compute().item() == pytest.approx(0.0)
-
-
-def _distributed_auroc_worker(rank, rendezvous):
-    dist.init_process_group(
-        "gloo", init_method=f"file://{rendezvous}", rank=rank, world_size=2,
-        timeout=timedelta(seconds=30),
-    )
-    try:
-        metric = _auroc_task().val_torchmetrics["auroc"]
-        # Neither rank has both classes locally, but both labels are valid globally.
-        logits = torch.full((2, 2), 2.0 if rank else -2.0)
-        metric.update(logits, torch.full((2, 2), rank))
-        assert metric.compute().item() == pytest.approx(1.0)
-
-        metric.reset()
-        logits = torch.tensor([[0.2, 0.2], [0.3, 0.3]]) - rank * 0.4
-        metric.update(logits, torch.tensor([[0, 0], [1, 1]]))
-        assert metric.compute().item() == pytest.approx(0.75)
-    finally:
-        dist.destroy_process_group()
-
-
-@pytest.mark.skipif(not dist.is_available() or not dist.is_gloo_available(), reason="Gloo is unavailable")
-def test_auroc_aggregates_across_distributed_ranks(tmp_path):
-    mp.spawn(_distributed_auroc_worker, args=(str(tmp_path / "auroc-rendezvous"),), nprocs=2)

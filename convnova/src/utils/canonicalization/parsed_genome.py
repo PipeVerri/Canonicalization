@@ -233,13 +233,16 @@ class ParsedGenome:
         # the (0, 10) portion of the segment is transcribed(because the RC implies a REVERSE), not the (30, 40) portion of it
         # Doing it naive way(saying that the overlapping segment is the 30, 40) affects the control signal always, and seq when partial_downstream_canonicalization is set to True
 
+        # Add q_st to the alignment because if I get a nucleotide mismatch on the start, I don't wanna count that part of the sequence
+        # Ill ignore the CIGAR codes because even if I get mid-mismatches(probably on deepsea), they'll be off by just a couple of nucletoides
+
         if alignment.strand == 1:
-            segment_start = segment[0] - alignment.r_st
-            segment_end = segment[1] - alignment.r_st
+            segment_start = alignment.q_st +  segment[0] - alignment.r_st
+            segment_end = alignment.q_st + segment[1] - alignment.r_st
         else: # strand == -1
             # The interval (s, e) ends on (e - L, s - L) with L being the length of the reversed sequence
-            segment_start = alignment.r_en - segment[1]
-            segment_end = alignment.r_en - segment[0]
+            segment_start = alignment.q_en - (segment[1] - alignment.r_en)
+            segment_end = alignment.q_en - (segment[0] - alignment.r_en)
         return max(0, segment_start), min(seq_length, segment_end)
 
     def _log(self, message):
