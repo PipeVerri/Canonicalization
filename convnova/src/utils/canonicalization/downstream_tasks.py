@@ -1,5 +1,6 @@
 import atexit
 from ctypes import c_char
+from curses import raw
 import os
 from re import split
 from unittest import skip
@@ -161,6 +162,10 @@ class CanonicalizedDownstreamTask:
         for segment in all_segments_that_overlap["negative"]:
             start, end = reference_genome.align_transcript_position_with_seq(alignment, segment, len(seq))
             raw_control_signal[start:end] = -1
+
+        # If the alignment is on the - strand, then the control signal for it should be inverted
+        if alignment.strand == -1:
+            raw_control_signal = raw_control_signal * -1
 
         return seq_canon, control_signal, raw_control_signal
 

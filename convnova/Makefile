@@ -62,8 +62,11 @@ DEEPSEA_LABELS_URL := https://raw.githubusercontent.com/kipoi/models/refs/heads/
 
 deepsea: $(DATA)/deepsea/train.mat $(DATA)/deepsea/predictor_names.txt
 
-$(DATA)/deepsea/train.mat: | $(DATA)/deepsea
+${DATA}/deepsea/deepsea_train_bundle.v0.9.tar.gz:
+	mkdir -p $(DATA)/deepsea
 	curl -L $(DEEPSEA_URL) -o $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz
+
+$(DATA)/deepsea/train.mat: | $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz
 	tar -xzf $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz -C $(DATA)/deepsea
 
 $(DATA)/deepsea/predictor_names.txt: | $(DATA)/deepsea
