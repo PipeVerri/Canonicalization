@@ -1,5 +1,6 @@
 from collections import namedtuple
 from tkinter import NO
+import token
 from pyfaidx import Fasta
 import torch
 import torch.nn as nn
@@ -9,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import h5py
 import pandas as pd
-from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
+from src.dataloaders.utils.control_signal import trim_and_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 from src.utils.bend_benchmark_h5 import read_bend_split
@@ -57,7 +58,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
         return_mask=False,
         use_tokenizer=True,
         h5_path: Path | None = None,
-        control_signals=None
+        control_signals=None,
     ):
 
         self.max_length = max_length
@@ -111,7 +112,7 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
 
         if self.control_signals is not None:
             control_signal = self.control_signals[self.split][idx]
-            control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
+            control_signal = trim_and_pad_to_torch(control_signal, self.max_length, self.tokenizer, 0, use_padding=self.use_padding)
             seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 
         # Get the target
@@ -124,14 +125,11 @@ class BendBenchmarkDataset(torch.utils.data.Dataset):
                     f"Gene-finding sequence and label lengths differ at index {idx}: "
                     f"{len(sequence)} != {len(y)}"
                 )
-            if len(y) > self.max_length:
-                y = y[:self.max_length] if self.tokenizer.truncation_side == "right" else y[-self.max_length:]
-            elif self.use_padding and len(y) < self.max_length:
-                pad_length = self.max_length - len(y)
-                pad_width = (0, pad_length) if self.tokenizer.padding_side == "right" else (pad_length, 0)
-                y = np.pad(y, pad_width, mode="constant", constant_values=-100)
 
-        target = torch.LongTensor(y)
+            target = trim_and_pad_to_torch(y, self.max_length, self.tokenizer, -100, use_padding=self.use_padding)
+        else:
+            target = torch.LongTensor(y)
+
         if self.return_mask:
             return seq_ids, target, {'mask': torch.BoolTensor(seq['attention_mask'])}
         return seq_ids, target

@@ -1,7 +1,7 @@
 _name_: nucleotide_transformer  # this links to the overall SequenceDataset of all nucleotide transformer datasets
 dataset_name: enhancers  # this specifies which dataset in nuc trx
 dest_path: null  # path to the nt datasets folder
-max_length: 1000 # To make it easier for the paper description. Smaller sequences will be padded
+max_length: ${.${.dataset_name}.max_length} # To make it easier for the paper description. Smaller sequences will be padded
 d_output: ${.${.dataset_name}.classes} 
 use_padding: True
 padding_side: left
@@ -82,7 +82,7 @@ H4K20me1:
 promoter_all:
   train_len: 30000
   classes: 2
-  max_length: 300
+  #max_length: 300
   metric: mcc
 
 promoter_tata:

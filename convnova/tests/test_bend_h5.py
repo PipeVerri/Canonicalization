@@ -195,22 +195,22 @@ def test_canonicalization_updates_shared_h5_and_keeps_controls_separate(
     output_dir = tmp_path / "output"
     input_dir.mkdir()
     output_dir.mkdir()
-    gene_task = DownstreamTask("gene_finding", "hg38")
-    cpg_task = DownstreamTask("cpg_methylation", "hg38")
+    gene_task = DownstreamTask("gene_finding", "hg38", max_length=4)
+    cpg_task = DownstreamTask("cpg_methylation", "hg38", max_length=2)
     gene = pd.DataFrame({
-        "sequence": ["AACG", "AC"],
-        "label": [np.array([0, 1, 2, 8]), np.array([1, 2])],
+        "sequence": ["AACGTT", "AC"],
+        "label": [np.array([0, 1, 2, 8, 3, 4]), np.array([1, 2])],
         "chromosome": ["chr1", "chr1"],
         "start": [0, 10],
-        "end": [4, 12],
+        "end": [6, 12],
         "split": ["train", "train"],
     })
     cpg = pd.DataFrame({
-        "sequence": ["AC"],
+        "sequence": ["ACAA"],
         "label": [[1, 0, 1, 0, 0, 0, 0]],
         "chromosome": ["chr1"],
         "start": [0],
-        "end": [2],
+        "end": [4],
         "split": ["test"],
     })
     write_bend_h5(

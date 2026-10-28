@@ -4,7 +4,7 @@ import torch
 import random
 from pathlib import Path
 import numpy as np
-from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
+from src.dataloaders.utils.control_signal import trim_and_pad_to_torch
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
 
@@ -145,8 +145,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         # Add the control_signal to the seq_ids tensor
         if self.control_signal is not None:
             seq_control_signal = self.control_signal[seq_id]
-            if self.use_padding:
-                seq_control_signal = trim_and_right_pad_to_torch(seq_control_signal, self.max_length)
+            seq_control_signal = trim_and_pad_to_torch(seq_control_signal, self.max_length, self.tokenizer, 0, use_padding=self.use_padding)
 
             assert len(seq_control_signal) == len(seq_ids)
             seq_ids = torch.stack([seq_ids, seq_control_signal], dim=0)

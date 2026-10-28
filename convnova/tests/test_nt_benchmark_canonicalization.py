@@ -131,7 +131,7 @@ def test_downstream_rc_orients_only_opposite_strand_transcripts(
     hit = MockHit(True, 60, "chr1", strand=alignment_strand, r_st=100, r_en=106)
 
     canonicalized, control, _ = downstream_canonicalizer._canonicalize_record(
-        sequence, hit, strand_reference_genome,
+        sequence, hit, strand_reference_genome, max_length=len(sequence),
     )
 
     assert str(canonicalized) == expected_sequence
@@ -156,7 +156,7 @@ def test_partial_downstream_rc_uses_opposite_strand_overlap_in_query_coordinates
     hit = MockHit(True, 60, "chr1", strand=alignment_strand, r_st=100, r_en=108)
 
     canonicalized, control, _ = downstream_canonicalizer._canonicalize_record(
-        sequence, hit, strand_reference_genome,
+        sequence, hit, strand_reference_genome, max_length=len(sequence),
     )
 
     assert str(canonicalized) == expected_sequence

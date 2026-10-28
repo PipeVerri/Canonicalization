@@ -2,6 +2,7 @@ from itertools import islice
 from functools import partial
 import os
 import functools
+import token
 # import json
 # from pathlib import Path
 # from pyfaidx import Fasta
@@ -11,7 +12,7 @@ import torch
 from random import randrange, random
 import numpy as np
 from pathlib import Path
-from src.dataloaders.utils.control_signal import trim_and_right_pad_to_torch
+from src.dataloaders.utils.control_signal import trim_and_pad_to_torch
 
 
 from src.dataloaders.datasets.hg38_char_tokenizer import CharacterTokenizer
@@ -233,7 +234,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
 
         if self.control_signals_dict is not None:
             control_signal = self.control_signals_dict[y][self.path_names[idx]]
-            control_signal = trim_and_right_pad_to_torch(control_signal, self.max_length)
+            control_signal = trim_and_pad_to_torch(control_signal, self.max_length, self.tokenizer, 0, use_padding=self.use_padding)
             seq_ids = torch.stack([seq_ids, control_signal], dim=0)
 
         if self.return_mask:

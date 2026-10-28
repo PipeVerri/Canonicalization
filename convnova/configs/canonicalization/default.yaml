@@ -1,4 +1,15 @@
 # @package _global_
+defaults:
+  - /dataset@canonicalization.nt_benchmark.dataset: nucleotide_transformer
+  - /dataset@canonicalization.genomic_benchmark.dataset: genomic_benchmark
+  - /dataset@canonicalization.bend_benchmark.dataset: bend_benchmark
+  - /dataset@canonicalization.deepsea.dataset: chromatin_profile
+  - _self_
+
+# If I reverse a downstream task sequence, and then it gets trimmed, the model may not be seeing the part of the sequence that it would have seen originally
+# That's why, when canonicalizing, I trim the sequences first so that doesn't happen
+# The default blocks above imports the downstream tasks datasets into the config, and I can access their max lengths to trim them
+
 canonicalization:
   # Canonicalization config
   annotations_level: 2 # 1 for experimentally confirmed, 2 for +human annotations, 3 for +in silico annotations
