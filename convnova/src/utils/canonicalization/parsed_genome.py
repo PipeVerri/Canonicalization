@@ -240,9 +240,9 @@ class ParsedGenome:
             segment_start = alignment.q_st +  segment[0] - alignment.r_st
             segment_end = alignment.q_st + segment[1] - alignment.r_st
         else: # strand == -1
-            # The interval (s, e) ends on (e - L, s - L) with L being the length of the reversed sequence
-            segment_start = alignment.q_en - (segment[1] - alignment.r_en)
-            segment_end = alignment.q_en - (segment[0] - alignment.r_en)
+            # Map reference coordinates to the reversed query using the alignment's reference start.
+            segment_start = alignment.q_en - (segment[1] - alignment.r_st)
+            segment_end = alignment.q_en - (segment[0] - alignment.r_st)
         return max(0, segment_start), min(seq_length, segment_end)
 
     def _log(self, message):
