@@ -841,7 +841,7 @@ Classification: undocumented evaluation-method change, plausibly correcting orig
 Evidence: [metric conversion/construction](convnova/src/tasks/tasks.py#L43-L80), [prefix-specific metrics](convnova/train.py#L337-L350), and [MCC update/logging](convnova/train.py#L372-L385).
 
 The standalone MCC function also now filters `ignore_index=-100`; ordinary task routing redirects the configured `mcc` name to the accumulated metric.
-
+|
 ### 10.4 SRC-04: new AUROC is still a mean of batch-local AUROCs
 
 The new lowercase `auroc` function:

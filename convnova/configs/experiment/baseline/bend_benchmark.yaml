@@ -33,7 +33,7 @@ scheduler:
 
 train:
   global_batch_size: 256 # The original config had 2 GPUs with 128 batches each
-  remove_test_loader_in_eval: true  # no test set in this benchmark
+  remove_test_loader_in_eval: false
   # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it
   # for loading backbone and not head, requires both of these flags below

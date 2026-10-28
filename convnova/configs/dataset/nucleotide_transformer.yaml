@@ -1,7 +1,7 @@
 _name_: nucleotide_transformer  # this links to the overall SequenceDataset of all nucleotide transformer datasets
 dataset_name: enhancers  # this specifies which dataset in nuc trx
 dest_path: null  # path to the nt datasets folder
-max_length: ${.${.dataset_name}.max_length}
+max_length: 1000 # To make it easier for the paper description. Smaller sequences will be padded
 d_output: ${.${.dataset_name}.classes} 
 use_padding: True
 padding_side: left
@@ -18,6 +18,7 @@ num_workers: 12
 pin_memory: true
 # name maxlen classes samples metric
 
+# train_len is needed for the lr scheduler
 H2AFZ:
   train_len: 30000
   classes: 2
@@ -55,7 +56,7 @@ H3K4me2:
   metric: mcc
 
 H3K4me3:
-  train_len: 17468
+  train_len: 30000  # Updated to match table (30,000)
   classes: 2
   max_length: 1000
   metric: mcc
@@ -85,13 +86,13 @@ promoter_all:
   metric: mcc
 
 promoter_tata:
-  train_len: 30000
+  train_len: 5062
   classes: 2
   max_length: 300
   metric: mcc
 
 promoter_no_tata:
-  train_len: 5062
+  train_len: 30000  # Updated to match table (30,000)
   classes: 2
   max_length: 300
   metric: mcc
@@ -102,13 +103,13 @@ splice_sites_all:
   max_length: 600
   metric: mcc
 
-splice_sites_donors:
+splice_sites_donor:  # Updated from donors to match table
   train_len: 30000
   classes: 2
   max_length: 600
   metric: mcc
 
-splice_sites_acceptors:
+splice_sites_acceptor:  # Updated from acceptors to match table
   train_len: 30000
   classes: 2
   max_length: 600
@@ -125,6 +126,3 @@ enhancers_types:
   classes: 3
   max_length: 400
   metric: mcc
-
-# Taken from sup table 5 of the latest preprint of the NT paper
-# enhancer_types and splice_sites_all had classes: 3 on the previous version of this config

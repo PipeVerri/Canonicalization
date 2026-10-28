@@ -17,7 +17,7 @@ trainer:
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
 
 dataset:
-  dataset_dir: ${oc.env:PROJECT_ROOT}/data/deepsea/
+  dataset_path: ${oc.env:PROJECT_ROOT}/data/deepsea/
   batch_size: 256
   add_eos: False
   tokenizer_name: char

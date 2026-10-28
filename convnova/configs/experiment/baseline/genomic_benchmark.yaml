@@ -27,7 +27,7 @@ trainer:
   accumulate_grad_batches: ${div_up:${train.global_batch_size}, ${eval:${trainer.devices} * ${dataset.batch_size} * ${trainer.num_nodes}}}
 
 dataset:
-  batch_size: 64
+  batch_size: 128
   dataset_name: 'human_ensembl_regulatory'
   dest_path: ${oc.env:PROJECT_ROOT}/data/genomic_benchmark/
   add_eos: False
@@ -44,7 +44,7 @@ scheduler:
   lr_min: ${eval:0.1 * ${optimizer.lr}}
 
 train:
-  global_batch_size: 256 # The original config had 2 GPUs with 128 batches each
+  global_batch_size: 128 # The original config had 4 GPUs with 32 batches each
   remove_test_loader_in_eval: true  # no test set in this benchmark
   # Allows loading of weights even if the model doesn't fully coincide. Allows the replacement of the final layers
   pretrained_model_strict_load: False  # false allows encoder/decoder to be used if new model uses it

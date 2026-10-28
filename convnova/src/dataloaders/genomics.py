@@ -125,6 +125,9 @@ class HG38(SequenceDataset):
         if self.fast_forward_epochs is not None or self.fast_forward_batches is not None:
             assert ddp and fault_tolerant
 
+        if "use_tokenizer" in kwargs:
+            raise RuntimeError("USING TOKENIZER!")
+
     def setup(self, stage=None):
         """Set up the tokenizer and init the datasets."""
         # TODO instantiate with registry

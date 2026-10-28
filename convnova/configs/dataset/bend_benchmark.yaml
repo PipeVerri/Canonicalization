@@ -18,7 +18,7 @@ padding_side: right
 return_mask: True
 
 add_eos: False
-train_len: ${.${.dataset_name}.max_length}
+train_len: ${.${.dataset_name}.train_len} # Taken from table 1 of the BEND paper
 __l_max: ${.max_length}
 shuffle: true  # set this as default!
 metric: ${.${.dataset_name}.metric}
@@ -30,8 +30,8 @@ control_signals_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed/raw_contr
 # Details taken from BEND's paper, table 1
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml
 cpg_methylation:
-  bed_path: ${..dataset_dir}/cpg_methylation.bed
   metric: auroc
+  train_len: 4780
   max_length: 512
   classes: 7
   batch_size: 256
@@ -46,9 +46,8 @@ cpg_methylation:
       - auroc
 
 gene_finding:
-  bed_path: ${..dataset_dir}/gene_finding.bed
-  labels_path: ${..dataset_dir}/gene_finding.hdf5
   metric: mcc
+  train_len: 109717
   max_length: 16_384 # Taken from ConvNova paper
   classes: 9
   batch_size: 8

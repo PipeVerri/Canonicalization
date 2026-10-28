@@ -383,7 +383,7 @@ in the ConvNova paper is used (except for the cases where it is
 explicitly stated that a different protocol was used)
 
 For each of the tasks, as with ConvNova, the model is pretrained on hg38
-using MLM. 10\% of the nucleotides are masked and the model's objective
+using MLM. 15\% of the nucleotides are masked and the model's objective
 is to predict the masked nucleotides.
 
 For the downstream tasks, simply comparing the performance of the non-canonicalized model vs the canonicalized one isn't enough, because the canonicalization algorithm uses additional data, introducing a data leakage that could be inflating the true improvement caused by the canonicalization algorithm.
@@ -450,9 +450,7 @@ tasks the NCBI reference genomes were used. The tasks were evaluated using a poo
 Keep in mind that for \texttt{human\_ensembl\_regulatory}, the model performance dropped compared to the original ConvNova paper because a longer sequence length was used, where the whole dataset sequence is passed to the model instead of a trimmed version of it like in the original ConvNova paper (see more details in section \ref{sec:appendix_downstream_tasks}). It's theorized that this happens because of the pooling decoder diluting the signal located at the start of the sequence used for prediction.
 
 \subsubsection{BEND Benchmark}
-The model was evaluated only on the gene finding tasks, where given a DNA sequence
-each nucleotide must be classified as intron, exon, or neither, and CpG
-methylation, where given a DNA sequence multilabel classification is
+The model was evaluated on two tasks. In gene finding, each nucleotide of a DNA sequence is classified as donor, acceptor, intron, exon, or neither, along with the strand it lies on, and CpG methylation, where given a DNA sequence multilabel classification is
 performed on whether it is methylated or not in different cell lines.
 
 The chromatin accessibility and histone modification tasks are redundant
@@ -465,9 +463,7 @@ a very small local context, and if one wanted to mitigate that through
 pooling, the SNP token signal becomes too diluted for classification.
 Evaluating those tasks in that way gives artificially low results.
 
-For CpG methylation a linear head was used over the entire encoded
-sequence, and for gene finding each token is passed through a linear
-layer.
+For CpG methylation, the encoded sequence is pooled and passed through a linear head. For gene finding, each token is passed through a linear layer.
 
 \subsubsection{Chromatin Profile Prediction}
 This task \citep{zhouPredictingEffectsNoncoding2015} consists of predicting
