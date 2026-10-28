@@ -82,7 +82,7 @@ H4K20me1:
 promoter_all:
   train_len: 30000
   classes: 2
-  #max_length: 300
+  max_length: 300
   metric: mcc
 
 promoter_tata:
