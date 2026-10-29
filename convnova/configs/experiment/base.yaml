@@ -20,6 +20,7 @@ model:
     hidden_dim: 64 # same as d_model
     num_cnn_stacks: 1
     dropout: 0.0
+  switch_strands: false
 
 dataset:
   add_eos: false # It ends up getting converted to an N token, and it's unnecesary for a CNN

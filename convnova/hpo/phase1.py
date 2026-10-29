@@ -41,7 +41,6 @@ def build_overrides_dict(trial: optuna.Trial):
             "include_cdjv_segments": trial.suggest_categorical("include_cdjv_segments", ["true", "false"]),
             "include_pseudogenes": trial.suggest_categorical("include_pseudogenes", ["true", "false"]),
             "transformation": trial.suggest_categorical("transformation", ["reverse", "complement", "rc"]),
-            "should_rc_at_end": trial.suggest_categorical("should_rc_at_end", [True, False]),
             "partial_downstream_canonicalization": trial.suggest_categorical("partial_downstream_canonicalization", [True, False])
         } | overlaps_overrides,
         "model": {

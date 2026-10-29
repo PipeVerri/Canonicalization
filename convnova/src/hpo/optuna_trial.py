@@ -137,7 +137,7 @@ def _objective(overrides_dict: dict, trial: optuna.Trial, hpo_dir: Path, checkpo
         cmd = [sys.executable, ROOT_DIR / "scripts/canonicalize_genomes.py", "experiment='hpo/canonicalized/pretrain'", *overrides_list]
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT_DIR) + ":" + env.get("PYTHONPATH", "")
-        subprocess.run(cmd, cwd=ROOT_DIR, env=env, text=True)
+        subprocess.run(cmd, cwd=ROOT_DIR, env=env, text=True, check=True)
 
     # Eval the model on all tasks
     skip_tasks = set(trial.user_attrs.get("skip_tasks", []))

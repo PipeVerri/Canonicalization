@@ -17,7 +17,7 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, experiments
         pretraining_overrides += task_specific_overrides["pretraining"]
 
     if not "pretraining" in skip_tasks:
-        run_experiment(f"{experiments_folder}/pretrain", pretraining_overrides, str(output_json), f"{run_name}.pretraining")
+        run_experiment(f"{experiments_folder}/pretrain", pretraining_overrides, output_json, f"{run_name}.pretraining")
     checkpoint_file_str = str((checkpoint_dir / "checkpoints/test/loss.ckpt").absolute()) if checkpoint_path_override is None else checkpoint_path_override
 
     base_downstream_task_overrides = ( # Make it a tuple so I don't accidentally edit it
@@ -30,25 +30,25 @@ def run_all_tasks(call_overrides, runs_dir_name: str, run_name: str, experiments
     nt_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("nt_benchmark"):
         nt_benchmark_overrides += task_specific_overrides["nt_benchmark"]
-    eval_model_on_tasks(f"{experiments_folder}/nt_benchmark", nt_benchmark_tasks, nt_benchmark_overrides, str(output_json), f"{run_name}.nt_benchmark")
+    eval_model_on_tasks(f"{experiments_folder}/nt_benchmark", nt_benchmark_tasks, nt_benchmark_overrides, output_json, f"{run_name}.nt_benchmark")
 
     # Genomic benchmark
     genomic_benchmark_tasks = list(set(benchmark_tasks["genomic_benchmark"]) - skip_tasks)
     genomic_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("genomic_benchmark"):
         genomic_benchmark_overrides += task_specific_overrides["genomic_benchmark"]
-    eval_model_on_tasks(f"{experiments_folder}/genomic_benchmark", genomic_benchmark_tasks, genomic_benchmark_overrides, str(output_json), f"{run_name}.genomic_benchmark")
+    eval_model_on_tasks(f"{experiments_folder}/genomic_benchmark", genomic_benchmark_tasks, genomic_benchmark_overrides, output_json, f"{run_name}.genomic_benchmark")
 
     # BEND benchmark
     bend_benchmark_tasks = list(set(benchmark_tasks["bend_benchmark"]) - skip_tasks)
     bend_benchmark_overrides = list(base_downstream_task_overrides)
     if task_specific_overrides.get("bend_benchmark"):
         bend_benchmark_overrides += task_specific_overrides["bend_benchmark"]
-    eval_model_on_tasks(f"{experiments_folder}/bend_benchmark", bend_benchmark_tasks, bend_benchmark_overrides, str(output_json), f"{run_name}.bend_benchmark")
+    eval_model_on_tasks(f"{experiments_folder}/bend_benchmark", bend_benchmark_tasks, bend_benchmark_overrides, output_json, f"{run_name}.bend_benchmark")
 
     # DeepSEA
     deepsea_overrides = list(base_downstream_task_overrides) # Uses the pretrained model
     if task_specific_overrides.get("chromatin_profile"):
         deepsea_overrides += task_specific_overrides["chromatin_profile"]
     if not "chromatin_profile_prediction" in skip_tasks:
-        run_experiment(f"{experiments_folder}/chromatin_profile_prediction", deepsea_overrides, str(output_json), f"{run_name}.chromatin_profile_prediction")
+        run_experiment(f"{experiments_folder}/chromatin_profile_prediction", deepsea_overrides, output_json, f"{run_name}.chromatin_profile_prediction")
