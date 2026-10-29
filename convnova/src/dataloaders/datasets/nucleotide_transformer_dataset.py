@@ -139,8 +139,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         # convert to tensor
         # seq = torch.LongTensor(seq)  # hack, remove the initial cls tokens for now
 
-        # need to wrap in list
-        target = torch.LongTensor([y])  # offset by 1, includes eos
+        target = torch.LongTensor(y)
 
         # Add the control_signal to the seq_ids tensor
         if self.control_signal is not None:

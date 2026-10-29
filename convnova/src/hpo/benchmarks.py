@@ -20,8 +20,8 @@ NT_BENCHMARK_TASKS = (
     "promoter_tata",
     "promoter_no_tata",
     "splice_sites_all",
-    "splice_sites_donors",
-    "splice_sites_acceptors",
+    "splice_sites_donor",
+    "splice_sites_acceptor",
     "enhancers",
     "enhancers_types"
 )

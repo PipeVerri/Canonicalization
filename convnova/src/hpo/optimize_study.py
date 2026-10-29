@@ -23,7 +23,8 @@ def optimize_study(sampler: optuna.samplers.BaseSampler, study_name: str, hpo_di
     last_trial = study.trials[-1] if study.trials else None
     json_file = hpo_dir / "outputs.json"
 
-    if (last_trial is not None) and (last_trial.state == optuna.trial.TrialState.FAIL):
+    # If the last trial failed before creating the json file, just skip it
+    if (last_trial is not None) and (last_trial.state == optuna.trial.TrialState.FAIL) and json_file.exists():
         # Rename the json so it uses the new trial number
         with open(json_file, "r") as f:
             runs_scores = json.load(f)

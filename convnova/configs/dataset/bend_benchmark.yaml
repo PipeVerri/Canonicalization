@@ -31,7 +31,7 @@ control_signals_dir: ${oc.env:PROJECT_ROOT}/data/bend_benchmark_parsed/raw_contr
 # The genome used was taken from https://anonymous.4open.science/r/BEND-8C42/conf/embedding/embed.yaml
 cpg_methylation:
   metric: auroc
-  train_len: 4780
+  train_len: 743095
   max_length: 512
   classes: 7
   batch_size: 256
@@ -47,7 +47,7 @@ cpg_methylation:
 
 gene_finding:
   metric: mcc
-  train_len: 109717
+  train_len: 4783
   max_length: 16_384 # Taken from ConvNova paper
   classes: 9
   batch_size: 8
@@ -61,7 +61,6 @@ gene_finding:
       - mcc
 
 variant_effects_disease:
-  bed_path: ${..dataset_dir}/variant_effects_disease.bed
   decoder_name: sequence
   max_length: 512
   classes: 2
@@ -73,7 +72,6 @@ variant_effects_disease:
     loss: binary_cross_entropy
 
 variant_effects_expression:
-  bed_path: ${..dataset_dir}/variant_effects_expression.bed
   max_length: 512
   classes: 2
 

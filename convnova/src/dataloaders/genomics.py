@@ -306,8 +306,9 @@ class BendBenchmark(HG38):
         self.h5_path = Path(h5_path)
         assert self.h5_path.exists()
         self.use_control_signal = use_control_signal
-        self.control_signals_dir = Path(control_signals_dir)
-        assert self.control_signals_dir.exists()
+        if use_control_signal != False:
+            self.control_signals_dir = Path(control_signals_dir)
+            assert self.control_signals_dir.exists()
         self.control_signals = None
 
         if "use_tokenizer" in kwargs:

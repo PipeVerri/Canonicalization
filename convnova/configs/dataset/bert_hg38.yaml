@@ -11,7 +11,7 @@ batch_size_eval: ${eval:${.batch_size} * 2}
 num_workers: 12  # For preprocessing only
 shuffle: True
 pin_memory: True
-__train_len: ${div_up:1_000_000_000, ${.max_length}}
+__train_len: 38170 # Even though the bed sequences are much larger than the max_length, I'm still only taking one sample per bed window
 __l_max: ${.max_length}
 use_control_signal: False
 control_signal_dir: null

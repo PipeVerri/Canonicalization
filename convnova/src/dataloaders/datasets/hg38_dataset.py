@@ -388,10 +388,12 @@ class BertHG38Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         """Returns a sequence of specified len"""
-        # sample a random row from df
+        # sample a random row from df. The df isn't trimmed
         row = self.df.iloc[idx]
         # row = (chr, start, end, split)
-        chr_name, start, end = (row[0], row[1], row[2])
+        chr_name, bed_start, bed_end = (row[0], row[1], row[2])
+        start = randrange(bed_start, bed_end - self.max_length + 1)
+        end = start + self.max_length
 
         control_signal = None
         if exists(self.control_signals):

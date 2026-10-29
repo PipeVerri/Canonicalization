@@ -1,5 +1,3 @@
-from regex import T
-
 import optuna
 from pathlib import Path
 from src.hpo.optimize_study import optimize_study
@@ -16,23 +14,24 @@ def build_overrides_dict(trial: optuna.Trial):
         orient_all_segments = trial.suggest_categorical("orient_all_segments", [True, False])
         if orient_all_segments:
             overlaps_overrides = {
-                "overlap_transformation_behavior": "full_break", 
+                "overlap_transformation_behavior": "full_break",
+                "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False]), 
                 "full_break_config": {
                     "orient_all_segments": orient_all_segments,
-                    "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False]),
                 }
             }
         else:
             overlaps_overrides = {
                 "overlap_transformation_behavior": "full_break", 
+                # keep_segments_order doesn't matter
                 "full_break_config": {
                     "orient_all_segments": False
-                    # keep_segments_order doesn't matter
                 }
             }
     else:
         overlaps_overrides = {
             "overlap_transformation_behavior": "both_break",
+            "keep_segments_order": trial.suggest_categorical("keep_segments_order", [True, False])
         }
 
     return {
@@ -44,7 +43,7 @@ def build_overrides_dict(trial: optuna.Trial):
             "partial_downstream_canonicalization": trial.suggest_categorical("partial_downstream_canonicalization", [True, False])
         } | overlaps_overrides,
         "model": {
-            "switch_strands": trial.suggest_categorial("switch_strands", [True, False])
+            "switch_strands": trial.suggest_categorical("switch_strands", [True, False])
         },
         "wandb": {
             "group": "hpo",
