@@ -53,7 +53,8 @@ class FastaInterval():
         fasta_file = Path(fasta_file)
         assert fasta_file.exists(), 'path to fasta file must exist'
 
-        self.seqs = Fasta(str(fasta_file))
+        self.fasta_path = fasta_file.resolve()
+        self.seqs = Fasta(str(self.fasta_path))
         self.return_seq_indices = return_seq_indices
         # self.max_length = max_length # -1 for adding sos or eos token
         self.shift_augs = shift_augs
@@ -382,6 +383,11 @@ class BertHG38Dataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.df)
+
+    def reopen_fasta(self):
+        # Forked workers must not share the parent's underlying file position.
+        self.fasta.seqs.close()
+        self.fasta.seqs = Fasta(str(self.fasta.fasta_path))
 
     def replace_value(self, x, old_value, new_value):
         return torch.where(x == old_value, new_value, x)

@@ -1,6 +1,7 @@
 # Adapted from https://github.com/huggingface/transformers/blob/master/examples/pytorch/language-modeling/run_clm.py
 # Adapted from https://github.com/HazyResearch/flash-attention/blob/main/training/src/datamodules/language_modeling_hf.py
 from pathlib import Path
+from tkinter import NO
 from typing import Any, List, Union
 from sympy import N
 from torch.utils.data.dataloader import DataLoader, Dataset
@@ -440,9 +441,17 @@ class GenomicBenchmark(HG38):
         # Cache attributes used by parent HG38 train/val dataloaders
         self._train_loader = None
         self._val_loader = None
+        self.label_mapper = None
 
     def setup(self, stage=None):
         # TODO instantiate with registry
+
+        # Build label mapper once and share it across all instances so they all map in the same order
+        if self.label_mapper is None:
+            base_path = Path(self.dest_path) / self.dataset_name / "train"
+            self.label_mapper = {}
+            for i, x in enumerate(base_path.iterdir()):
+                self.label_mapper[x.stem] = i
 
         if self.tokenizer_name == 'char':
             print("**Using Char-level tokenizer**")
@@ -463,6 +472,7 @@ class GenomicBenchmark(HG38):
         self.dataset_train, self.dataset_val = [
             GenomicBenchmarkDataset(split=split,
                                 max_length=max_len,
+                                label_mapper=self.label_mapper,
                                 dataset_name=self.dataset_name,
                                 tokenizer=self.tokenizer,  # pass the tokenize wrapper
                                 tokenizer_name=self.tokenizer_name,
@@ -1187,6 +1197,7 @@ class BertHG38(SequenceDataset):
             sampler=sampler,
             drop_last=self.drop_last,
             pin_memory=self.pin_memory,
+            worker_init_fn=_worker_init_fn if self.num_workers > 0 else None,
         )
 
     def load_state_dict(self, checkpoint):
@@ -1594,4 +1605,3 @@ class DNABertSPretrain(SequenceDataset):
             # TD [2022-08-07] ['epoch_loop.batch_progress']['total']['completed'] is 1 iteration
             # behind, so we're using the optimizer's progress. This is set correctly in seq.py.
             self.fast_forward_batches = checkpoint['loops']['fit_loop']['epoch_loop.batch_progress']['current']['completed']
-

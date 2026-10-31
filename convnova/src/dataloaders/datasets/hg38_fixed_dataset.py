@@ -148,7 +148,13 @@ class BertHG38FixedDataset(torch.utils.data.Dataset):
         fasta_file = Path(fasta_file)
         assert fasta_file.exists(), 'path to fasta file must exist'
 
-        self.seqs = Fasta(str(fasta_file), sequence_always_upper=True)
+        self.fasta_path = fasta_file.resolve()
+        self.seqs = Fasta(str(self.fasta_path), sequence_always_upper=True)
+
+    def reopen_fasta(self):
+        # Preserve the fixed dataset's uppercase behavior in each worker.
+        self.seqs.close()
+        self.seqs = Fasta(str(self.fasta_path), sequence_always_upper=True)
 
 
     def create_fixed_intervals(self, chr_ranges, max_length):

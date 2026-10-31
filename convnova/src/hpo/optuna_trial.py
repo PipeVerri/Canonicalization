@@ -84,16 +84,20 @@ def compute_trial_grouped_z_score(json_file: Path, baseline_metrics: dict, trial
         else:
             runs_z_scores[task_name] = compute_z_score(baseline_metrics, task_name, val)
 
-    # Because there are a lot of similar tasks in NT benchmark and genomic benchmark compared to the NT, I will do a grouped mean for each task type(enhancers, histones, etc)
-    groups_means = []
-    for group_tasks in TASKS_GROUPS.values():
-        mean = 0
-        for task in group_tasks:
-            mean += runs_z_scores[task]
-        groups_means.append(mean / len(group_tasks))
-
-    global_mean = sum(groups_means) / len(groups_means)
+    # Grouped mean will be discarded because of a lack of correlations. Plain mean will be computed
+    global_mean = sum(runs_z_scores.values()) / len(runs_z_scores)
     return global_mean
+
+    # # Because there are a lot of similar tasks in NT benchmark and genomic benchmark compared to the NT, I will do a grouped mean for each task type(enhancers, histones, etc)
+    # groups_means = []
+    # for group_tasks in TASKS_GROUPS.values():
+    #     mean = 0
+    #     for task in group_tasks:
+    #         mean += runs_z_scores[task]
+    #     groups_means.append(mean / len(group_tasks))
+
+    # global_mean = sum(groups_means) / len(groups_means)
+    # return global_mean
 
 def recursively_build_overrides_list(current_overrides_dict: dict, prefix: str) -> list:
     overrides = []

@@ -373,6 +373,9 @@ class SequenceLightningModule(pl.LightningModule):
         # Log stateful metric objects so Lightning computes and resets them at
         # epoch end instead of averaging per-batch scalars.
         if compute_metrics:
+            collection = self._get_torchmetrics(prefix)
+            
+
             for name in ("mcc", "auroc"):
                 if name not in self.task.torchmetric_names:
                     continue

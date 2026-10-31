@@ -132,6 +132,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self,
         split,
         max_length,
+        label_mapper,
         dataset_name="human_nontata_promoters",
         d_output=2, # default binary classification
         dest_path=None,
@@ -145,7 +146,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         use_tokenizer=True,
         use_control_signal=False,
         padding_side="left",
-        control_signals_dir=None
+        control_signals_dir=None,
     ):
 
         self.max_length = max_length
@@ -183,11 +184,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self.all_seqs = []
         self.all_labels = []
         self.control_signals_dict = {} if use_control_signal != False else None
-        label_mapper = {}
         self.path_names = []
-
-        for i, x in enumerate(base_path.iterdir()):
-            label_mapper[x.stem] = i
         
         for label_type in label_mapper.keys():
             if use_control_signal != False:
