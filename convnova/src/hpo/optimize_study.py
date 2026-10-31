@@ -18,6 +18,12 @@ def optimize_study(sampler: optuna.samplers.BaseSampler, study_name: str, hpo_di
         remove_two_failed_trials_in_a_row(study_name, optuna_db_path)
 
     study = optuna.create_study(study_name=study_name, storage=f"sqlite:///{optuna_db_path}", load_if_exists=True, direction="maximize", sampler=sampler)
+    # Check remaning trials
+    successful_trials = study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE))
+    remining = max(0, n_trials - len(successful_trials))
+    if remining == 0:
+        print("All trials have been done")
+        return
 
     # Checks if it should restart a failed run
     last_trial = study.trials[-1] if study.trials else None

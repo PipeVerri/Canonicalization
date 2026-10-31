@@ -243,7 +243,9 @@ class ParsedGenome:
             # Map reference coordinates to the reversed query using the alignment's reference start.
             segment_start = alignment.q_en - (segment[1] - alignment.r_st)
             segment_end = alignment.q_en - (segment[0] - alignment.r_st)
-        return max(0, segment_start), min(seq_length, segment_end)
+        # An annotation can extend beyond the reference alignment. Its projection
+        # must not label the unaligned query flanks, even inside sequence bounds.
+        return max(0, alignment.q_st, segment_start), min(seq_length, alignment.q_en, segment_end)
 
     def _log(self, message):
         if self.hydra_logger:

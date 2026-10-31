@@ -192,6 +192,37 @@ def test_align_transcript_position_with_seq(strand, q_st, q_en, seq_length, segm
 
 
 @pytest.mark.parametrize("strand", [1, -1], ids=["plus", "minus"])
+@pytest.mark.parametrize(
+    "segment, plus_expected, minus_expected",
+    [
+        pytest.param((90, 110), (20, 30), (90, 100), id="crosses-reference-start"),
+        pytest.param((170, 190), (90, 100), (20, 30), id="crosses-reference-end"),
+        pytest.param((90, 190), (20, 100), (20, 100), id="spans-alignment"),
+        pytest.param((100, 180), (20, 100), (20, 100), id="exact-alignment"),
+        pytest.param((120, 150), (40, 70), (50, 80), id="inside-alignment"),
+        pytest.param((99, 101), (20, 21), (99, 100), id="one-base-at-start"),
+        pytest.param((179, 181), (99, 100), (20, 21), id="one-base-at-end"),
+    ],
+)
+def test_annotation_projection_excludes_unaligned_query_flanks(
+    strand, segment, plus_expected, minus_expected,
+):
+    # CANON-02: sequence-bound clipping alone incorrectly labels the flanks
+    # [0, 20) and [100, 120). These gap-free alignments isolate boundary
+    # clipping from the separate CIGAR/indel approximation (CANON-03).
+    hit = MockHit(
+        True, 60, "chr1", strand=strand, r_st=100, r_en=180, q_st=20, q_en=100,
+    )
+
+    projected = ParsedGenome.align_transcript_position_with_seq(
+        SimpleNamespace(), hit, segment, seq_length=120,
+    )
+
+    assert projected == (plus_expected if strand == 1 else minus_expected)
+    assert hit.q_st <= projected[0] < projected[1] <= hit.q_en
+
+
+@pytest.mark.parametrize("strand", [1, -1], ids=["plus", "minus"])
 @pytest.mark.parametrize("trailing_bases", [0, 30], ids=["leading-clip", "both-ends-clipped"])
 def test_align_transcript_position_with_real_clipped_alignment(strand, trailing_bases):
     # Exercise real mappy coordinates, not just the mock's interpretation of them.
