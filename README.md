@@ -1,168 +1,89 @@
-<p align="center"> <img src="logo.jpg" alt="ConvNova" width="220"/> </p>
-<h1>[ICLR2025] ConvNova 🧬 Revisiting Convolution Architecture in the Realm of DNA Foundation Models</h1>
+# Strand Canonicalization for DNA Foundation Models
 
-<p>
-  <a href="https://openreview.net/forum?id=B07dLVWLyD">OpenReview</a> | 
-  <a href="https://arxiv.org/abs/2502.18538">arXiv</a> | 
-  <a href="https://github.com/aim-uofa/ConvNova">GitHub</a> | 
-  <a href="">HuggingFace 🤗(coming soon)</a>
-<!--   <a href="https://huggingface.co/collections/convnova">HuggingFace 🤗</a> <!-- collection will be public on release day --> 
-</p>
+Research code for [Strand Canonicalization for DNA Foundation Models: A Proof-of-Concept](https://www.researchgate.net/publication/414832619_Strand_Canonicalization_for_DNA_Foundation_Models_A_Proof-of-Concept), by Felipe Verri.
 
-<p>
-  ConvNova demonstrates that, if carefully designed, <strong>a pure CNN can serve as a DNA foundation model that surpasses Transformer and SSM-inspired architectures</strong>, while retaining the classic convolutional advantages of stronger locality bias, lower memory footprint, and markedly faster training and inference.
-</p>
+DNA has two reverse-complementary strands, but transcription can introduce strand-specific asymmetries. This project investigates whether using genome annotations to orient sequences consistently helps a DNA foundation model exploit those asymmetries. The experiments use [ConvNova](https://github.com/aim-uofa/ConvNova), a convolutional model that processes both strands without enforcing complete reverse-complement invariance.
 
+The study compares canonicalized sequences with a standard baseline and a **leakage control** that receives annotation-derived strand information as an explicit input. On the tasks selected for full-scale evaluation, the tested canonicalization approach did not outperform the leakage control. The control improved over the baseline on some tasks, but this does not establish that canonicalization or transcriptional asymmetry caused the improvement. See the paper for the full results and limitations.
 
----
+## Repository
 
-## 🚩 Plan
-- [x] Scripts for Pretraining, NT & Genomic Benchmarks.
-- [x] Paper Released.
-- [ ] Pretrained Weights of ConvNova.
-- [ ] Source Code and Pretrained Weights on transformers.
-- [ ] Scripts for DeepSEA & Bend-gene-finding.
+- `canonicalization/` — training, evaluation, data preparation, and canonicalization code.
+- `canonicalization/configs/experiment/` — baseline, paper, and hyperparameter-optimization experiment configurations.
+- `canonicalization/configs/canonicalization/default.yaml` — canonicalization options and data paths.
+- `canonicalization/tests/` — tests for canonicalization, data loading, and model utilities.
+- `paper/` — paper source and figures.
 
----
+## Setup
 
-<h2>1 Quick start</h2>
+Run commands from `canonicalization/`. The supplied Conda environment uses Python 3.10, PyTorch 2.1, and PyTorch Lightning 1.8:
 
-Clone the repo.
-<pre>
-  git clone git@github.com:aim-uofa/ConvNova.git
-  cd ConvNova/convnova
-</pre>
+```bash
+cd canonicalization
+conda env create -f environment.yml
+conda activate canonicalization
+```
 
-Prepare conda env.
-<pre>
-  conda create -n convnova -c conda-forge python=3.10 cpython
-  conda activate convnova
-  conda install -n convnova pip
-  conda install -c conda-forge bioconda minimap2 ncbi-datasets-cli optuna
-  pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 
-  pip install -r requirements.txt --no-deps
-  pip install pytorch-lightning==1.8.6 --no-deps
-  pip install packaging --no-deps
-<!--   pip install flash_attn --no-build-isolation --no-deps -->
-  pip install lightning_utilities --no-deps
-  pip install torchmetrics tensorboardX mappy h5py
-  pip install "setuptools<81" --force-reinstall
-  # Install the flash attn prebuilt wheel (https://mjunya.com/flash-attention-prebuild-wheels/)
-</pre>
+If an environment named `canonicalization` already exists, pass `-n <new-name>` to `conda env create` and activate that name instead.
 
-Download the data.(Pretrain)
-<pre>
-  mkdir data
-  mkdir -p data/hg38/
-  curl https://storage.googleapis.com/basenji_barnyard2/hg38.ml.fa.gz > data/hg38/hg38.ml.fa.gz
-  gunzip data/hg38/hg38.ml.fa.gz  # unzip the fasta file
-  curl https://storage.googleapis.com/basenji_barnyard2/sequences_human.bed > data/hg38/human-sequences.bed
-</pre>
+The environment also installs `minimap2` and NCBI Datasets for data preparation. GPU training requires a compatible PyTorch/CUDA setup; Flash Attention is only needed for model paths that use it, not ConvNova itself.
 
-You can check out the <a href="https://www.biorxiv.org/content/10.1101/2023.01.11.523679v1">Nucleotide Transformer</a> ang <a href="https://github.com/ML-Bioinfo-CEITEC/genomic_benchmarks">Genomic Benchmarks</a> paper for how to download and process NT benchmark & Genomic Benchmark datasets.
+### Optional: Flash Attention
 
-The final file structure (data directory) should look like
+Building Flash Attention from source can take a long time, so `install_env.sh` recommends using a prebuilt wheel instead:
 
-<pre>
-  |____bert_hg38
-| |____hg38.ml.fa
-| |____hg38.ml.fa.fai
-| |____human-sequences.bed
-|____nucleotide_transformer
-| |____H3K36me3
-| |____......
-|____genomic_benchmark
-| |____dummy_mouse_enhancers_ensembl
-| |____....
-</pre>
+1. Check the CUDA version used by PyTorch:
 
----
+   ```bash
+   python -c "import torch; print(torch.version.cuda)"
+   ```
 
-<h2>2 Using ConvNova with 🤗 Transformers</h2>
-<p>Coming Soon</p>
+2. Download a compatible wheel from the [Flash Attention prebuilt wheels page](https://mjunya.com/flash-attention-prebuild-wheels/). Match your Python version (3.10), PyTorch version (2.1), PyTorch CUDA version, and platform.
+3. Install the downloaded wheel in the activated environment:
 
----
+   ```bash
+   pip install /path/to/flash_attention_wheel.whl
+   ```
 
-<h2>3 Reproducing the paper</h2>
+Your GPU and NVIDIA driver must also support the selected build.
 
-<h3>3.1 Pre-training on the Human Reference Genome</h3>
+## Data and canonicalization
 
-<pre>
-  python train.py experiment='hg38-pretrain/convnova'
-</pre>
+Genomes, benchmark datasets, indexes, checkpoints, and outputs are not included in the repository. The `Makefile` has targets for downloading and indexing several inputs; `scripts/prepare_downstream_data.py` prepares downstream datasets. The Makefile includes a local `.env` file; create one if needed and review the targets before running them.
 
-you can adjust the hyperparameters by using cmd like following, detailed hyperparameters setting can be seen in configs/experiment/xxx/xxx.yaml
-<pre>
-  python train.py experiment='hg38-pretrain/convnova' wandb=null trainer.devices=4
-</pre>
+Configure paths and options in `configs/canonicalization/default.yaml`. Once the required reference genomes, annotations, indexes, and downstream data are in place, the following generates canonicalized data and control signals:
 
-<h3>3.2 Genomic Benchmarks (short-range)</h3>
-<p>GenomicBenchmarks provides 8 binary- and multi-class tasks packaged as a Python library. </p>
+```bash
+python -m scripts.canonicalize_genomes +canonicalization=default
+```
 
-Remeber to adjust the setting for different dataset like max seq length and the pretrained checkpoint(comming soon).
-<pre>
-  python train.py experiment='genomic-benchmark/convnova' with-some-argments
-</pre>
+Data preparation and canonicalization can require substantial disk space and memory and may replace generated files. Review the scripts and output paths first.
 
-<h3>3.3 Nucleotide Transformer Benchmark</h3>
-<p>Datasets are hosted on the Hub as <code>InstaDeepAI/nucleotide_transformer_downstream_tasks</code>. </p>
-Remeber to adjust the setting for different dataset like max seq length and the pretrained checkpoint(comming soon).
-<pre>
-  python train.py experiment='nt-benchmark/convnova' with-some-argments
-</pre>
+## Training and evaluation
 
-<h3>3.4 Metric aggregation</h3>
+Experiments are configured with Hydra. For example:
 
-MCC and multilabel AUROC configured as `task.metrics: [mcc]` or
-`task.metrics: [auroc]` use stateful TorchMetrics to compute one score over the
-whole epoch, including distributed workers, rather than averaging batch scores.
-AUROC is the macro average over labels with both positive and negative examples
-in the full epoch; if none qualify, the result is NaN.
+```bash
+# Pretrain a baseline on HG38
+python train.py experiment=baseline/pretrain trainer.devices=1 wandb.mode=disabled
 
-Exact AUROC retains the epoch's predictions and targets. Set
-`train.compute_train_torchmetrics=false` to disable training metrics while keeping
-validation and test metrics enabled; the DeepSEA pipeline already does this.
+# Fine-tune on a Nucleotide Transformer task using a pretrained checkpoint
+python train.py experiment=baseline/nt_benchmark dataset.dataset_name=enhancers \
+  train.pretrained_model_path=/path/to/checkpoint.ckpt wandb.mode=disabled
 
----
+# Evaluate across the Nucleotide Transformer benchmark
+python eval_benchmark.py -e baseline/nt_benchmark -t nt_benchmark \
+  train.pretrained_model_path=/path/to/checkpoint.ckpt wandb.mode=disabled
+```
 
-<h2>4 Citation</h2>
+The repository also supports Genomic Benchmarks, BEND, and DeepSEA chromatin-profile prediction. Paper configurations are under `configs/experiment/paper/`, including `canonicalized/` and `raw_control_signal/` variants; HPO variants are under `configs/experiment/hpo/`. Check config inheritance, data paths, matching pretrained checkpoints, GPU settings, and logging options before running an experiment. The examples above are starting points, not a complete paper reproduction recipe.
 
-<pre>
-@inproceedings{bo2025convnova,
-  title     = {Revisiting Convolution Architecture in the Realm of DNA Foundation Models},
-  author    = {Yu Bo and Weian Mao and Yanjun Shao and Weiqiang Bai and Peng Ye
-               and Xinzhu Ma and Junbo Zhao and Hao Chen and Chunhua Shen},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2025}
-}
-</pre>
+## Tests
 
----
+```bash
+python -m pytest -q
+```
 
-<h2>5 Acknowledgements</h2>
-<p>ConvNova builds on the training, logging and data-loading scaffolds of <strong>HyenaDNA</strong> and <strong>Caduceus</strong>, and evaluates on <strong>Genomic Benchmarks</strong>, <strong>Nucleotide Transformer tasks</strong>, and the <strong>Long-Range Benchmark</strong>. We thank the maintainers of these open resources for making rigorous comparison possible. </p>
+## Citation and acknowledgements
 
----
-
-NT transformer labels:
-- The old nucleotide_transformer_downstream_tasks says that the splice_sites_all is based off SpliceAI
-- SpliceAI (section 1a) says that the donor and acceptor samples sites were constructed by sampling a window with them at the center
-- On the nt_data notebook, when checking motifs on windows around the center, it seems like the labels are:
-  - 0: acceptor site
-  - 1: donor site
-  - 2: non-splice site
-
-TODO:
-- [ ] Checkear que el baseline de train.py nuevo sea igual que el de train.py viejo
-- [x] Testear el script de canonicalizacion de NT benchmark
-- [ ] Checkear que la señal de control no rompa todo
-- [ ] Checkear que el fine-tuning del canonicalizado logee los hparams de canonicalizacion 
-- [ ] Hacer el sweep(1 random seed cada uno)
-- [ ] Hacer el mega-sweep(10 random seed cada uno)
-
-Unaligned:
-- H4
-- H4ac
-- H3
-- H3K79me3
-- H3K14ac
+If you use this work, please cite [the paper](https://www.researchgate.net/publication/414832619_Strand_Canonicalization_for_DNA_Foundation_Models_A_Proof-of-Concept). This project builds on [ConvNova](https://github.com/aim-uofa/ConvNova) and uses several public genomic datasets and benchmarks.

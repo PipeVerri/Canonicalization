@@ -67,6 +67,7 @@ def fix_deepsea_nucleotides(x_chunk):
 def parse_bend_benchmark_bed_to_df(bend_benchmark_path, dataset_name):
     bed_columns, to_convert_to_int = get_bend_dataset_columns(dataset_name)
     df = pd.read_csv(str(bend_benchmark_path / f"{dataset_name}.bed"), sep="\t", header=None, names=bed_columns)
+    print(df.iloc[0])
     df = df.iloc[1:].reset_index(drop=True) # The first row has the column names
     for col in to_convert_to_int:
         df[col] = df[col].astype(int)
