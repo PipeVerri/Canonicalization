@@ -100,7 +100,9 @@ def test_hg38_returns_real_token_mask_and_never_selects_padding_for_mlm():
     dataset.replace_N_token = False
     dataset.objective = "stdmlm"
     dataset.control_signals = None
-    dataset.df = pd.DataFrame([["chr1", 0, 2, "train"]])
+    # The sampled BED interval must fit max_length; the FASTA stub simulates
+    # a shorter returned sequence so tokenization still has padding to test.
+    dataset.df = pd.DataFrame([["chr1", 0, 5, "train"]])
     dataset.fasta = lambda *args, **kwargs: "AC"
 
     masked, _, extra = dataset[0]

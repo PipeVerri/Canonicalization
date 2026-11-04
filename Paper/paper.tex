@@ -731,7 +731,7 @@ canonicalization methods arise:
 		\end{enumerate}
 	\end{enumerate}
 	
-	\item If \texttt{overlap\_transformation\_behavior=both\_break}, there are two possible canonicalization algorithms. Both algorithms consist of canonicalizing the segments that don't overlap with any segments on the opposite strand, and for the ones that do, instead of canonicalizing them --- which would always cost more, because the cost of canonicalizing them (length(\textbf{A}) + length(\textbf{B})) is always higher than the cost of ignoring them (length(\textbf{A})) --- it's chosen whether to keep the positive strand of the segments or the negative one, depending on which strand has the most amount of coding nucleotides.
+	\item If \texttt{overlap\_transformation\_behavior=|}, there are two possible canonicalization algorithms. Both algorithms consist of canonicalizing the segments that don't overlap with any segments on the opposite strand, and for the ones that do, instead of canonicalizing them --- which would always cost more, because the cost of canonicalizing them (length(\textbf{A}) + length(\textbf{B})) is always higher than the cost of ignoring them (length(\textbf{A})) --- it's chosen whether to keep the positive strand of the segments or the negative one, depending on which strand has the most amount of coding nucleotides.
 	\begin{enumerate}
 		\item If \texttt{keep\_segments\_order=True} the algorithm chooses whether to canonicalize the non-overlapping negative segments, or to canonicalize the non-overlapping positive segments and then take the RC of the whole sequence
 		\item If \texttt{keep\_segments\_order=False}, the algorithm canonicalizes all the non-overlapping negative segments, and then, for each conflict window, it decides whether to leave it as-is or to canonicalize it.
@@ -955,7 +955,7 @@ The only tasks that don't fit within the classes mentioned above are:
 		
 		\midrule
 		
-		CpG Methylation & RC-invariant & The reverse complement of CG is CG, and they are both methylated on both strands \cite{birdUseRestrictionEnzymes1978}. \\
+		CpG Methylation & RC-invariant & The reverse complement of CG is CG, and they are methylated on both strands \cite{birdUseRestrictionEnzymes1978}. And even though a \texttt{reverse} or \texttt{complement} would break the CG site by turning into a GC, the task won't be omitted to see the RC transformation behaviour on it.\\
 		
 		\bottomrule
 	\end{tabularx}

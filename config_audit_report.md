@@ -1034,7 +1034,7 @@ This is a definite code-versus-comment/contract disagreement, affecting downstre
 
 Evidence: [same-strand selector](convnova/src/utils/canonicalization/downstream_tasks.py#L28-L36), [stated contract and transformation](convnova/src/utils/canonicalization/downstream_tasks.py#L127-L153), and [coding-strand interpretation](convnova/src/utils/canonicalization/parsed_genome.py#L184-L190).
 
-### 11.5 CANON-05: raw-control sign is reference-relative, not explicitly query-relative
+### 11.5 CANON-05: raw-control sign is reference-relative, not explicitly query-relat
 
 Raw controls write `+1` for reference-positive annotations and `-1` for reference-negative annotations. Coordinate projection reverses positions for reverse-strand alignments, but does not invert the signs. The model later negates raw controls for its complemented stream.
 
@@ -1076,7 +1076,7 @@ Labels remain aligned with their corresponding transformed sequence, but the com
 
 Evidence: [preparation transformation](convnova/src/utils/canonicalization/downstream_tasks.py#L342-L402) and [runtime truncation](convnova/src/dataloaders/datasets/bend_benchmark_dataset.py#L97-L128).
 
-### 11.9 CANON-09: preprocessing input assumptions
+### 11.9 CANON-09: preprocessing input assumptions(TODO)
 
 The BEND preparation path unconditionally drops the first BED row and pairs gene labels with BED rows positionally. It assumes a header and matching order rather than validating both contracts.
 
