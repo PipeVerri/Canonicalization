@@ -819,12 +819,41 @@ Note that for the Genomic Benchmark, even though the original ConvNova paper rep
 		\toprule
 		Task & Sequence Length & Hidden dim & Num GCBs & Size & \texttt{d\_inner} \\
 		\midrule
-		NT Benchmark & 1k & 128 & 5 & 1.7M & 2 \\
+		NT Benchmark & Depends on the task, shown below & 128 & 5 & 1.7M & 2 \\
 		Genomic Benchmark & Depends on the task, shown below & 64t & 5 & 378k & 4 \\
 		BEND Benchmark & 512 for CpG methylation, 16k for gene finding & 196 & 10 & 7.4M & 2 \\
 		Chromatin Profile Prediction & 1k & 256 & 5 & 6.8M & 2 \\
 		\bottomrule
 	\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Sequence lengths for NT Benchmark}
+	\begin{tabular}{lc}
+		\toprule
+		Task & Sequence length \\
+		\midrule
+		H2AFZ & 1000 \\
+		H3K27ac & 1000 \\
+		H3K27me3 & 1000 \\
+		H3K36me3 & 1000 \\
+		H3K4me1 & 1000 \\
+		H3K4me2 & 1000 \\
+		H3K4me3 & 1000 \\
+		H3K9ac & 1000 \\
+		H3K9me3 & 1000 \\
+		H4K20me1 & 1000 \\
+		promoter\_all & 300 \\
+		promoter\_tata & 300 \\
+		promoter\_no\_tata & 300 \\
+		splice\_sites\_all & 600 \\
+		splice\_sites\_donor & 600 \\
+		splice\_sites\_acceptor & 600 \\
+		enhancers & 400 \\
+		enhancers\_types & 400 \\
+		\bottomrule
+	\end{tabular}
 \end{table}
 
 \begin{table}[htbp]
