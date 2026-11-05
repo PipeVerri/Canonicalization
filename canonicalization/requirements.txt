@@ -111,7 +111,9 @@ transformers==4.28.0
 triton==2.1.0
 tzdata==2024.1
 urllib3==2.2.2
-wandb==0.17.3
+# W&B cloud no longer exposes the ServerSettings schema queried by 0.17.x.
+# Pin a current client version so experiment environments remain reproducible.
+wandb==0.31.0
 webencodings==0.5.1
 Werkzeug==3.0.3
 xxhash==3.4.1

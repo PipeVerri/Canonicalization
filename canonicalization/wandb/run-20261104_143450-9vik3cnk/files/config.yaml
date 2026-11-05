@@ -1,0 +1,204 @@
+wandb_version: 1
+
+train:
+  desc: null
+  value:
+    seed: 2222
+    interval: step
+    monitor: val/loss
+    mode: min
+    ema: 0.0
+    test: false
+    debug: false
+    ignore_warnings: false
+    state:
+      mode: null
+      n_context: 0
+      n_context_eval: 0
+    ckpt: null
+    disable_dataset: false
+    validate_at_start: false
+    pretrained_model_path: null
+    pretrained_model_strict_load: true
+    pretrained_model_state_hook:
+      _name_: null
+    post_init_hook:
+      _name_: null
+    layer_decay:
+      _name_: null
+      decay: 0.7
+    gpu_mem: 12
+    global_batch_size: 512
+tolerance:
+  desc: null
+  value:
+    logdir: ./resume
+    id: null
+wandb:
+  desc: null
+  value:
+    project: Canonicalization
+    group: baseline
+    job_type: pretraining
+    mode: online
+    name: null
+    save_dir: .
+    id: null
+trainer:
+  desc: null
+  value:
+    _target_: pytorch_lightning.Trainer
+    devices: 1
+    accelerator: gpu
+    accumulate_grad_batches: 1
+    max_epochs: 200
+    gradient_clip_val: 1.0
+    log_every_n_steps: 10
+    limit_train_batches: 1.0
+    limit_val_batches: 1.0
+    num_nodes: 1
+    precision: bf16
+loader:
+  desc: null
+  value:
+    batch_size: 50
+    num_workers: 4
+    pin_memory: true
+    drop_last: true
+dataset:
+  desc: null
+  value:
+    _name_: bert_hg38
+    bed_file: /mnt/data/Proyectos/Research/Canonicalization/canonicalization/data/hg38/human-sequences.bed
+    fasta_file: /mnt/data/Proyectos/Research/Canonicalization/canonicalization/data/hg38/hg38.ml.fa
+    dataset_name: hg38
+    tokenizer_name: char
+    cache_dir: null
+    max_length: 1024
+    add_eos: false
+    batch_size: 512
+    batch_size_eval: 1024
+    num_workers: 12
+    shuffle: true
+    pin_memory: true
+    use_control_signal: false
+    control_signal_dir: null
+    load_control_signal_using_memmap: false
+    max_length_val: 1024
+    max_length_test: 1024
+    use_tokenizer: false
+    pad_max_length: null
+    rc_aug: false
+    use_fixed_len_val: false
+    replace_N_token: false
+    pad_interval: false
+optimizer:
+  desc: null
+  value:
+    _name_: adamw
+    lr: 0.001
+    weight_decay: 0.1
+    betas:
+      '0': 0.9
+      '1': 0.999
+scheduler:
+  desc: null
+  value:
+    _name_: cosine_warmup_timm
+    t_in_epochs: false
+    t_initial: 15000
+    lr_min: 0.0001
+    warmup_lr_init: 1.0e-06
+    warmup_t: 150.0
+callbacks:
+  desc: null
+  value:
+    learning_rate_monitor:
+      logging_interval: step
+    timer:
+      step: true
+      inter_step: false
+      epoch: true
+      val: true
+    params:
+      total: true
+      trainable: true
+      fixed: true
+    model_checkpoint:
+      monitor: val/loss
+      mode: min
+      save_top_k: 1
+      save_last: true
+      dirpath: checkpoints/
+      filename: val/loss
+      auto_insert_metric_name: false
+      verbose: true
+task:
+  desc: null
+  value:
+    _name_: hg38
+    loss: bert_cross_entropy
+    torchmetrics:
+      '0': perplexity
+      '1': num_tokens
+encoder:
+  desc: null
+  value: null
+decoder:
+  desc: null
+  value: null
+model:
+  desc: null
+  value:
+    _name_: convnova
+    for_representation: false
+    pretrain: true
+    alphabet_size: 5
+    d_model: 64
+    kernel_size: 5
+    final_conv: false
+    dilation: 4
+    num_conv1d: 5
+    d_inner: 2
+    ffn: true
+    args:
+      hidden_dim: 64
+      num_cnn_stacks: 1
+      dropout: 0.0
+    switch_strands: false
+torch:
+  desc: null
+  value:
+    cudnn_benchmark: true
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.21
+    cli_version: 0.17.3
+    framework: huggingface
+    huggingface_version: 4.28.0
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1793813690
+    t:
+      1:
+      - 1
+      - 5
+      - 9
+      - 11
+      - 41
+      - 49
+      - 50
+      - 51
+      - 53
+      - 55
+      3:
+      - 14
+      - 16
+      - 23
+      4: 3.10.21
+      5: 0.17.3
+      6: 4.28.0
+      8:
+      - 5
+      13: linux-x86_64

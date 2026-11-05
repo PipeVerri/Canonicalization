@@ -67,15 +67,15 @@ ${DATA}/deepsea/deepsea_train_bundle.v0.9.tar.gz:
 	curl -L $(DEEPSEA_URL) -o $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz
 
 $(DATA)/deepsea/train.mat: | $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz
-	tar -xzf $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz -C $(DATA)/deepsea
+	tar -xzf $(DATA)/deepsea/deepsea_train_bundle.v0.9.tar.gz -C $(DATA)/deepsea --strip-components=1
 
 $(DATA)/deepsea/predictor_names.txt: | $(DATA)/deepsea
 	curl -L $(DEEPSEA_LABELS_URL) -o $@
 
 # ─── GENCODE annotations + genomes ──────────────────────────────────────────
 
-GENCODE_H := https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50
-GENCODE_M := https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M39
+GENCODE_H := ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_50
+GENCODE_M := ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M39
 
 gencode: gencode-human gencode-mouse
 

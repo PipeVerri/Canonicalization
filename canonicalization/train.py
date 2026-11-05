@@ -12,8 +12,6 @@ if os.getenv('PROJECT_ROOT', None) is None:
     os.environ["PROJECT_ROOT"] = os.path.dirname(os.path.abspath(__file__))
 import sys
 sys.path.append(os.getcwd())
-import random
-import time
 from functools import partial, wraps
 from typing import Callable, List, Sequence
 
@@ -116,16 +114,7 @@ class CustomWandbLogger(WandbLogger):
                 self._experiment = wandb._attach(attach_id)
             else:
                 # create new wandb process
-                while True:
-                    try:
-                        self._wandb_init["id"] = wandb.util.generate_id()
-                        self._experiment = wandb.init(**self._wandb_init)
-                        break
-                    except Exception as e:
-                        print("wandb Exception:\n", e)
-                        t = random.randint(30, 60)
-                        print(f"Sleeping for {t} seconds")
-                        time.sleep(t)
+                self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
                 if getattr(self._experiment, "define_metric", None):

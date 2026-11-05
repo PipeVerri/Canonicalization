@@ -2,6 +2,7 @@ _name_: genomic_benchmark
 dest_path: null
 control_signals_dir: null
 
+dataset_name: "human_enhancers_cohn" # Sample value for canonicalization interpolation
 d_output: ${.${.dataset_name}.classes}
 max_length: ${.${.dataset_name}.max_length}
 train_len: ${.${.dataset_name}.train_len}

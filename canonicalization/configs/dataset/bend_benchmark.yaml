@@ -2,8 +2,8 @@ _name_: bend_benchmark
 # Provide a sensible default for `dataset_dir` so tasks can access it.
 # This can still be overridden by an experiment or environment variable.
 
-dataset_name: ???
-h5_path: ???
+dataset_name: "gene_finding" # Sample value for canonicalization interpolation
+h5_path: null # null isntead of ??? for interpolation
 
 pool_mode: "snp" # Only applies to the zero shot tasks
 

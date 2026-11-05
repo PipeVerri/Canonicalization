@@ -1,0 +1,40 @@
+2026-11-04 14:34:50,628 INFO    StreamThr :17492 [internal.py:wandb_internal():85] W&B internal server running at pid: 17492, started at: 2026-11-04 14:34:50.628523
+2026-11-04 14:34:50,630 DEBUG   HandlerThread:17492 [handler.py:handle_request():158] handle_request: status
+2026-11-04 14:34:50,632 INFO    WriterThread:17492 [datastore.py:open_for_write():87] open: ./wandb/run-20261104_143450-9vik3cnk/run-9vik3cnk.wandb
+2026-11-04 14:34:50,633 DEBUG   SenderThread:17492 [sender.py:send():379] send: header
+2026-11-04 14:34:50,633 DEBUG   SenderThread:17492 [sender.py:send():379] send: run
+2026-11-04 14:34:50,642 INFO    SenderThread:17492 [sender.py:_setup_resume():749] checking resume status for None/Canonicalization/9vik3cnk
+2026-11-04 14:34:51,280 ERROR   SenderThread:17492 [sender.py:send_run():1009] 'NoneType' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/apis/normalize.py", line 41, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 560, in server_settings_introspection
+    for field in res.get("ServerSettingsType", {}).get("fields", [{}])
+AttributeError: 'NoneType' object has no attribute 'get'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/sdk/internal/sender.py", line 1007, in send_run
+    server_run = self._init_run(run, config_value_dict)
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/sdk/internal/sender.py", line 1079, in _init_run
+    server_run, inserted, server_messages = self._api.upsert_run(
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/apis/normalize.py", line 73, in wrapper
+    raise err
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/apis/normalize.py", line 41, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 2133, in upsert_run
+    self.server_settings_introspection()
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/apis/normalize.py", line 87, in wrapper
+    raise CommError(message, err).with_traceback(sys.exc_info()[2])
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/apis/normalize.py", line 41, in wrapper
+    return func(*args, **kwargs)
+  File "/home/pipev/miniconda3/envs/canonicalization/lib/python3.10/site-packages/wandb/sdk/internal/internal_api.py", line 560, in server_settings_introspection
+    for field in res.get("ServerSettingsType", {}).get("fields", [{}])
+wandb.errors.CommError: 'NoneType' object has no attribute 'get'
+2026-11-04 14:34:51,631 WARNING StreamThr :17492 [internal.py:is_dead():413] Internal process exiting, parent pid 17419 disappeared
+2026-11-04 14:34:51,631 ERROR   StreamThr :17492 [internal.py:wandb_internal():151] Internal process shutdown.
+2026-11-04 14:34:51,632 INFO    HandlerThread:17492 [handler.py:finish():882] shutting down handler
+2026-11-04 14:34:51,632 INFO    WriterThread:17492 [datastore.py:close():296] close: ./wandb/run-20261104_143450-9vik3cnk/run-9vik3cnk.wandb
+2026-11-04 14:34:51,865 DEBUG   HandlerThread:17492 [handler.py:handle_request():158] handle_request: status_report
+2026-11-04 14:34:52,281 INFO    SenderThread:17492 [sender.py:finish():1608] shutting down sender
