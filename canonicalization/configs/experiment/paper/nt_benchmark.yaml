@@ -3,6 +3,9 @@ defaults:
   - /experiment/baseline/nt_benchmark
   - _self_
 
+wandb:
+  group: paper_baseline
+
 model:
   d_model: 128
   kernel_size: 9

@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - /experiment/baseline/pretrain
+  - _self_
+
+wandb:
+  job_type: pretrain_6.8m
+
+model:
+  d_model: 256
+  kernel_size: 9
+  args:
+    hidden_dim: 256
+
+dataset:
+  batch_size: 128
+
+trainer:
+  max_epochs: 400
+  precision: 32

@@ -80,7 +80,7 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
             assert control_signals_dir.exists()
 
         # use Path object
-        base_path = Path(dest_path) / dataset_name 
+        base_path = Path(dest_path) / dataset_name
         assert base_path.exists(), 'path to fasta file must exist'
 
         for file in (base_path.iterdir()):
@@ -139,7 +139,8 @@ class NucleotideTransformerDataset(torch.utils.data.Dataset):
         # convert to tensor
         # seq = torch.LongTensor(seq)  # hack, remove the initial cls tokens for now
 
-        target = torch.LongTensor(y)
+        # Scalar class index: 0-dim tensor collates to shape (batch,) for multiclass tasks.
+        target = torch.tensor(y, dtype=torch.long)
 
         # Add the control_signal to the seq_ids tensor
         if self.control_signal is not None:

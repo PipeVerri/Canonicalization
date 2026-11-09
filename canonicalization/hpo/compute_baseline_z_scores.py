@@ -18,12 +18,15 @@ metric_names = {}
 
 def find_metric_name(run):
     metric = None
-    for split in ("val"): # I don't want to monitor and optimize based off the test scores. Test scores are only used for validation
+    for split in ("val",): # I don't want to monitor and optimize based off the test scores. Test scores are only used for validation
         if f"{split}/mcc" in run.summary.keys():
             metric = f"{split}/mcc"
             break
         elif f"{split}/auroc" in run.summary.keys():
             metric = f"{split}/auroc"
+            break
+        elif f"{split}/f1_macro" in run.summary.keys():
+            metric = f"{split}/f1_macro"
             break
         elif f"{split}/accuracy" in run.summary.keys():
             metric = f"{split}/accuracy"

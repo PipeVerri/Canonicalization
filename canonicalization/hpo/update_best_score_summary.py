@@ -3,14 +3,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import wandb
 from tqdm import tqdm
-from .compute_baseline_z_scores import find_metric_name
+from compute_baseline_z_scores import find_metric_name
 
 PROJECT = "pipe-verri-gh/Canonicalization"
 MAX_WORKERS = 8
 SKIP_EXISTING = True  # no recalcular si el run ya tiene best_score
 
 api = wandb.Api()
-runs = list(api.runs(PROJECT, filters={"group": "partial_downstream_canonicalization"}))
+runs = list(api.runs(PROJECT, filters={"group": "paper_baseline"}))
 
 def process(run):
     job_type = run.config["wandb"]["job_type"]
