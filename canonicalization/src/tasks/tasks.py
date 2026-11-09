@@ -44,7 +44,7 @@ class BaseTask:
         self.torchmetric_names = to_list(torchmetrics)
         # Nonlinear metrics must aggregate their state across the epoch rather
         # than average independent batch scores.
-        for name in ("mcc", "auroc"):
+        for name in ("mcc", "auroc", "f1_macro"):
             if name in self.metric_names:
                 self.metric_names = [metric for metric in self.metric_names if metric != name]
                 if name not in self.torchmetric_names:
@@ -81,6 +81,13 @@ class BaseTask:
                 )
             elif name == "auroc":
                 tracked_torchmetrics[name] = EpochAUROC(num_labels=self.dataset.d_output)
+            elif name == "f1_macro":
+                tracked_torchmetrics[name] = tm.F1Score(
+                    task="multiclass",
+                    average="macro",
+                    num_classes=self.dataset.d_output,
+                    ignore_index=-100,
+                )
             elif name in tm_mine:
                 tracked_torchmetrics[name] = tm_mine[name]()
             elif name in ['AUROC', 'StatScores', 'Precision', 'Recall', 'F1', 'F1Score']:

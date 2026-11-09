@@ -78,12 +78,12 @@ promoter_all:
   max_length: 300
   metric: f1_macro
 promoter_no_tata:
-  train_len: 47759
+  train_len: 47767
   classes: 2
   max_length: 300
   metric: f1_macro
 promoter_tata:
-  train_len: 5517
+  train_len: 5509
   classes: 2
   max_length: 300
   metric: f1_macro
@@ -101,7 +101,7 @@ splice_sites_donors:
 splice_sites_all:
   train_len: 27000 #data/nucleotide_transformer/splice_sites_all/splice_sites_all_train.fasta.fai
   classes: 3 #3分类 不是2分类 
-  max_length: 600
+  max_length: 400
   metric: f1_macro
 # splice_sites_all:
 #   train_len: 27000

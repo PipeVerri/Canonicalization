@@ -365,7 +365,7 @@ class SequenceLightningModule(pl.LightningModule):
             collection = self._get_torchmetrics(prefix)
             
 
-            for name in ("mcc", "auroc"):
+            for name in ("mcc", "auroc", "f1_macro"):
                 if name not in self.task.torchmetric_names:
                     continue
                 metric = self._get_torchmetrics(prefix)[name]
@@ -483,7 +483,7 @@ class SequenceLightningModule(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx, dataloader_idx=0):
-        if any(name in self.task.torchmetric_names for name in ("mcc", "auroc")):
+        if any(name in self.task.torchmetric_names for name in ("mcc", "auroc", "f1_macro")):
             return self._shared_step(
                 batch, batch_idx, prefix=self.test_loader_names[dataloader_idx]
             )

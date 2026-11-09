@@ -5,9 +5,10 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 from src.tasks.metrics import auroc as batch_auroc
+from src.tasks.metrics import f1_macro as batch_f1_macro
 from src.tasks.metrics import mcc as batch_mcc
 from src.tasks.tasks import BaseTask
 
@@ -147,4 +148,67 @@ def test_auroc_reset_separates_epochs():
 
     metric.reset()
     metric.update(-logits, labels)
+    assert metric.compute().item() == pytest.approx(0.0)
+
+def _f1_macro_task(num_classes=2):
+    return BaseTask(
+        dataset=SimpleNamespace(d_output=num_classes),
+        loss="cross_entropy",
+        metrics=["f1_macro"],
+    )
+
+
+def test_f1_macro_is_epoch_aggregated_not_batch_averaged():
+    task = _f1_macro_task(num_classes=2)
+    batches = [
+        (torch.tensor([[2.0, 0.0], [2.0, 0.0]]), torch.tensor([0, 1])),
+        (torch.tensor([[0.0, 2.0], [0.0, 2.0]]), torch.tensor([0, 1])),
+    ]
+    batch_scores = [batch_f1_macro(logits, y) for logits, y in batches]
+    expected_epoch = f1_score(
+        torch.tensor([0, 1, 0, 1]).numpy(),
+        torch.tensor([0, 0, 1, 1]).numpy(),
+        average="macro",
+    )
+
+    metric = task.val_torchmetrics["f1_macro"]
+    for logits, y in batches:
+        assert task.metrics(logits, y) == {}
+        metric.update(logits, y)
+
+    assert task.metric_names == []
+    assert task.torchmetric_names == ["f1_macro"]
+    assert sum(batch_scores) / len(batch_scores) == pytest.approx(1 / 3)
+    assert metric.compute().item() == pytest.approx(expected_epoch)
+    assert metric.compute().item() != pytest.approx(sum(batch_scores) / len(batch_scores))
+
+
+def test_f1_macro_multiclass_accumulates_across_batches():
+    task = _f1_macro_task(num_classes=3)
+    batches = [
+        (torch.tensor([[4.0, 0.0, 0.0], [0.0, 4.0, 0.0]]), torch.tensor([0, 1])),
+        (torch.tensor([[0.0, 0.0, 4.0], [4.0, 0.0, 0.0]]), torch.tensor([2, 0])),
+        (torch.tensor([[0.0, 4.0, 0.0], [0.0, 0.0, 4.0]]), torch.tensor([1, 2])),
+    ]
+
+    all_preds, all_y = [], []
+    metric = task.val_torchmetrics["f1_macro"]
+    for logits, y in batches:
+        metric.update(logits, y)
+        all_preds.extend(logits.argmax(dim=-1).tolist())
+        all_y.extend(y.tolist())
+
+    expected = f1_score(all_y, all_preds, average="macro")
+    assert metric.compute().item() == pytest.approx(expected)
+
+
+def test_f1_macro_reset_separates_epochs():
+    metric = _f1_macro_task().val_torchmetrics["f1_macro"]
+    logits = torch.tensor([[2.0, 0.0], [0.0, 2.0]])
+    labels = torch.tensor([0, 1])
+    metric.update(logits, labels)
+    assert metric.compute().item() == pytest.approx(1.0)
+
+    metric.reset()
+    metric.update(logits, torch.tensor([1, 0]))
     assert metric.compute().item() == pytest.approx(0.0)
