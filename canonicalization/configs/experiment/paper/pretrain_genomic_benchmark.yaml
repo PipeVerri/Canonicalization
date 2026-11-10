@@ -4,6 +4,7 @@ defaults:
   - _self_
 
 wandb:
+  group: paper_baseline
   job_type: pretrain_378k
 
 model:

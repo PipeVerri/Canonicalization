@@ -15,6 +15,9 @@ if __name__ == "__main__":
 
     if args.task in benchmark_tasks:
         task_list = benchmark_tasks[args.task]
+    elif args.task[:7] == "custom:":
+        task_list = args.task[7:].split(",")
+        print(f"Running custom tasks: {task_list}")
     else:
         raise ValueError(f"{args.task} not recognized")
 

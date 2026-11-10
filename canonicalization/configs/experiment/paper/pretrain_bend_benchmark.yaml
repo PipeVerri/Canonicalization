@@ -4,6 +4,7 @@ defaults:
   - _self_
 
 wandb:
+  group: paper_baseline
   job_type: pretrain_7.4m
 
 model:
@@ -14,6 +15,7 @@ model:
   num_conv1d: 10 # 10 GCBs
 
 dataset:
+  max_length: 16384 # 16k
   batch_size: 96
 
 trainer:

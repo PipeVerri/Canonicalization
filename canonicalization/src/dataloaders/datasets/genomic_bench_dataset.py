@@ -226,7 +226,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
             mask = (seq_ids >= 4) | (seq_ids < 0)
             seq_ids[mask] = 4
 
-        target = torch.LongTensor(y)
+        target = torch.tensor(y, dtype=torch.long)
 
         if self.control_signals_dict is not None:
             control_signal = self.control_signals_dict[y][self.path_names[idx]]

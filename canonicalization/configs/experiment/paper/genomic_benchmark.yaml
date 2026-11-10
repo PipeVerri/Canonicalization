@@ -3,6 +3,9 @@ defaults:
   - /experiment/baseline/genomic_benchmark
   - _self_
 
+wandb:
+  group: paper_baseline
+
 model:
   d_model: 64
   kernel_size: 5
