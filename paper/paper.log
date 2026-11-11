@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  4 NOV 2026 20:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026/Arch Linux) (preloaded format=pdflatex 2026.9.3)  11 NOV 2026 12:56
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -714,178 +714,169 @@ LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
 00.
  (/usr/share/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-) [2] [3]
-<./images/zhou_equivariance.png, id=268, 1950.28625pt x 829.0975pt>
+) [2]
+<./images/zhou_equivariance.png, id=238, 1950.28625pt x 829.0975pt>
 File: ./images/zhou_equivariance.png Graphic file (type png)
 <use ./images/zhou_equivariance.png>
-Package pdftex.def Info: ./images/zhou_equivariance.png  used on input line 220
+Package pdftex.def Info: ./images/zhou_equivariance.png  used on input line 196
 .
 (pdftex.def)             Requested size: 397.48499pt x 168.96666pt.
-<./images/kaba.png, id=280, 916.42375pt x 418.56375pt>
+
+Underfull \vbox (badness 1783) has occurred while \output is active []
+
+ [3]
+<./images/kaba.png, id=264, 916.42375pt x 418.56375pt>
 File: ./images/kaba.png Graphic file (type png)
 <use ./images/kaba.png>
-Package pdftex.def Info: ./images/kaba.png  used on input line 251.
+Package pdftex.def Info: ./images/kaba.png  used on input line 221.
 (pdftex.def)             Requested size: 198.7425pt x 90.76863pt.
 
-Underfull \vbox (badness 4366) has occurred while \output is active []
-
- [4 <./images/zhou_equivariance.png>]
-<./images/convnova_performance.png, id=307, 1581.91pt x 580.1675pt>
+[4 <./images/zhou_equivariance.png> <./images/kaba.png>]
+<./images/convnova_performance.png, id=294, 1581.91pt x 580.1675pt>
 File: ./images/convnova_performance.png Graphic file (type png)
 <use ./images/convnova_performance.png>
 Package pdftex.def Info: ./images/convnova_performance.png  used on input line 
-267.
+237.
 (pdftex.def)             Requested size: 397.48499pt x 145.77628pt.
 LaTeX Font Info:    Font shape `T1/zi4/m/it' will be
-(Font)              scaled to size 10.0pt on input line 276.
-
-Underfull \vbox (badness 1394) has occurred while \output is active []
-
- [5 <./images/kaba.png> <./images/convnova_performance.png>]
-<./images/convnova_arch.png, id=330, 1571.8725pt x 920.43875pt>
+(Font)              scaled to size 10.0pt on input line 246.
+ [5 <./images/convnova_performance.png>]
+<./images/convnova_arch.png, id=329, 1571.8725pt x 920.43875pt>
 File: ./images/convnova_arch.png Graphic file (type png)
 <use ./images/convnova_arch.png>
-Package pdftex.def Info: ./images/convnova_arch.png  used on input line 302.
-(pdftex.def)             Requested size: 333.221pt x 195.13098pt.
- [6 <./images/convnova_arch.png>] [7] [8] [9]
-<./images/charts/tasks_correlation_histogram.png, id=401, 462.528pt x 346.896pt
+Package pdftex.def Info: ./images/convnova_arch.png  used on input line 323.
+(pdftex.def)             Requested size: 397.48499pt x 232.74953pt.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+[6] [7 <./images/convnova_arch.png>] [8] [9]
+<./images/charts/tasks_correlation_histogram.png, id=387, 462.528pt x 346.896pt
 >
 File: ./images/charts/tasks_correlation_histogram.png Graphic file (type png)
 <use ./images/charts/tasks_correlation_histogram.png>
 Package pdftex.def Info: ./images/charts/tasks_correlation_histogram.png  used 
-on input line 519.
+on input line 461.
 (pdftex.def)             Requested size: 198.742pt x 149.0565pt.
-<./images/charts/ablation.png, id=405, 902.6523pt x 962.1546pt>
+<./images/charts/ablation.png, id=391, 902.6523pt x 962.1546pt>
 File: ./images/charts/ablation.png Graphic file (type png)
 <use ./images/charts/ablation.png>
-Package pdftex.def Info: ./images/charts/ablation.png  used on input line 537.
-(pdftex.def)             Requested size: 902.6501pt x 962.15227pt.
+Package pdftex.def Info: ./images/charts/ablation.png  used on input line 501.
+(pdftex.def)             Requested size: 357.73405pt x 381.31683pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [10 <./images/charts/tasks_correlation_histogram.png>]
-File: ./images/charts/ablation.png Graphic file (type png)
-<use ./images/charts/ablation.png>
-Package pdftex.def Info: ./images/charts/ablation.png  used on input line 550.
-(pdftex.def)             Requested size: 902.6501pt x 962.15227pt.
-<./images/charts/ablation_p_values.png, id=419, 902.6523pt x 803.1606pt>
+<./images/charts/ablation_p_values.png, id=403, 902.6523pt x 803.1606pt>
 File: ./images/charts/ablation_p_values.png Graphic file (type png)
 <use ./images/charts/ablation_p_values.png>
 Package pdftex.def Info: ./images/charts/ablation_p_values.png  used on input l
-ine 559.
-(pdftex.def)             Requested size: 361.71278pt x 321.84679pt.
+ine 508.
+(pdftex.def)             Requested size: 357.73405pt x 318.30504pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [11 <./images/charts/ablation.png>]
-Overfull \hbox (39.79288pt too wide) in paragraph at lines 566--578
+Overfull \hbox (39.79288pt too wide) in paragraph at lines 515--527
  [][] 
  []
 
-<./images/charts/trial_scores_confidence_interval.png, id=426, 722.7pt x 361.35
+<./images/charts/trial_scores_confidence_interval.png, id=409, 722.7pt x 361.35
 pt>
 File: ./images/charts/trial_scores_confidence_interval.png Graphic file (type p
 ng)
 <use ./images/charts/trial_scores_confidence_interval.png>
 Package pdftex.def Info: ./images/charts/trial_scores_confidence_interval.png  
-used on input line 596.
+used on input line 547.
 (pdftex.def)             Requested size: 397.48499pt x 198.74312pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<./images/charts/hpo_parameters_importance.png, id=427, 3513.125pt x 1756.5625p
+<./images/charts/hpo_parameters_importance.png, id=410, 3513.125pt x 1756.5625p
 t>
 File: ./images/charts/hpo_parameters_importance.png Graphic file (type png)
 <use ./images/charts/hpo_parameters_importance.png>
 Package pdftex.def Info: ./images/charts/hpo_parameters_importance.png  used on
- input line 602.
+ input line 553.
 (pdftex.def)             Requested size: 278.23827pt x 139.10732pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \vbox (badness 3701) has occurred while \output is active []
 
  [12 <./images/charts/ablation_p_values.png>] [13 <./images/charts/trial_scores
 _confidence_interval.png> <./images/charts/hpo_parameters_importance.png>] (./p
 aper.bbl
 [14] [15])
-<./images/overlap_break_behavior.png, id=468, 1460.45625pt x 679.53876pt>
+<./images/overlap_break_behavior.png, id=453, 1460.45625pt x 679.53876pt>
 File: ./images/overlap_break_behavior.png Graphic file (type png)
 <use ./images/overlap_break_behavior.png>
 Package pdftex.def Info: ./images/overlap_break_behavior.png  used on input lin
-e 648.
+e 599.
 (pdftex.def)             Requested size: 278.23827pt x 129.45587pt.
  [16]
-Underfull \hbox (badness 10000) in paragraph at lines 673--679
+Underfull \hbox (badness 10000) in paragraph at lines 623--629
 
  []
 
-<./images/conflict_window.png, id=474, 1391.1975pt x 650.43pt>
+<./images/conflict_window.png, id=460, 1391.1975pt x 650.43pt>
 File: ./images/conflict_window.png Graphic file (type png)
 <use ./images/conflict_window.png>
-Package pdftex.def Info: ./images/conflict_window.png  used on input line 696.
+Package pdftex.def Info: ./images/conflict_window.png  used on input line 646.
 (pdftex.def)             Requested size: 198.7425pt x 92.9155pt.
 [17 <./images/overlap_break_behavior.png> <./images/conflict_window.png>]
-Underfull \hbox (badness 2591) in paragraph at lines 708--709
-[]\T1/ptm/m/n/10 (+20) If one wishes to keep the ex-act or-der of the seg-ments
- as they were
- []
-
-<./images/ordered_segments_canonicalization.png, id=488, 4822.015pt x 2040.6237
+<./images/ordered_segments_canonicalization.png, id=475, 4822.015pt x 2040.6237
 5pt>
 File: ./images/ordered_segments_canonicalization.png Graphic file (type png)
 <use ./images/ordered_segments_canonicalization.png>
 Package pdftex.def Info: ./images/ordered_segments_canonicalization.png  used o
-n input line 715.
+n input line 666.
 (pdftex.def)             Requested size: 397.48499pt x 168.20407pt.
-<./images/keep_order_false_example.png, id=490, 2527.4425pt x 1204.5pt>
+<./images/keep_order_false_example.png, id=477, 2527.4425pt x 1204.5pt>
 File: ./images/keep_order_false_example.png Graphic file (type png)
 <use ./images/keep_order_false_example.png>
 Package pdftex.def Info: ./images/keep_order_false_example.png  used on input l
-ine 726.
+ine 678.
 (pdftex.def)             Requested size: 397.48499pt x 189.41568pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [18 <./images/ordered_segments_canonicalization.png>]
-Underfull \hbox (badness 10000) in paragraph at lines 740--741
+Underfull \hbox (badness 10000) in paragraph at lines 692--693
 []\T1/ptm/m/n/10 (+20) This al-go-rithm is sim-i-lar to the one used when
  []
 
-<./images/canonicalization_algorithms_example.png, id=503, 1752.5475pt x 457.71
+<./images/canonicalization_algorithms_example.png, id=489, 1752.5475pt x 457.71
 pt>
 File: ./images/canonicalization_algorithms_example.png Graphic file (type png)
 <use ./images/canonicalization_algorithms_example.png>
 Package pdftex.def Info: ./images/canonicalization_algorithms_example.png  used
- on input line 752.
+ on input line 704.
 (pdftex.def)             Requested size: 397.48499pt x 103.80443pt.
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [19 <./images/keep_order_false_example.png>]
-<./images/mlp_final_layer.png, id=514, 2004.48875pt x 231.86626pt>
+<./images/mlp_final_layer.png, id=500, 1794.705pt x 227.85126pt>
 File: ./images/mlp_final_layer.png Graphic file (type png)
 <use ./images/mlp_final_layer.png>
-Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 764.
-(pdftex.def)             Requested size: 397.48499pt x 45.97617pt.
+Package pdftex.def Info: ./images/mlp_final_layer.png  used on input line 716.
+(pdftex.def)             Requested size: 397.48499pt x 50.46118pt.
  [20 <./images/canonicalization_algorithms_example.png> <./images/mlp_final_lay
-er.png>]
-Underfull \vbox (badness 2443) has occurred while \output is active []
-
- [21]
-Underfull \hbox (badness 10000) in paragraph at lines 935--935
+er.png>] [21]
+Underfull \hbox (badness 10000) in paragraph at lines 890--890
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 935--935
+Underfull \hbox (badness 10000) in paragraph at lines 890--890
 []|\T1/ptm/m/n/10 (+20) RC-
  []
 
-
-Underfull \hbox (badness 5622) in paragraph at lines 968--968
+[22]
+Underfull \hbox (badness 5622) in paragraph at lines 923--923
 \T1/ptm/m/n/10 (+20) hancers and OCR;
  []
 
-[22] [23] (./paper.aux)
+[23] (./paper.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -895,16 +886,16 @@ L3 programming layer <2026-01-19>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 1D1062BA9990B05CB847A13547484774;6992.
+(rerunfilecheck)             Checksum: 0C9017963E5DA4906DFAD38B0F4A3D7D;6314.
  ) 
 Here is how much of TeX's memory you used:
- 18120 strings out of 469515
- 286358 string characters out of 5470808
- 735219 words of memory out of 5000000
- 46093 multiletter control sequences out of 15000+600000
- 679041 words of font info for 233 fonts, out of 8000000 for 9000
+ 18127 strings out of 469515
+ 286414 string characters out of 5470808
+ 734389 words of memory out of 5000000
+ 46090 multiletter control sequences out of 15000+600000
+ 679774 words of font info for 243 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,13n,117p,1823b,954s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,13n,117p,1778b,956s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/inconsolata/Inconsolata-zi4r.pfb></
 usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/t
@@ -914,10 +905,10 @@ pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share
 /texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/texmf-dist/fonts/type1
 /urw/times/utmr8a.pfb></usr/share/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
 
-Output written on paper.pdf (23 pages, 3269835 bytes).
+Output written on paper.pdf (23 pages, 3260372 bytes).
 PDF statistics:
- 653 PDF objects out of 1000 (max. 8388607)
- 546 compressed objects within 6 object streams
- 148 named destinations out of 1000 (max. 500000)
- 44908 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 637 PDF objects out of 1000 (max. 8388607)
+ 531 compressed objects within 6 object streams
+ 143 named destinations out of 1000 (max. 500000)
+ 44884 words of extra memory for PDF output out of 51595 (max. 10000000)
 
