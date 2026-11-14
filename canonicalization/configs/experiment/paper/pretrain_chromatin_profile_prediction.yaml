@@ -15,7 +15,7 @@ model:
 
 dataset:
   max_length: 2048
-  batch_size: 64z
+  batch_size: 64
 
 trainer:
   max_epochs: 400

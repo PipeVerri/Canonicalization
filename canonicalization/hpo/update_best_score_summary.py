@@ -13,6 +13,9 @@ api = wandb.Api()
 runs = list(api.runs(PROJECT, filters={"group": "paper_baseline"}))
 
 def process(run):
+    if run.state != "finished":
+        return run.id, f"skipped (estado {run.state})"
+
     job_type = run.config["wandb"]["job_type"]
     if job_type == "pretraining":
         return run.id, "skipped (pretraining)"
