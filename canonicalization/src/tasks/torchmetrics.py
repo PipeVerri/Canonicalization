@@ -28,6 +28,10 @@ class EpochAUROC(MultilabelAUROC):
     TorchMetrics handles accumulation, distributed synchronization, and AUROC.
     The extra counts preserve the project's convention of excluding labels with
     only one target value, but make that decision over the whole epoch.
+
+    Accumulated scores/targets are stored on CPU to avoid GPU OOM on large
+    datasets (e.g. chromatin profile prediction), while preserving exact
+    epoch-level AUROC computation.
     """
 
     def __init__(self, num_labels):
@@ -40,6 +44,9 @@ class EpochAUROC(MultilabelAUROC):
         # Always apply sigmoid: automatic logits detection on each batch can
         # mix logits in [0, 1] with probabilities from other batches.
         scores = logits.reshape(target.shape).float().sigmoid()
+        # Store on CPU to keep GPU memory bounded across very long epochs.
+        scores = scores.detach().cpu()
+        target = target.detach().cpu()
         super().update(scores, target)
         self.positives += (target == 1).sum(dim=0)
         self.negatives += (target == 0).sum(dim=0)
