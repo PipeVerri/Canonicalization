@@ -5,6 +5,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader, TensorDataset
+from torchmetrics.classification import MultilabelAUROC
 
 from src.tasks.tasks import BaseTask
 from train import SequenceLightningModule
@@ -13,14 +14,14 @@ from train import SequenceLightningModule
 class MetricLoggingModule(SequenceLightningModule):
     """Use the real metric logging paths with synthetic logits and no backbone."""
 
-    def __init__(self, compute_train_metrics=True):
+    def __init__(self, compute_train_metrics=True, dataset_name=None):
         pl.LightningModule.__init__(self)
         self.config = OmegaConf.create({"train": {"compute_train_torchmetrics": compute_train_metrics}})
         self.save_hyperparameters(OmegaConf.create({
             "train": {"state": {"mode": None, "n_context": 0, "n_context_eval": 0}},
         }))
         self.task = BaseTask(
-            dataset=SimpleNamespace(d_output=2),
+            dataset=SimpleNamespace(d_output=2, _name_=dataset_name),
             loss="binary_cross_entropy",
             metrics=["auroc"],
         )
@@ -53,10 +54,10 @@ def _loaders():
     ]
 
 
-def _trainer(tmp_path, **kwargs):
+def _trainer(tmp_path, accelerator="cpu", **kwargs):
     return pl.Trainer(
         default_root_dir=tmp_path,
-        accelerator="cpu",
+        accelerator=accelerator,
         devices=1,
         logger=False,
         enable_checkpointing=False,
@@ -106,3 +107,66 @@ def test_auroc_standalone_test_uses_epoch_metrics(tmp_path):
 
     assert trainer.callback_metrics["final/val/0/auroc"].item() == pytest.approx(0.75)
     assert trainer.callback_metrics["final/test/0/auroc"].item() == pytest.approx(0.25)
+
+
+def test_chromatin_auroc_is_bounded_through_lightning_epoch_end(tmp_path):
+    model = MetricLoggingModule(dataset_name="chromatin_profile")
+    trainer = _trainer(tmp_path)
+    trainer.validate(model, dataloaders=_loaders(), verbose=False)
+
+    assert trainer.callback_metrics["val/0/auroc"].item() == pytest.approx(0.75)
+    assert trainer.callback_metrics["test/0/auroc"].item() == pytest.approx(0.25)
+    for prefix in ("val/0", "test/0"):
+        metric = model._get_torchmetrics(prefix)["auroc"]
+        assert metric.confmat.shape == (64, 2, 2, 2)
+        assert not hasattr(metric, "preds")
+        assert not hasattr(metric, "target")
+
+
+def test_chromatin_auroc_state_does_not_grow_with_batches():
+    task = BaseTask(dataset=SimpleNamespace(d_output=919, _name_="chromatin_profile"),
+                    loss="binary_cross_entropy", metrics=["auroc"])
+    metric = task.val_torchmetrics["auroc"]
+    logits = torch.zeros(4, 919)
+    targets = torch.tensor([[0] * 919, [1] * 919] * 2)
+    state_bytes = metric.confmat.numel() * metric.confmat.element_size()
+
+    for _ in range(10):
+        metric.update(logits, targets)
+
+    assert metric.confmat.numel() * metric.confmat.element_size() == state_bytes
+    assert state_bytes < 3 * 1024 * 1024
+    assert not hasattr(metric, "preds")
+    assert metric.compute().item() == pytest.approx(0.5)
+
+
+def test_chromatin_auroc_chunked_update_matches_torchmetrics():
+    task = BaseTask(dataset=SimpleNamespace(d_output=2, _name_="chromatin_profile"),
+                    loss="binary_cross_entropy", metrics=["auroc"])
+    metric = task.val_torchmetrics["auroc"]
+    reference = MultilabelAUROC(num_labels=2, thresholds=64)
+    logits = torch.linspace(-2, 2, 34).unsqueeze(1).expand(-1, 2)
+    target = torch.tensor([[i % 2, (i // 2) % 2] for i in range(34)])
+
+    metric.update(logits, target)
+    reference.update(logits.sigmoid(), target)
+
+    assert metric.compute().item() == pytest.approx(reference.compute().item())
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+def test_chromatin_auroc_gpu_logging_computes_without_retaining_predictions(tmp_path):
+    class TrackingMetricLoggingModule(MetricLoggingModule):
+        def validation_epoch_end(self, outputs):
+            self.metric_device_during_epoch_end = self._get_torchmetrics("test/0")["auroc"].confmat.device.type
+            return super().validation_epoch_end(outputs)
+
+    model = TrackingMetricLoggingModule(dataset_name="chromatin_profile")
+    trainer = _trainer(tmp_path, accelerator="gpu")
+    trainer.validate(model, dataloaders=_loaders(), verbose=False)
+
+    assert trainer.callback_metrics["test/0/auroc"].item() == pytest.approx(0.25)
+    metric = model._get_torchmetrics("test/0")["auroc"]
+    assert model.metric_device_during_epoch_end == "cuda"
+    assert metric.confmat.numel() == 64 * 2 * 2 * 2
+    assert not hasattr(metric, "preds")

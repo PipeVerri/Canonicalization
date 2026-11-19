@@ -23,19 +23,19 @@ except ImportError:
 
 
 class EpochAUROC(MultilabelAUROC):
-    """Exact macro AUROC from logits, excluding labels undefined over the epoch.
+    """Macro AUROC from logits, excluding labels undefined over the epoch.
+
+    With thresholds=None the result is exact and retains every prediction and
+    target. With integer thresholds it uses a fixed-size confusion matrix and
+    approximates AUROC, regardless of dataset size.
 
     TorchMetrics handles accumulation, distributed synchronization, and AUROC.
     The extra counts preserve the project's convention of excluding labels with
     only one target value, but make that decision over the whole epoch.
-
-    Accumulated scores/targets are stored on CPU to avoid GPU OOM on large
-    datasets (e.g. chromatin profile prediction), while preserving exact
-    epoch-level AUROC computation.
     """
 
-    def __init__(self, num_labels):
-        super().__init__(num_labels=num_labels, average=None, thresholds=None)
+    def __init__(self, num_labels, thresholds=None):
+        super().__init__(num_labels=num_labels, average=None, thresholds=thresholds)
         self.add_state("positives", default=torch.zeros(num_labels, dtype=torch.long), dist_reduce_fx="sum")
         self.add_state("negatives", default=torch.zeros(num_labels, dtype=torch.long), dist_reduce_fx="sum")
 
@@ -44,10 +44,17 @@ class EpochAUROC(MultilabelAUROC):
         # Always apply sigmoid: automatic logits detection on each batch can
         # mix logits in [0, 1] with probabilities from other batches.
         scores = logits.reshape(target.shape).float().sigmoid()
-        # Store on CPU to keep GPU memory bounded across very long epochs.
-        scores = scores.detach().cpu()
-        target = target.detach().cpu()
-        super().update(scores, target)
+        device = self.positives.device
+        scores = scores.detach().to(device)
+        target = target.detach().to(device)
+        if self.thresholds is None:
+            super().update(scores, target)
+        else:
+            # TorchMetrics broadcasts [batch, labels] over all thresholds in
+            # its histogram update. Keep the temporary CUDA allocation small
+            # even when evaluation uses large batches.
+            for score_chunk, target_chunk in zip(scores.split(16), target.split(16)):
+                super().update(score_chunk, target_chunk)
         self.positives += (target == 1).sum(dim=0)
         self.negatives += (target == 0).sum(dim=0)
 

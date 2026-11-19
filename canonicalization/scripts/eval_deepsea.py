@@ -44,7 +44,7 @@ for idx, t in enumerate(predictor_names):
 def main(config: OmegaConf):
     config = process_config(config)
     config.wandb.mode = "disabled"  # Disable wandb logging for evaluation
-    config.dataset.batch_size = 32
+    config.dataset.batch_size = 128
 
     # ROOT CAUSE FIX: the experiment config sets pretrained_model_state_hook._name_=load_backbone.
     # That hook is designed for pretraining→finetuning transfer: it intentionally discards all
@@ -70,7 +70,7 @@ def main(config: OmegaConf):
     all_preds = []   # accumulate sigmoid scores over the full dataset
     all_labels = []  # accumulate ground-truth labels over the full dataset
 
-    val_loader = model.train_dataloader()
+    val_loader = model.val_dataloader()[1]
     with torch.no_grad():
         for idx, batch in tqdm(enumerate(val_loader), total=len(val_loader), desc="Evaluating"):
             x, y, *z = batch

@@ -80,7 +80,15 @@ class BaseTask:
                     ignore_index=-100,
                 )
             elif name == "auroc":
-                tracked_torchmetrics[name] = EpochAUROC(num_labels=self.dataset.d_output)
+                dataset_name = getattr(self.dataset, "_name_", type(self.dataset).__name__)
+                # Exact AUROC holds all 919 scores and targets for every DeepSEA
+                # example (including the 455k-example test loader). A fixed
+                # threshold grid keeps metric memory independent of epoch length.
+                thresholds = (
+                    64 if dataset_name in {"chromatin_profile", "ChromatinProfile", "ChromatinProfileDataset"}
+                    else None
+                )
+                tracked_torchmetrics[name] = EpochAUROC(num_labels=self.dataset.d_output, thresholds=thresholds)
             elif name == "f1_macro":
                 tracked_torchmetrics[name] = tm.F1Score(
                     task="multiclass",
